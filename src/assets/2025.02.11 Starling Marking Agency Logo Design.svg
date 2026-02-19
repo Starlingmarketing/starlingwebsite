@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_1" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 65 893.82 270">
+  <defs>
+    <style>
+      .cls-1 {
+        letter-spacing: .5em;
+      }
+
+      .cls-2 {
+        letter-spacing: .48em;
+      }
+
+      .cls-3 {
+        letter-spacing: .5em;
+      }
+
+      .cls-4 {
+        font-family: TimesNewRomanPSMT, 'Times New Roman';
+        font-size: 97.04px;
+      }
+
+      .cls-5 {
+        fill: none;
+        stroke: #000;
+        stroke-miterlimit: 10;
+        stroke-width: 3px;
+      }
+    </style>
+  </defs>
+  <g id="TEST_6" data-name="TEST 6">
+    <polygon class="cls-5" points="285.12 216.05 310.26 332.54 310.87 211.5 330.63 202.63 330.85 202.63 330.98 202.63 330.92 202.63 330.98 202.63 330.64 202.63 310.87 193.75 310.26 72.71 285.12 189.21 263.7 179.64 276.51 202.9 263.7 225.62 285.12 216.05"/>
+    <text class="cls-4" transform="translate(39.44 236.53)"><tspan class="cls-3" x="0" y="0">S</tspan><tspan class="cls-2" x="102.49" y="0">T</tspan><tspan class="cls-1" x="208.53" y="0" xml:space="preserve">  RLING</tspan></text>
+    <text/>
+  </g>
+</svg>

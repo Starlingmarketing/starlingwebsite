@@ -1,18 +1,69 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
+import gsap from 'gsap';
+import logo from '../assets/2025.02.11 Starling Marking Agency Logo Design.svg';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import { useGSAP } from '@gsap/react';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const navRef = useRef(null);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+  useGSAP(() => {
+    const vh = window.innerHeight;
+
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        start: 'top top',
+        end: '+=' + vh * 1.8,
+        scrub: 1.2,
+      },
+    });
+
+    tl.fromTo(
+      navRef.current,
+      {
+        backgroundColor: 'rgba(255, 255, 255, 0)',
+        borderColor: 'rgba(255, 255, 255, 0)',
+        backdropFilter: 'blur(0px) saturate(1)',
+      },
+      {
+        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+        borderColor: 'rgba(255, 255, 255, 0.3)',
+        backdropFilter: 'blur(40px) saturate(1.5)',
+        ease: 'power2.out',
+        duration: 0.25,
+      },
+      0
+    );
+
+    tl.fromTo(
+      navRef.current,
+      {
+        borderRadius: '0px',
+        width: '100%',
+        maxWidth: '100%',
+        top: '0px',
+        paddingTop: '16px',
+        paddingBottom: '16px',
+      },
+      {
+        borderRadius: '22px',
+        width: 'calc(100% - 2rem)',
+        maxWidth: '1024px',
+        top: '16px',
+        paddingTop: '12px',
+        paddingBottom: '12px',
+        ease: 'power2.inOut',
+        duration: 1,
+        force3D: true,
+      },
+      0
+    );
   }, []);
 
   const navLinks = [
@@ -24,17 +75,16 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed w-full z-50 py-3 transition-all duration-500 ease-in-out border-b ${
-        scrolled ? 'bg-white/20 backdrop-blur-2xl backdrop-saturate-150 border-white/30' : 'bg-transparent border-transparent'
-      }`}
+      ref={navRef}
+      className="fixed z-50 left-1/2 -translate-x-1/2 border"
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
         {/* Logo */}
         <Link
           to="/"
-          className="text-xl md:text-2xl font-light tracking-[0.2em] uppercase text-slate-900 z-50 relative"
+          className="z-50 relative"
         >
-          Starling
+          <img src={logo} alt="Starling" className="h-9 md:h-10 w-auto" />
         </Link>
 
         {/* Desktop Nav */}
