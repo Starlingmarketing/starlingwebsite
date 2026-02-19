@@ -57,17 +57,17 @@ const Home = () => {
   }, { scope: container });
 
   // Featured gallery mock layouts for a premium editorial look
-  const wedding1Images = [
-    { id: 'w1-1', aspectRatio: 'aspect-[3/4]', className: 'col-span-12 md:col-span-7' },
-    { id: 'w1-2', aspectRatio: 'aspect-[4/3]', className: 'col-span-12 md:col-span-5' },
-    { id: 'w1-3', aspectRatio: 'aspect-[3/4]', className: 'col-span-12 md:col-span-5 md:mt-[-20%]' }
-  ];
+  const wedding1Images = Array.from({ length: 16 }, (_, i) => ({
+    id: `w1-${i + 1}`,
+    aspectRatio: 'aspect-[4/3]',
+    className: 'col-span-12 md:col-span-6 lg:col-span-3'
+  }));
 
-  const wedding2Images = [
-    { id: 'w2-1', aspectRatio: 'aspect-[4/3]', className: 'col-span-12 md:col-span-8 md:col-start-3' },
-    { id: 'w2-2', aspectRatio: 'aspect-[3/4]', className: 'col-span-12 md:col-span-5' },
-    { id: 'w2-3', aspectRatio: 'aspect-[3/4]', className: 'col-span-12 md:col-span-5 md:col-start-8 md:mt-[-15%]' }
-  ];
+  const wedding2Images = Array.from({ length: 16 }, (_, i) => ({
+    id: `w2-${i + 1}`,
+    aspectRatio: 'aspect-[4/3]',
+    className: 'col-span-12 md:col-span-6 lg:col-span-3'
+  }));
 
   return (
     <div ref={container} className="w-full">
@@ -86,10 +86,10 @@ const Home = () => {
               Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia, traveling worldwide.
             </p>
             <Link
-              to="/gallery"
+              to="/booking"
               className="hero-link group inline-flex items-center space-x-4 text-xs uppercase tracking-[0.2em] text-slate-900 hover:text-slate-500 transition-colors"
             >
-              <span>View Selected Works</span>
+              <span>REACH OUT</span>
               <ArrowRight size={16} strokeWidth={1} className="group-hover:translate-x-2 transition-transform duration-300" />
             </Link>
           </div>
