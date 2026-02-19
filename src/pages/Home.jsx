@@ -16,44 +16,79 @@ const Home = () => {
   const container = useRef(null);
 
   useGSAP(() => {
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+    const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
     // Initial states
-    gsap.set('.hero-text-line', { y: 40, opacity: 0 });
-    gsap.set('.hero-desc', { y: 20, opacity: 0 });
-    gsap.set('.hero-link', { opacity: 0 });
-    gsap.set('.hero-img-wrapper', { opacity: 0, y: 40 });
-    gsap.set('.hero-img', { scale: 1.05 });
+    gsap.set('.hero-text-line', { y: 32, opacity: 0 });
+    gsap.set('.hero-desc', { y: 16, opacity: 0 });
+    gsap.set('.hero-link', { y: 10, opacity: 0 });
+    gsap.set('.hero-img-wrapper', { opacity: 0, y: 28 });
+    gsap.set('.hero-img', { scale: 1.06, transformOrigin: '50% 50%' });
+
+    if (prefersReducedMotion) {
+      gsap.set('.hero-text-line', { y: 0, opacity: 1 });
+      gsap.set('.hero-desc', { y: 0, opacity: 1 });
+      gsap.set('.hero-link', { y: 0, opacity: 1 });
+      gsap.set('.hero-img-wrapper', { y: 0, opacity: 1 });
+      gsap.set('.hero-img', { scale: 1, clearProps: 'transform' });
+      return;
+    }
 
     // Animation sequence
-    tl.to('.hero-img-wrapper', {
-      opacity: 1,
-      y: 0,
-      duration: 1.8,
-      ease: 'power3.out'
-    })
-    .to('.hero-img', {
-      scale: 1,
-      duration: 2,
-      ease: 'power2.out',
-      clearProps: 'transform'
-    }, '-=1.8')
-    .to('.hero-text-line', {
-      y: 0,
-      opacity: 1,
-      duration: 1,
-      stagger: 0.15,
-      ease: 'power3.out'
-    }, '-=1.4')
-    .to('.hero-desc', {
-      y: 0,
-      opacity: 1,
-      duration: 1
-    }, '-=0.8')
-    .to('.hero-link', {
-      opacity: 1,
-      duration: 1
-    }, '-=0.8');
+    // Text leads slightly; image follows for a cleaner, more natural pacing.
+    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
+
+    tl.to(
+      '.hero-text-line',
+      {
+        y: 0,
+        opacity: 1,
+        duration: 0.9,
+        stagger: 0.08,
+        ease: 'power3.out',
+      },
+      0
+    )
+      .to(
+        '.hero-desc',
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.8,
+          ease: 'power2.out',
+        },
+        0.32
+      )
+      .to(
+        '.hero-link',
+        {
+          y: 0,
+          opacity: 1,
+          duration: 0.7,
+          ease: 'power2.out',
+        },
+        0.48
+      )
+      .to(
+        '.hero-img-wrapper',
+        {
+          opacity: 1,
+          y: 0,
+          duration: 1.2,
+          ease: 'power2.out',
+        },
+        0.18
+      )
+      .to(
+        '.hero-img',
+        {
+          scale: 1,
+          duration: 1.6,
+          ease: 'power2.out',
+          clearProps: 'transform',
+        },
+        0.18
+      );
   }, { scope: container });
 
   // Featured gallery mock layouts for a premium editorial look
@@ -72,17 +107,17 @@ const Home = () => {
   return (
     <div ref={container} className="w-full">
       {/* Hero Section - Framed Premium Layout */}
-      <section id="home-hero" className="relative w-full pt-28 pb-20 px-6 md:px-12 lg:px-24 max-w-[1600px] mx-auto min-h-[85vh] flex flex-col justify-center">
-        <div className="flex flex-col lg:flex-row items-center gap-16 lg:gap-24">
+      <section id="home-hero" className="relative w-full pt-24 pb-8 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto min-h-[50vh] lg:h-[50vh] flex flex-col justify-center">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16 h-full">
           
           {/* Text Content */}
-          <div className="w-full lg:w-5/12 order-2 lg:order-1 flex flex-col justify-center z-10">
-            <h1 className="text-4xl md:text-5xl lg:text-6xl font-serif uppercase text-slate-900 leading-[1.1] tracking-wide mb-8">
+          <div className="w-full lg:w-5/12 order-2 lg:order-1 flex flex-col justify-center z-10 lg:h-full">
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif uppercase text-slate-900 leading-[1.1] tracking-wide mb-6">
               <div className="overflow-hidden"><div className="hero-text-line">Intentional</div></div>
               <div className="overflow-hidden"><div className="hero-text-line">Elegant</div></div>
               <div className="overflow-hidden"><div className="hero-text-line">Honest</div></div>
             </h1>
-            <p className="hero-desc text-base md:text-lg text-slate-600 font-light mb-12 max-w-md leading-relaxed">
+            <p className="hero-desc text-sm md:text-base text-slate-600 font-light mb-8 max-w-md leading-relaxed">
               Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia, traveling worldwide.
             </p>
             <Link
@@ -95,8 +130,8 @@ const Home = () => {
           </div>
           
           {/* Image Container */}
-          <div className="w-full lg:w-7/12 order-1 lg:order-2">
-            <div className="hero-img-wrapper relative aspect-[4/5] md:aspect-[3/4] lg:aspect-[4/5] w-full overflow-hidden bg-slate-50 shadow-2xl shadow-slate-200/50">
+          <div className="w-full lg:w-6/12 order-1 lg:order-2 h-[35vh] lg:h-full py-4 lg:py-6 flex items-center justify-center lg:justify-end">
+            <div className="hero-img-wrapper relative aspect-[4/3] h-full w-auto max-w-full overflow-hidden bg-slate-50 shadow-2xl shadow-slate-200/50">
               <AdvancedImage 
                 cldImg={coverImage} 
                 className="hero-img absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-[2000ms] ease-out" 
@@ -109,21 +144,15 @@ const Home = () => {
       </section>
 
       {/* Featured Galleries / Recent Work */}
-      <section className="px-6 md:px-12 max-w-7xl mx-auto py-24 border-t border-slate-100">
-        <div className="flex justify-between items-end mb-16">
+      <section className="px-6 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]">
+        <div className="flex justify-between items-end mb-8">
           <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2>
-          <Link
-            to="/gallery"
-            className="hidden md:block text-xs uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors"
-          >
-            All Stories
-          </Link>
         </div>
         
-        <div className="space-y-32">
+        <div className="space-y-20">
           {/* Gallery 1 */}
           <div>
-            <div className="mb-10 flex flex-col items-center text-center">
+            <div className="mb-8 flex flex-col items-center text-center">
               <h3 className="text-3xl font-light text-slate-900 mb-3">The Amalfi Wedding</h3>
               <p className="text-sm text-slate-400 font-light uppercase tracking-widest">Amalfi Coast, Italy • Summer 2026</p>
             </div>
@@ -140,16 +169,11 @@ const Home = () => {
                 </div>
               ))}
             </div>
-            <div className="mt-12 text-center">
-              <Link to="/gallery" className="inline-block border-b border-slate-300 pb-1 text-sm uppercase tracking-widest text-slate-600 hover:text-slate-900 hover:border-slate-900 transition-colors">
-                View Full Gallery
-              </Link>
-            </div>
           </div>
 
           {/* Gallery 2 */}
           <div>
-            <div className="mb-10 flex flex-col items-center text-center">
+            <div className="mb-8 flex flex-col items-center text-center">
               <h3 className="text-3xl font-light text-slate-900 mb-3">Château de Villette</h3>
               <p className="text-sm text-slate-400 font-light uppercase tracking-widest">Paris, France • Autumn 2026</p>
             </div>
@@ -165,11 +189,6 @@ const Home = () => {
                   </div>
                 </div>
               ))}
-            </div>
-            <div className="mt-12 text-center">
-              <Link to="/gallery" className="inline-block border-b border-slate-300 pb-1 text-sm uppercase tracking-widest text-slate-600 hover:text-slate-900 hover:border-slate-900 transition-colors">
-                View Full Gallery
-              </Link>
             </div>
           </div>
         </div>

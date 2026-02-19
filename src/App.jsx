@@ -3,7 +3,6 @@ import { ReactLenis, useLenis } from 'lenis/react';
 import { useEffect } from 'react';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
-import Gallery from './pages/Gallery';
 import About from './pages/About';
 import Booking from './pages/Booking';
 
@@ -30,7 +29,6 @@ function App() {
           <main className="flex-grow pt-24">
             <Routes>
               <Route path="/" element={<Home />} />
-              <Route path="/gallery" element={<Gallery />} />
               <Route path="/about" element={<About />} />
               <Route path="/booking" element={<Booking />} />
             </Routes>
