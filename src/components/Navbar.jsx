@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import gsap from 'gsap';
@@ -10,8 +10,56 @@ gsap.registerPlugin(ScrollTrigger);
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isBlendActive, setIsBlendActive] = useState(false);
   const location = useLocation();
   const navRef = useRef(null);
+
+  useEffect(() => {
+    setIsOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const isHome = location.pathname === '/';
+    if (!isHome) {
+      setIsBlendActive(false);
+      return;
+    }
+
+    let rafId = null;
+
+    const computeBlend = () => {
+      const heroEl = document.getElementById('home-hero');
+      const navHeight = navRef.current?.offsetHeight ?? 0;
+
+      if (!heroEl) {
+        return window.scrollY < window.innerHeight - navHeight - 8;
+      }
+
+      const heroRect = heroEl.getBoundingClientRect();
+      return heroRect.bottom > navHeight + 8;
+    };
+
+    const update = () => {
+      rafId = null;
+      const next = computeBlend();
+      setIsBlendActive((prev) => (prev === next ? prev : next));
+    };
+
+    const onScrollOrResize = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(update);
+    };
+
+    update();
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize);
+
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      if (rafId !== null) window.cancelAnimationFrame(rafId);
+    };
+  }, [location.pathname]);
 
   useGSAP(() => {
     const vh = window.innerHeight;
@@ -44,7 +92,7 @@ const Navbar = () => {
     tl.fromTo(
       navRef.current,
       {
-        borderRadius: '0px',
+        borderRadius: '22px',
         width: '100%',
         maxWidth: '100%',
         top: '0px',
@@ -84,7 +132,11 @@ const Navbar = () => {
           to="/"
           className="z-50 relative"
         >
-          <img src={logo} alt="Starling" className="h-9 md:h-10 w-auto" />
+          <img
+            src={logo}
+            alt="Starling"
+            className={`h-9 md:h-10 w-auto ${isBlendActive ? 'invert mix-blend-difference' : ''}`}
+          />
         </Link>
 
         {/* Desktop Nav */}
@@ -93,9 +145,15 @@ const Navbar = () => {
             <Link
               key={link.name}
               to={link.path}
-              className={`text-xs uppercase tracking-widest hover:text-slate-500 transition-colors duration-300 ${
-                location.pathname === link.path ? 'text-slate-900 font-medium' : 'text-slate-500'
-              }`}
+              className={
+                isBlendActive
+                  ? `text-xs uppercase tracking-widest text-white mix-blend-difference transition-opacity duration-300 hover:opacity-60 ${
+                      location.pathname === link.path ? 'font-medium opacity-100' : 'opacity-90'
+                    }`
+                  : `text-xs uppercase tracking-widest hover:text-slate-500 transition-colors duration-300 ${
+                      location.pathname === link.path ? 'text-slate-900 font-medium' : 'text-slate-500'
+                    }`
+              }
             >
               {link.name}
             </Link>
@@ -104,9 +162,13 @@ const Navbar = () => {
 
         {/* Mobile Toggle */}
         <button
-          className="md:hidden z-50 relative p-2 -mr-2 text-slate-900"
+          type="button"
+          className={`md:hidden z-50 relative p-2 -mr-2 ${
+            isBlendActive ? 'text-white mix-blend-difference' : 'text-slate-900'
+          }`}
           onClick={() => setIsOpen(!isOpen)}
           aria-label="Toggle Menu"
+          aria-expanded={isOpen}
         >
           {isOpen ? <X size={24} strokeWidth={1} /> : <Menu size={24} strokeWidth={1} />}
         </button>

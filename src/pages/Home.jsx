@@ -11,7 +11,7 @@ const Home = () => {
   return (
     <div className="animate-fade-in opacity-0">
       {/* Hero Section - Full-screen image with text overlay */}
-      <section className="relative h-screen w-full overflow-hidden -mt-24">
+      <section id="home-hero" className="relative h-screen w-full overflow-hidden -mt-24">
         <AdvancedImage 
           cldImg={coverImage} 
           className="absolute inset-0 w-full h-full object-cover" 
