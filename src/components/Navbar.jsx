@@ -24,8 +24,8 @@ const Navbar = () => {
 
   return (
     <nav
-      className={`fixed w-full z-50 transition-all duration-500 ease-in-out ${
-        scrolled ? 'bg-white/90 backdrop-blur-md py-4 shadow-sm' : 'bg-transparent py-8'
+      className={`fixed w-full z-50 py-3 transition-all duration-500 ease-in-out border-b ${
+        scrolled ? 'bg-white/20 backdrop-blur-2xl backdrop-saturate-150 border-white/30' : 'bg-transparent border-transparent'
       }`}
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
@@ -63,8 +63,10 @@ const Navbar = () => {
 
         {/* Mobile Nav Overlay */}
         <div
-          className={`fixed inset-0 bg-white z-40 flex flex-col items-center justify-center space-y-8 transition-opacity duration-500 ${
-            isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+          className={`fixed inset-0 z-40 flex flex-col items-center justify-center space-y-8 transition-all duration-500 ${
+            isOpen 
+              ? 'opacity-100 pointer-events-auto bg-white/20 backdrop-blur-2xl backdrop-saturate-150' 
+              : 'opacity-0 pointer-events-none bg-transparent'
           }`}
         >
           {navLinks.map((link) => (
