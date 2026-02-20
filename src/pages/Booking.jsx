@@ -1,13 +1,33 @@
 import { useState } from 'react';
+import emailjs from '@emailjs/browser';
 
 const Booking = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
+    phone: '',
     date: '',
     location: '',
     message: '',
   });
+  const [status, setStatus] = useState('idle');
+
+  const formatField = (value) => {
+    const trimmed = String(value ?? '').trim();
+    return trimmed.length ? trimmed : '—';
+  };
+
+  const buildInquiryBody = (data) =>
+    [
+      `Name: ${formatField(data.name)}`,
+      `Email: ${formatField(data.email)}`,
+      `Phone: ${formatField(data.phone)}`,
+      `Event date: ${formatField(data.date)}`,
+      `Location: ${formatField(data.location)}`,
+      '',
+      'Message:',
+      formatField(data.message),
+    ].join('\n');
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -15,10 +35,33 @@ const Booking = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Simulate form submission
-    console.log('Form submitted:', formData);
-    alert('Thank you for your inquiry. We will be in touch shortly.');
-    setFormData({ name: '', email: '', date: '', location: '', message: '' });
+    setStatus('sending');
+
+    const inquiryBody = buildInquiryBody(formData);
+
+    emailjs
+      .send(
+        import.meta.env.VITE_EMAILJS_SERVICE_ID,
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
+        {
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          date: formData.date,
+          time: new Date().toLocaleString(),
+          location: formData.location,
+          message: inquiryBody,
+          reply_to: formData.email,
+        },
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
+      )
+      .then(() => {
+        setStatus('success');
+        setFormData({ name: '', email: '', phone: '', date: '', location: '', message: '' });
+      })
+      .catch(() => {
+        setStatus('error');
+      });
   };
 
   return (
@@ -77,6 +120,21 @@ const Booking = () => {
               </div>
             </div>
 
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-xs uppercase tracking-widest text-slate-500">
+                Phone Number
+              </label>
+              <input
+                type="tel"
+                id="phone"
+                name="phone"
+                value={formData.phone}
+                onChange={handleChange}
+                className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
+                placeholder="(555) 123-4567"
+              />
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="space-y-2">
                 <label htmlFor="date" className="text-xs uppercase tracking-widest text-slate-500">
@@ -125,10 +183,22 @@ const Booking = () => {
 
             <button
               type="submit"
-              className="mt-8 px-12 py-4 bg-slate-900 text-white text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-colors w-full md:w-auto"
+              disabled={status === 'sending'}
+              className="mt-8 px-12 py-4 bg-slate-900 text-white text-xs uppercase tracking-[0.2em] hover:bg-slate-800 transition-colors w-full md:w-auto disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Send Inquiry
+              {status === 'sending' ? 'Sending...' : 'Send Inquiry'}
             </button>
+
+            {status === 'success' && (
+              <p className="text-green-700 text-sm font-light mt-4">
+                Thank you for your inquiry — we'll be in touch shortly!
+              </p>
+            )}
+            {status === 'error' && (
+              <p className="text-red-600 text-sm font-light mt-4">
+                Something went wrong. Please try again or email us directly.
+              </p>
+            )}
           </form>
         </div>
       </div>
