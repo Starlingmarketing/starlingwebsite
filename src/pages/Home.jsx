@@ -1,8 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AdvancedImage } from '@cloudinary/react';
 import { cld } from '../utils/cloudinary';
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useCallback } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -36,6 +36,38 @@ const Home = () => {
       setCurrentImgIdx((prev) => (prev + 1) % heroImages.length);
     }, 12000);
   };
+
+  const [lightbox, setLightbox] = useState(null);
+
+  const openLightbox = useCallback((images, index) => {
+    setLightbox({ images, index });
+  }, []);
+
+  const closeLightbox = useCallback(() => {
+    setLightbox(null);
+  }, []);
+
+  const navigateLightbox = useCallback((dir) => {
+    setLightbox(prev => {
+      if (!prev) return null;
+      return { ...prev, index: (prev.index + dir + prev.images.length) % prev.images.length };
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!lightbox) return;
+    document.body.style.overflow = 'hidden';
+    const handleKey = (e) => {
+      if (e.key === 'Escape') closeLightbox();
+      if (e.key === 'ArrowRight') navigateLightbox(1);
+      if (e.key === 'ArrowLeft') navigateLightbox(-1);
+    };
+    window.addEventListener('keydown', handleKey);
+    return () => {
+      document.body.style.overflow = '';
+      window.removeEventListener('keydown', handleKey);
+    };
+  }, [lightbox, closeLightbox, navigateLightbox]);
 
   const container = useRef(null);
 
@@ -239,7 +271,7 @@ const Home = () => {
             </div>
             <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
               {wedding1Images.map((img, i) => (
-                <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`}>
+                <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`} onClick={() => openLightbox(wedding1Images, i)}>
                   <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden shadow-xl shadow-slate-200/50`}>
                     <AdvancedImage
                       cldImg={img.cldImg}
@@ -276,6 +308,62 @@ const Home = () => {
           </div>
         </div>
       </section>
+
+      {/* Lightbox */}
+      {lightbox && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center"
+          style={{ animation: 'lightboxIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+        >
+          <div
+            className="absolute inset-0 bg-white/70 backdrop-blur-3xl"
+            onClick={closeLightbox}
+          />
+
+          <button
+            onClick={closeLightbox}
+            className="absolute top-8 right-8 z-20 p-2 text-slate-400 hover:text-slate-800 transition-colors duration-300"
+            aria-label="Close"
+          >
+            <X size={18} strokeWidth={1.5} />
+          </button>
+
+          {lightbox.images.length > 1 && (
+            <>
+              <button
+                onClick={() => navigateLightbox(-1)}
+                className="absolute left-4 md:left-8 z-20 p-3 text-slate-300 hover:text-slate-600 transition-colors duration-300"
+                aria-label="Previous image"
+              >
+                <ChevronLeft size={24} strokeWidth={1} />
+              </button>
+              <button
+                onClick={() => navigateLightbox(1)}
+                className="absolute right-4 md:right-8 z-20 p-3 text-slate-300 hover:text-slate-600 transition-colors duration-300"
+                aria-label="Next image"
+              >
+                <ChevronRight size={24} strokeWidth={1} />
+              </button>
+            </>
+          )}
+
+          <div
+            key={lightbox.index}
+            className="relative z-10 flex items-center justify-center px-16"
+            style={{ animation: 'lightboxImage 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards' }}
+          >
+            <AdvancedImage
+              cldImg={lightbox.images[lightbox.index].cldImg}
+              className="max-w-[85vw] max-h-[80vh] object-contain rounded-sm shadow-2xl shadow-slate-900/10"
+              alt={`Photo ${lightbox.index + 1} of ${lightbox.images.length}`}
+            />
+          </div>
+
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 text-[10px] text-slate-400 tracking-[0.3em] font-light tabular-nums">
+            {lightbox.index + 1} — {lightbox.images.length}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
