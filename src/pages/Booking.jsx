@@ -105,18 +105,78 @@ const ReviewCard = ({ review, index }) => (
 );
 
 const starOnlyReviews = [
-  { name: 'Serena Huang', rating: 5 },
-  { name: 'Alyssa Rose', rating: 5 },
-  { name: 'Michael DiPietro', rating: 5 },
+  { name: 'Serena Huang', rating: 5, avatar: 'unnamed_6_yongxz' },
+  { name: 'Alyssa Rose', rating: 5, avatar: 'unnamed_11_sicehm' },
+  { name: 'Michael DiPietro', rating: 5, avatar: 'unnamed_7_kjiuvj' },
   { name: 'Brit Haseltine', rating: 5, avatar: 'unnamed_5_guj03k' },
   { name: 'Daniel Horning', rating: 5 },
-  { name: 'Abbey Atwater', rating: 5 },
-  { name: 'Zach Walgren', rating: 5 },
-  { name: 'Evan Rondenelli', rating: 5 },
-  { name: 'Yonatan Dvir', rating: 5 },
-  { name: 'Nile Overton', rating: 5 },
+  { name: 'Abbey Atwater', rating: 5, avatar: 'unnamed_8_l15epu' },
+  { name: 'Zach Walgren', rating: 5, avatar: 'unnamed_13_wy7byr' },
+  { name: 'Evan Rondenelli', rating: 5, avatar: 'unnamed_12_n2qbjq' },
+  { name: 'Yonatan Dvir', rating: 5, avatar: 'unnamed_9_r0cylm' },
+  { name: 'Nile Overton', rating: 5, avatar: 'unnamed_10_hrj40s' },
   { name: 'Ben Riesenbach', rating: 5 },
+  { name: 'Matt Lockerman', rating: 5 },
+  { name: 'Huck Browne', rating: 5, avatar: 'unnamed_15_ec8pov' },
+  { name: 'William Klotsas', rating: 5 },
+  { name: 'Isaac Sattazahn', rating: 5, avatar: 'unnamed_14_pij93o' },
+  { name: 'Julianne', rating: 5, avatar: 'unnamed_16_rhfsl3' },
 ];
+
+const shortReviews = [
+  { name: 'Benjamin Seltzer', rating: 5, avatar: 'unnamed_21_grxldt', text: 'Stellar photography, better people. Incredibly easy to work with- the photos were so special!!! Definitely recommend' },
+  { name: 'Emma Gleysteen', rating: 5, avatar: 'unnamed_23_ecrgeg', text: 'Ben was great- arrived early and stayed the entire time. Made sure to get lots of angles and provided us with lots of photos post-editing!' },
+  { name: 'Robert Lotreck', rating: 5, text: 'Absolutely incredible with the highest quality of professionalism I could ask for. Definitely will be recommending this for every one of my friends’ wedding photography needs going forward.' },
+  { name: 'Jay Patel', rating: 5, text: 'Top notch. The photos and videos came out amazing. I can’t thank the team enough for helping show off our business.' },
+  { name: 'Yonnie Simon', rating: 5, avatar: 'unnamed_22_uhcazg', text: 'Starling Photo Studios is an excellent team dedicated to providing a high quality photography experience. Would recommend.' },
+  { name: 'jordan brown', rating: 5, text: 'working with ben and justin was such a pleasure. 5 stars all around!' },
+  { name: 'Darshan Bhalodia', rating: 5, text: 'Ben is an excellent photographer. The experience to photograph my business was flawless. I really appreciated his professionalism and attention to detail. Highly recommend.' },
+  { name: 'Henry Miles', rating: 5, avatar: 'unnamed_20_c1iuwj', text: 'Crispy photos, extremely responsive and professional. Would definitely hire again' },
+  { name: 'Gabriel Preston', rating: 5, avatar: 'unnamed_19_brkfrr', text: 'Two of the finest individuals I know personally who live up to the name of starlings :) :)' },
+  { name: 'snehal Shetty', rating: 5, text: 'The sweetest, bestest and the most patient photographer in town 😊' },
+  { name: 'Ben Singer', rating: 5, text: 'Justin is great! Attentive… collaborative spirit' },
+  { name: 'Alex Glass', rating: 5, text: 'Very professional, reliable, and high quality!' },
+  { name: 'Aidan Guynes', rating: 5, avatar: 'unnamed_18_tz3kms', text: 'Loved working with Starling! Would highly recommend.' },
+];
+
+const ShortReviewCard = ({ review, index }) => (
+  <div className="flex-shrink-0 w-[270px] md:w-[310px] bg-white rounded-lg border border-slate-200 p-4 flex flex-col justify-between">
+    <div>
+      <div className="flex items-start gap-3 mb-2">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {review.avatar ? (
+            <img
+              src={cld.image(review.avatar).toURL()}
+              alt={review.name}
+              className="w-9 h-9 flex-shrink-0"
+            />
+          ) : (
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-medium flex-shrink-0"
+              style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
+            >
+              {review.name.charAt(0)}
+            </div>
+          )}
+          <div>
+            <p className="text-slate-900 text-sm font-medium leading-tight">{review.name}</p>
+            <div className="flex items-center gap-0.5 mt-0.5">
+              {Array.from({ length: review.rating }, (_, i) => (
+                <StarIcon key={i} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex-shrink-0">
+          <GoogleLogo />
+        </div>
+      </div>
+      <p className="text-slate-700 text-[13px] leading-relaxed mt-2">
+        {review.text}
+      </p>
+    </div>
+  </div>
+);
 
 const StarOnlyCard = ({ review, index }) => (
   <div className="flex-shrink-0 w-[220px] bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-3">
@@ -179,7 +239,7 @@ const ReviewSlider = () => {
   const doubled = [...reviews, ...reviews];
 
   return (
-    <section className="mt-24" style={{ marginLeft: 'calc(-50vw + 50%)', marginRight: 'calc(-50vw + 50%)', width: '100vw' }}>
+    <section className="mt-24 w-full">
       <h2 className="text-center text-xs uppercase tracking-[0.2em] text-slate-400 mb-10">
         What Our Clients Say
       </h2>
@@ -199,6 +259,7 @@ const ReviewSlider = () => {
         </div>
       </div>
       <ReverseReviewSlider />
+      <ThirdRowSlider />
     </section>
   );
 };
@@ -250,6 +311,55 @@ const ReverseReviewSlider = () => {
       <div ref={trackRef} className="flex gap-6 w-max px-4">
         {doubled.map((review, i) => (
           <StarOnlyCard key={i} review={review} index={i} />
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ThirdRowSlider = () => {
+  const trackRef = useRef(null);
+  const [isPaused, setIsPaused] = useState(false);
+  const posRef = useRef(0);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    const track = trackRef.current;
+    if (!track) return;
+
+    const halfWidth = track.scrollWidth / 2;
+    const speed = 0.4;
+
+    const step = () => {
+      if (!isPaused) {
+        posRef.current -= speed;
+        if (Math.abs(posRef.current) >= halfWidth) {
+          posRef.current = 0;
+        }
+        track.style.transform = `translateX(${posRef.current}px)`;
+      }
+      rafRef.current = requestAnimationFrame(step);
+    };
+
+    rafRef.current = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [isPaused]);
+
+  const doubled = [...shortReviews, ...shortReviews];
+
+  return (
+    <div
+      className="overflow-hidden py-4 mt-2"
+      style={{
+        maskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
+        WebkitMaskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
+      }}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div ref={trackRef} className="flex gap-6 w-max px-4">
+        {doubled.map((review, i) => (
+          <ShortReviewCard key={i} review={review} index={i} />
         ))}
       </div>
     </div>
@@ -320,146 +430,148 @@ const Booking = () => {
   };
 
   return (
-    <div className="animate-fade-in opacity-0 min-h-screen px-6 md:px-12 max-w-7xl mx-auto py-12 md:py-24">
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32">
-        {/* Info Section */}
-        <div>
-          <h1 className="text-4xl md:text-5xl font-light tracking-tight text-slate-900 mb-8">
-            Inquire
-          </h1>
-          <p className="text-slate-500 font-light leading-relaxed mb-12 max-w-md">
-            We know how exciting it is to start planning your shoot, so we make it a priority to get back to you as quickly as possible. From our very first chat to the moment you receive your final gallery, we are completely dedicated to giving you an exceptional experience and capturing photos you'll treasure forever. Let's create something beautiful together!
-          </p>
+    <div className="animate-fade-in opacity-0 min-h-screen py-12 md:py-24">
+      <div className="px-6 md:px-12 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-32">
+          {/* Info Section */}
+          <div>
+            <h1 className="text-4xl md:text-5xl font-light tracking-tight text-slate-900 mb-8">
+              Inquire
+            </h1>
+            <p className="text-slate-500 font-light leading-relaxed mb-12 max-w-md">
+              We know how exciting it is to start planning your shoot, so we make it a priority to get back to you as quickly as possible. From our very first chat to the moment you receive your final gallery, we are completely dedicated to giving you an exceptional experience and capturing photos you'll treasure forever. Let's create something beautiful together!
+            </p>
 
-          <div className="space-y-8">
-            <div>
-              <h3 className="text-xs uppercase tracking-widest text-slate-400 mb-2">Email</h3>
-              <p className="text-slate-900 font-light">starlingphotostudios@gmail.com</p>
+            <div className="space-y-8">
+              <div>
+                <h3 className="text-xs uppercase tracking-widest text-slate-400 mb-2">Email</h3>
+                <p className="text-slate-900 font-light">starlingphotostudios@gmail.com</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        {/* Form Section */}
-        <div className="bg-slate-50/50 p-8 md:p-12">
-          <form onSubmit={handleSubmit} className="space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Form Section */}
+          <div className="bg-slate-50/50 p-8 md:p-12">
+            <form onSubmit={handleSubmit} className="space-y-8">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-xs uppercase tracking-widest text-slate-500">
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    id="name"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    required
+                    className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
+                    placeholder="Jane Doe"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-xs uppercase tracking-widest text-slate-500">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    required
+                    className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
+                    placeholder="hello@example.com"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <label htmlFor="name" className="text-xs uppercase tracking-widest text-slate-500">
-                  Full Name
+                <label htmlFor="phone" className="text-xs uppercase tracking-widest text-slate-500">
+                  Phone Number
                 </label>
                 <input
-                  type="text"
-                  id="name"
-                  name="name"
-                  value={formData.name}
+                  type="tel"
+                  id="phone"
+                  name="phone"
+                  value={formData.phone}
                   onChange={handleChange}
-                  required
                   className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
-                  placeholder="Jane Doe"
+                  placeholder="(555) 123-4567"
                 />
               </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-2">
+                  <label htmlFor="date" className="text-xs uppercase tracking-widest text-slate-500">
+                    Event Date
+                  </label>
+                  <input
+                    type="date"
+                    id="date"
+                    name="date"
+                    value={formData.date}
+                    onChange={handleChange}
+                    required
+                    className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <label htmlFor="location" className="text-xs uppercase tracking-widest text-slate-500">
+                    Location / Venue
+                  </label>
+                  <input
+                    type="text"
+                    id="location"
+                    name="location"
+                    value={formData.location}
+                    onChange={handleChange}
+                    className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
+                    placeholder="Lake Como, Italy"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-2">
-                <label htmlFor="email" className="text-xs uppercase tracking-widest text-slate-500">
-                  Email Address
+                <label htmlFor="message" className="text-xs uppercase tracking-widest text-slate-500">
+                  Tell us about your event
                 </label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  value={formData.email}
+                <textarea
+                  id="message"
+                  name="message"
+                  value={formData.message}
                   onChange={handleChange}
-                  required
-                  className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
-                  placeholder="hello@example.com"
-                />
+                  rows={4}
+                  className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors resize-none"
+                  placeholder="Share your vision, aesthetic, and what drew you to our work..."
+                ></textarea>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <label htmlFor="phone" className="text-xs uppercase tracking-widest text-slate-500">
-                Phone Number
-              </label>
-              <input
-                type="tel"
-                id="phone"
-                name="phone"
-                value={formData.phone}
-                onChange={handleChange}
-                className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
-                placeholder="(555) 123-4567"
-              />
-            </div>
+              <button
+                type="submit"
+                disabled={status === 'sending'}
+                aria-busy={status === 'sending'}
+                className={`relative mt-8 px-12 py-4 text-xs uppercase tracking-[0.2em] w-full md:w-auto inline-flex items-center justify-center overflow-hidden ${
+                  status === 'sending'
+                    ? 'bg-slate-200 text-transparent cursor-wait'
+                    : 'bg-slate-900 text-white hover:bg-slate-800'
+                }`}
+              >
+                <span className={status === 'sending' ? 'invisible' : 'visible'}>Send Inquiry</span>
+              </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="space-y-2">
-                <label htmlFor="date" className="text-xs uppercase tracking-widest text-slate-500">
-                  Event Date
-                </label>
-                <input
-                  type="date"
-                  id="date"
-                  name="date"
-                  value={formData.date}
-                  onChange={handleChange}
-                  required
-                  className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="location" className="text-xs uppercase tracking-widest text-slate-500">
-                  Location / Venue
-                </label>
-                <input
-                  type="text"
-                  id="location"
-                  name="location"
-                  value={formData.location}
-                  onChange={handleChange}
-                  className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors"
-                  placeholder="Lake Como, Italy"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="message" className="text-xs uppercase tracking-widest text-slate-500">
-                Tell us about your event
-              </label>
-              <textarea
-                id="message"
-                name="message"
-                value={formData.message}
-                onChange={handleChange}
-                rows={4}
-                className="w-full bg-transparent border-b border-slate-300 py-3 text-slate-900 font-light placeholder-slate-300 focus:outline-none focus:border-slate-900 transition-colors resize-none"
-                placeholder="Share your vision, aesthetic, and what drew you to our work..."
-              ></textarea>
-            </div>
-
-            <button
-              type="submit"
-              disabled={status === 'sending'}
-              aria-busy={status === 'sending'}
-              className={`relative mt-8 px-12 py-4 text-xs uppercase tracking-[0.2em] w-full md:w-auto inline-flex items-center justify-center overflow-hidden ${
-                status === 'sending'
-                  ? 'bg-slate-200 text-transparent cursor-wait'
-                  : 'bg-slate-900 text-white hover:bg-slate-800'
-              }`}
-            >
-              <span className={status === 'sending' ? 'invisible' : 'visible'}>Send Inquiry</span>
-            </button>
-
-            {status === 'success' && (
-              <p className="text-green-700 text-sm font-light mt-4">
-                Thank you for your inquiry — we'll be in touch shortly!
-              </p>
-            )}
-            {status === 'error' && (
-              <p className="text-red-600 text-sm font-light mt-4">
-                Something went wrong. Please try again or email us directly.
-              </p>
-            )}
-          </form>
+              {status === 'success' && (
+                <p className="text-green-700 text-sm font-light mt-4">
+                  Thank you for your inquiry — we'll be in touch shortly!
+                </p>
+              )}
+              {status === 'error' && (
+                <p className="text-red-600 text-sm font-light mt-4">
+                  Something went wrong. Please try again or email us directly.
+                </p>
+              )}
+            </form>
+          </div>
         </div>
       </div>
 
