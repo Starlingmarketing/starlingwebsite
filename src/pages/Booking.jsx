@@ -134,7 +134,7 @@ const shortReviews = [
   { name: 'Benjamin Seltzer', rating: 5, avatar: 'unnamed_21_molof5', text: 'Stellar photography, better people. Incredibly easy to work with- the photos were so special!!! Definitely recommend' },
   { name: 'Emma Gleysteen', rating: 5, avatar: 'unnamed_23_ecrgeg', text: 'Ben was great- arrived early and stayed the entire time. Made sure to get lots of angles and provided us with lots of photos post-editing!' },
   { name: 'Robert Lotreck', rating: 5, text: 'Absolutely incredible with the highest quality of professionalism I could ask for. Definitely will be recommending this for every one of my friends’ wedding photography needs going forward.' },
-  { name: 'Jay Patel', rating: 5, text: 'Top notch. The photos and videos came out amazing. I can’t thank the team enough for helping show off our business.' },
+  { name: 'Jay Patel', rating: 5, text: 'Top notch. The photos and videos came out amazing. I can\'t thank the team enough for helping show off our business.' },
   { name: 'Yonnie Simon', rating: 5, avatar: 'unnamed_22_uhcazg', text: 'Starling Photo Studios is an excellent team dedicated to providing a high quality photography experience. Would recommend.' },
   { name: 'jordan brown', rating: 5, text: 'working with ben and justin was such a pleasure. 5 stars all around!' },
   { name: 'Darshan Bhalodia', rating: 5, text: 'Ben is an excellent photographer. The experience to photograph my business was flawless. I really appreciated his professionalism and attention to detail. Highly recommend.' },
