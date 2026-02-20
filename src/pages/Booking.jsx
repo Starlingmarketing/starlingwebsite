@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import emailjs from '@emailjs/browser';
 import { cld } from '../utils/cloudinary';
 
@@ -65,6 +65,13 @@ const GoogleLogo = () => (
 
 const avatarColors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#7B1FA2', '#FF6D00'];
 
+const marqueeMaskStyle = {
+  maskImage:
+    'linear-gradient(to right, transparent, black clamp(24px, 6vw, 96px), black calc(100% - clamp(24px, 6vw, 96px)), transparent)',
+  WebkitMaskImage:
+    'linear-gradient(to right, transparent, black clamp(24px, 6vw, 96px), black calc(100% - clamp(24px, 6vw, 96px)), transparent)',
+};
+
 const ReviewCard = ({ review, index }) => (
   <div className="flex-shrink-0 w-[340px] md:w-[400px] bg-white rounded-lg border border-slate-200 p-5 flex flex-col justify-between">
     <div>
@@ -124,7 +131,7 @@ const starOnlyReviews = [
 ];
 
 const shortReviews = [
-  { name: 'Benjamin Seltzer', rating: 5, avatar: 'unnamed_21_grxldt', text: 'Stellar photography, better people. Incredibly easy to work with- the photos were so special!!! Definitely recommend' },
+  { name: 'Benjamin Seltzer', rating: 5, avatar: 'unnamed_21_molof5', text: 'Stellar photography, better people. Incredibly easy to work with- the photos were so special!!! Definitely recommend' },
   { name: 'Emma Gleysteen', rating: 5, avatar: 'unnamed_23_ecrgeg', text: 'Ben was great- arrived early and stayed the entire time. Made sure to get lots of angles and provided us with lots of photos post-editing!' },
   { name: 'Robert Lotreck', rating: 5, text: 'Absolutely incredible with the highest quality of professionalism I could ask for. Definitely will be recommending this for every one of my friends’ wedding photography needs going forward.' },
   { name: 'Jay Patel', rating: 5, text: 'Top notch. The photos and videos came out amazing. I can’t thank the team enough for helping show off our business.' },
@@ -208,161 +215,134 @@ const StarOnlyCard = ({ review, index }) => (
   </div>
 );
 
-const ReviewSlider = () => {
+const MAX_MARQUEE_COPIES = 30;
+
+const MarqueeRow = ({ items, CardComponent, direction = 'left', speed = 0.4, className = '' }) => {
+  const viewportRef = useRef(null);
   const trackRef = useRef(null);
+  const setRef = useRef(null);
+
   const [isPaused, setIsPaused] = useState(false);
+  const [copies, setCopies] = useState(2);
+
   const posRef = useRef(0);
   const rafRef = useRef(null);
+  const loopWidthRef = useRef(0);
+
+  const syncCopies = () => {
+    const viewportEl = viewportRef.current;
+    const setEl = setRef.current;
+    if (!viewportEl || !setEl) return;
+
+    const viewportWidth = viewportEl.offsetWidth;
+    const loopWidth = setEl.offsetWidth;
+    if (!viewportWidth || !loopWidth) return;
+
+    loopWidthRef.current = loopWidth;
+    const neededCopies = Math.max(2, Math.ceil((viewportWidth + loopWidth) / loopWidth));
+    const nextCopies = Math.min(neededCopies, MAX_MARQUEE_COPIES);
+
+    setCopies((prev) => (prev === nextCopies ? prev : nextCopies));
+
+    // Keep the reverse row positioned so it doesn't reveal the "start" edge.
+    if (direction === 'right' && posRef.current === 0) {
+      posRef.current = -loopWidth;
+      if (trackRef.current) {
+        trackRef.current.style.transform = `translateX(${posRef.current}px)`;
+      }
+    }
+  };
+
+  useLayoutEffect(() => {
+    syncCopies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const viewportEl = viewportRef.current;
+    const setEl = setRef.current;
+    if (!viewportEl || !setEl) return;
+
+    syncCopies();
+
+    const ro = new ResizeObserver(() => {
+      syncCopies();
+    });
+
+    ro.observe(viewportEl);
+    ro.observe(setEl);
+
+    return () => ro.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [direction, items.length]);
 
   useEffect(() => {
     const track = trackRef.current;
     if (!track) return;
 
-    const halfWidth = track.scrollWidth / 2;
-    const speed = 0.4;
-
     const step = () => {
-      if (!isPaused) {
-        posRef.current -= speed;
-        if (Math.abs(posRef.current) >= halfWidth) {
-          posRef.current = 0;
+      const loopWidth = loopWidthRef.current;
+
+      if (loopWidth && !isPaused) {
+        if (direction === 'left') {
+          posRef.current -= speed;
+          if (posRef.current <= -loopWidth) {
+            posRef.current = 0;
+          }
+        } else {
+          posRef.current += speed;
+          if (posRef.current >= 0) {
+            posRef.current = -loopWidth;
+          }
         }
+
         track.style.transform = `translateX(${posRef.current}px)`;
       }
+
       rafRef.current = requestAnimationFrame(step);
     };
 
     rafRef.current = requestAnimationFrame(step);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [isPaused]);
+  }, [direction, isPaused, speed]);
 
-  const doubled = [...reviews, ...reviews];
+  return (
+    <div
+      ref={viewportRef}
+      className={`overflow-hidden py-4 px-4 ${className}`}
+      style={marqueeMaskStyle}
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      <div ref={trackRef} className="flex w-max will-change-transform">
+        {Array.from({ length: copies }, (_, copyIndex) => (
+          <div
+            key={copyIndex}
+            ref={copyIndex === 0 ? setRef : undefined}
+            className="flex gap-6 pr-6 w-max"
+            aria-hidden={copyIndex > 0}
+          >
+            {items.map((review, itemIndex) => (
+              <CardComponent key={`${copyIndex}-${itemIndex}`} review={review} index={itemIndex} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
+const ReviewSlider = () => {
   return (
     <section className="mt-24 w-full">
       <h2 className="text-center text-xs uppercase tracking-[0.2em] text-slate-400 mb-10">
         What Our Clients Say
       </h2>
-      <div
-        className="overflow-hidden py-4"
-        style={{
-          maskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
-          WebkitMaskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
-        }}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        <div ref={trackRef} className="flex gap-6 w-max px-4">
-          {doubled.map((review, i) => (
-            <ReviewCard key={i} review={review} index={i} />
-          ))}
-        </div>
-      </div>
-      <ReverseReviewSlider />
-      <ThirdRowSlider />
+
+      <MarqueeRow items={reviews} CardComponent={ReviewCard} direction="left" />
+      <MarqueeRow items={starOnlyReviews} CardComponent={StarOnlyCard} direction="right" className="mt-2" />
+      <MarqueeRow items={shortReviews} CardComponent={ShortReviewCard} direction="left" className="mt-2" />
     </section>
-  );
-};
-
-const ReverseReviewSlider = () => {
-  const trackRef = useRef(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const posRef = useRef(null);
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    const halfWidth = track.scrollWidth / 2;
-    const speed = 0.4;
-
-    if (posRef.current === null) {
-      posRef.current = -halfWidth;
-    }
-
-    const step = () => {
-      if (!isPaused) {
-        posRef.current += speed;
-        if (posRef.current >= 0) {
-          posRef.current = -halfWidth;
-        }
-        track.style.transform = `translateX(${posRef.current}px)`;
-      }
-      rafRef.current = requestAnimationFrame(step);
-    };
-
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [isPaused]);
-
-  const doubled = [...starOnlyReviews, ...starOnlyReviews];
-
-  return (
-    <div
-      className="overflow-hidden py-4 mt-2"
-      style={{
-        maskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
-      }}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <div ref={trackRef} className="flex gap-6 w-max px-4">
-        {doubled.map((review, i) => (
-          <StarOnlyCard key={i} review={review} index={i} />
-        ))}
-      </div>
-    </div>
-  );
-};
-
-const ThirdRowSlider = () => {
-  const trackRef = useRef(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const posRef = useRef(0);
-  const rafRef = useRef(null);
-
-  useEffect(() => {
-    const track = trackRef.current;
-    if (!track) return;
-
-    const halfWidth = track.scrollWidth / 2;
-    const speed = 0.4;
-
-    const step = () => {
-      if (!isPaused) {
-        posRef.current -= speed;
-        if (Math.abs(posRef.current) >= halfWidth) {
-          posRef.current = 0;
-        }
-        track.style.transform = `translateX(${posRef.current}px)`;
-      }
-      rafRef.current = requestAnimationFrame(step);
-    };
-
-    rafRef.current = requestAnimationFrame(step);
-    return () => cancelAnimationFrame(rafRef.current);
-  }, [isPaused]);
-
-  const doubled = [...shortReviews, ...shortReviews];
-
-  return (
-    <div
-      className="overflow-hidden py-4 mt-2"
-      style={{
-        maskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
-        WebkitMaskImage: 'linear-gradient(to right, transparent, black 4%, black 96%, transparent)',
-      }}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <div ref={trackRef} className="flex gap-6 w-max px-4">
-        {doubled.map((review, i) => (
-          <ShortReviewCard key={i} review={review} index={i} />
-        ))}
-      </div>
-    </div>
   );
 };
 
