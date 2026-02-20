@@ -179,10 +179,10 @@ const Home = () => {
     className: 'col-span-12 md:col-span-6 lg:col-span-3',
   }));
 
-  const wedding2Images = Array.from({ length: 16 }, (_, i) => ({
-    id: `w2-${i + 1}`,
+  const assortedImages = Array.from({ length: 12 }, (_, i) => ({
+    id: `as-${i + 1}`,
     aspectRatio: 'aspect-[4/3]',
-    className: 'col-span-12 md:col-span-6 lg:col-span-3'
+    className: 'col-span-12 md:col-span-6 lg:col-span-3',
   }));
 
   return (
@@ -266,8 +266,8 @@ const Home = () => {
           {/* Gallery 1 */}
           <div>
             <div className="mb-8 flex flex-col items-center text-center">
-              <h3 className="text-3xl font-light text-slate-900 mb-3">Molly and Brandon</h3>
-              <p className="text-sm text-slate-400 font-light uppercase tracking-widest">Green Lane, Pennsylvania • Summer 2025</p>
+              <h3 className="text-3xl font-serif text-slate-900 mb-3">Molly and Brandon</h3>
+              <p className="text-sm text-slate-400 font-serif uppercase tracking-widest">Green Lane, Pennsylvania • Summer 2025</p>
             </div>
             <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
               {wedding1Images.map((img, i) => (
@@ -285,27 +285,39 @@ const Home = () => {
               ))}
             </div>
           </div>
+        </div>
+      </section>
 
-          {/* Gallery 2 */}
-          <div>
-            <div className="mb-8 flex flex-col items-center text-center">
-              <h3 className="text-3xl font-light text-slate-900 mb-3">Château de Villette</h3>
-              <p className="text-sm text-slate-400 font-light uppercase tracking-widest">Paris, France • Autumn 2026</p>
-            </div>
-            <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
-              {wedding2Images.map((img, i) => (
-                <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`}>
-                  <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden shadow-xl shadow-slate-200/50`}>
-                    <div className="absolute inset-0 bg-slate-100 group-hover:scale-105 transition-transform duration-[2000ms] ease-out flex items-center justify-center">
-                      <span className="text-slate-300 font-light tracking-widest text-[10px] uppercase opacity-50">
-                        Image {i + 1}
-                      </span>
-                    </div>
-                  </div>
+      {/* Assorted / Selected Work */}
+      <section className="px-6 md:px-12 max-w-6xl mx-auto pt-4 pb-20">
+        <div className="flex items-center gap-6 mb-10">
+          <div className="flex-1 h-px bg-slate-200" />
+          <h2 className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-light whitespace-nowrap">Selected Work</h2>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        <div className="grid grid-cols-12 gap-4 md:gap-6">
+          {assortedImages.map((img, i) => (
+            <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`}>
+              <div className={`w-full ${img.aspectRatio} relative overflow-hidden`}>
+                <div className="absolute inset-0 bg-slate-100 group-hover:scale-[1.03] transition-transform duration-[1600ms] ease-out flex items-center justify-center">
+                  <span className="text-slate-300/60 font-light tracking-widest text-[9px] uppercase">
+                    {i + 1}
+                  </span>
                 </div>
-              ))}
+              </div>
             </div>
-          </div>
+          ))}
+        </div>
+
+        <div className="flex justify-center mt-12 mb-4">
+          <Link
+            to="/booking"
+            className="group inline-flex items-center gap-4 px-8 py-4 bg-slate-900 text-white hover:bg-slate-800 text-xs uppercase tracking-[0.2em] transition-colors duration-300"
+          >
+            <span>REACH OUT</span>
+            <ArrowRight size={16} strokeWidth={1} className="group-hover:translate-x-2 transition-transform duration-300" />
+          </Link>
         </div>
       </section>
 
