@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
 import { AdvancedImage } from '@cloudinary/react';
 import { cld } from '../utils/cloudinary';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 
@@ -10,8 +10,32 @@ gsap.registerPlugin(useGSAP);
 
 const Home = () => {
   // Create a Cloudinary image instance
-  // Replace 'samples/people/smiling-man' with the Public ID of your uploaded image
-  const coverImage = cld.image('Molly_Fleming_Select_Edits_-016_qdjeyl');
+  const heroImages = [
+    cld.image('AF1I0729_catszb'),
+    cld.image('2021-12-01_fj6dqk'),
+    cld.image('Image_1_iz7lk8'),
+    cld.image('AF1I1454_vcc77d'),
+    cld.image('3P4A1455_ctp4pj')
+  ];
+
+  const [currentImgIdx, setCurrentImgIdx] = useState(0);
+
+  const intervalRef = useRef(null);
+
+  useEffect(() => {
+    intervalRef.current = setInterval(() => {
+      setCurrentImgIdx((prev) => (prev + 1) % heroImages.length);
+    }, 12000);
+    return () => clearInterval(intervalRef.current);
+  }, [heroImages.length]);
+
+  const goToImage = (idx) => {
+    clearInterval(intervalRef.current);
+    setCurrentImgIdx(idx);
+    intervalRef.current = setInterval(() => {
+      setCurrentImgIdx((prev) => (prev + 1) % heroImages.length);
+    }, 12000);
+  };
 
   const container = useRef(null);
 
@@ -24,6 +48,7 @@ const Home = () => {
     gsap.set('.hero-link', { y: 10, opacity: 0 });
     gsap.set('.hero-img-wrapper', { opacity: 0, y: 28 });
     gsap.set('.hero-img', { scale: 1.06, transformOrigin: '50% 50%' });
+    gsap.set('.hero-dots', { opacity: 0 });
 
     if (prefersReducedMotion) {
       gsap.set('.hero-text-line', { y: 0, opacity: 1 });
@@ -31,6 +56,7 @@ const Home = () => {
       gsap.set('.hero-link', { y: 0, opacity: 1 });
       gsap.set('.hero-img-wrapper', { y: 0, opacity: 1 });
       gsap.set('.hero-img', { scale: 1, clearProps: 'transform' });
+      gsap.set('.hero-dots', { opacity: 1 });
       return;
     }
 
@@ -88,6 +114,15 @@ const Home = () => {
           clearProps: 'transform',
         },
         0.18
+      )
+      .to(
+        '.hero-dots',
+        {
+          opacity: 1,
+          duration: 0.8,
+          ease: 'power2.out',
+        },
+        0.6
       );
   }, { scope: container });
 
@@ -121,11 +156,11 @@ const Home = () => {
   return (
     <div ref={container} className="w-full">
       {/* Hero Section - Framed Premium Layout */}
-      <section id="home-hero" className="relative w-full pt-24 pb-8 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto min-h-[50vh] lg:h-[50vh] flex flex-col justify-center">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16 h-full">
+      <section id="home-hero" className="relative w-full pt-20 md:pt-24 pb-8 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
           
           {/* Text Content */}
-          <div className="w-full lg:w-5/12 order-2 lg:order-1 flex flex-col justify-center z-10 lg:h-full">
+          <div className="w-full lg:w-5/12 order-2 lg:order-1 flex flex-col justify-center z-10">
             <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif uppercase text-slate-900 leading-[1.1] tracking-wide mb-6">
               <div className="overflow-hidden"><div className="hero-text-line">Intentional</div></div>
               <div className="overflow-hidden"><div className="hero-text-line">Elegant</div></div>
@@ -144,13 +179,45 @@ const Home = () => {
           </div>
           
           {/* Image Container */}
-          <div className="w-full lg:w-6/12 order-1 lg:order-2 h-[35vh] lg:h-full py-4 lg:py-6 flex items-center justify-center lg:justify-end">
-            <div className="hero-img-wrapper relative aspect-[4/3] h-full w-auto max-w-full overflow-hidden bg-slate-50 shadow-2xl shadow-slate-200/50">
-              <AdvancedImage 
-                cldImg={coverImage} 
-                className="hero-img absolute inset-0 w-full h-full object-cover hover:scale-105 transition-transform duration-[2000ms] ease-out" 
-                alt="Starling Photography Cover"
-              />
+          <div className="w-full lg:w-6/12 order-1 lg:order-2 h-[40vh] lg:h-[50vh] py-4 lg:py-6 flex items-center justify-center relative">
+            <div className="hero-img-wrapper relative w-full h-full overflow-hidden bg-transparent flex items-center justify-center">
+              {heroImages.map((img, idx) => (
+                <div 
+                  key={idx}
+                  className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ease-in-out ${
+                    idx === currentImgIdx ? 'opacity-100 z-10' : 'opacity-0 z-0'
+                  }`}
+                >
+                  <AdvancedImage 
+                    cldImg={img} 
+                    className="hero-img w-full h-full object-contain" 
+                    alt={`Starling Photography Cover ${idx + 1}`}
+                  />
+                </div>
+              ))}
+            </div>
+            <div className="hero-dots absolute bottom-0 left-0 right-0 flex items-center justify-center gap-2.5">
+              {heroImages.map((_, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => goToImage(idx)}
+                  className={`relative h-[5px] rounded-full overflow-hidden focus:outline-none transition-all duration-500 ease-out ${
+                    idx === currentImgIdx ? 'w-6' : 'w-[5px]'
+                  }`}
+                  aria-label={`View image ${idx + 1}`}
+                >
+                  <span className="absolute inset-0 bg-slate-200 rounded-full" />
+                  {idx === currentImgIdx && (
+                    <span
+                      className="absolute inset-0 bg-slate-400 rounded-full"
+                      style={{
+                        animation: 'dotProgress 12s linear forwards',
+                        transformOrigin: 'left center',
+                      }}
+                    />
+                  )}
+                </button>
+              ))}
             </div>
           </div>
 
