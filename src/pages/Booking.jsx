@@ -30,21 +30,13 @@ const Booking = () => {
             Inquire
           </h1>
           <p className="text-slate-500 font-light leading-relaxed mb-12 max-w-md">
-            We are currently accepting commissions for 2026 and 2027. Please fill out the form
-            with details about your event, and we will get back to you with our availability and pricing.
+            We know how exciting it is to start planning your shoot, so we make it a priority to get back to you as quickly as possible. From our very first chat to the moment you receive your final gallery, we are completely dedicated to giving you an exceptional experience and capturing photos you'll treasure forever. Let's create something beautiful together!
           </p>
 
           <div className="space-y-8">
             <div>
               <h3 className="text-xs uppercase tracking-widest text-slate-400 mb-2">Email</h3>
-              <p className="text-slate-900 font-light">hello@starlingphotography.com</p>
-            </div>
-            <div>
-              <h3 className="text-xs uppercase tracking-widest text-slate-400 mb-2">Studio</h3>
-              <p className="text-slate-900 font-light">
-                London, UK <br />
-                <span className="text-slate-400 text-sm italic">By appointment only</span>
-              </p>
+              <p className="text-slate-900 font-light">starlingphotostudios@gmail.com</p>
             </div>
           </div>
         </div>

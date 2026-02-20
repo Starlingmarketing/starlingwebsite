@@ -26,22 +26,26 @@ const About = () => {
         <div className="order-1 lg:order-2">
           <h2 className="text-xs uppercase tracking-[0.3em] text-slate-400 mb-6">About Starling</h2>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-slate-900 mb-10 leading-[1.1]">
-            <span className="italic font-serif text-slate-500">Our</span> story.
+            <span className="italic font-serif text-slate-500">Our</span> Approach.
           </h1>
           
           <div className="space-y-6 text-slate-600 font-light leading-relaxed">
             <p>
-              Founded on the belief that the most profound moments are often the quietest. Starling Photography
-              is a boutique studio dedicated to capturing the elegance of human connection.
+              There is a time and place for everything in art. Sometimes, the story calls for a clean, classic,
+              and timeless capture. Other times, it demands that we completely break the mold to build a bold,
+              entirely unique aesthetic.
             </p>
             <p>
-              Our approach is rooted in a documentary style infused with an editorial eye. We look for the in-between moments,
-              the subtle glances, and the raw emotions that define a narrative. Every frame is carefully considered,
-              yet effortlessly natural.
+              At Starling, versatility is our greatest strength. With over a decade of experience across photography,
+              videography, advertising, and marketing, we understand exactly how to adapt our medium to fit your
+              specific needs. We aren't bound by a single, rigid style or a specific location. Based in Philadelphia
+              but available worldwide, we go wherever the story takes us.
             </p>
             <p>
-              Based in London, we accept a limited number of commissions worldwide each year to ensure each client
-              receives an unparalleled, bespoke experience.
+              Our approach is highly collaborative. We obsess over our work so you don't have to, bringing relentless
+              dedication and an elevated artistic eye to every wedding, portrait, and commercial project we take on.
+              No matter the subject, our mission is simple: to help you capture your vision and share our love for
+              art with you.
             </p>
           </div>
         </div>
