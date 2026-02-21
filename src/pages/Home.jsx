@@ -2,11 +2,13 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AdvancedImage } from '@cloudinary/react';
 import { cld } from '../utils/cloudinary';
+import { limitFit } from '@cloudinary/url-gen/actions/resize';
 import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 
-gsap.registerPlugin(useGSAP);
+gsap.registerPlugin(useGSAP, ScrollTrigger);
 
 const HERO_IMAGE_IDS = [
   'AF1I0729_catszb',
@@ -57,6 +59,92 @@ const ASSORTED_IMAGE_IDS = [
   'center_city_ag1h8b',
 ];
 
+const buildOptimizedImage = (publicId, maxWidth) => {
+  const img = cld.image(publicId).format('auto').quality('auto');
+  if (typeof maxWidth === 'number') {
+    img.resize(limitFit().width(maxWidth));
+  }
+  return img;
+};
+
+const buildPlaceholderUrl = (publicId, maxWidth = 96) => {
+  return cld
+    .image(publicId)
+    .format('auto')
+    .quality(10)
+    .resize(limitFit().width(maxWidth))
+    .toURL();
+};
+
+const ProgressiveCldImage = ({
+  publicId,
+  cldImg,
+  alt,
+  loading = 'lazy',
+  decoding = 'async',
+  fetchPriority,
+  placeholderWidth = 96,
+  imgClassName = '',
+}) => {
+  const [hiLoaded, setHiLoaded] = useState(false);
+  const [hiError, setHiError] = useState(false);
+
+  const placeholderSrc = useMemo(
+    () => buildPlaceholderUrl(publicId, placeholderWidth),
+    [publicId, placeholderWidth]
+  );
+
+  const handleHiLoad = useCallback((e) => {
+    const el = e.currentTarget;
+    if (typeof el?.decode === 'function') {
+      el.decode().then(
+        () => setHiLoaded(true),
+        () => setHiLoaded(true)
+      );
+      return;
+    }
+    setHiLoaded(true);
+  }, []);
+
+  const showHi = hiLoaded && !hiError;
+
+  return (
+    <>
+      <div
+        className={`absolute inset-0 transition-opacity duration-500 ease-out motion-reduce:transition-none ${
+          showHi ? 'opacity-0' : 'opacity-100'
+        }`}
+        aria-hidden="true"
+      >
+        <img
+          src={placeholderSrc}
+          alt=""
+          loading="eager"
+          decoding="async"
+          className={`w-full h-full ${imgClassName} blur-2xl`}
+        />
+      </div>
+
+      <div
+        className={`absolute inset-0 transition-opacity duration-500 ease-out motion-reduce:transition-none ${
+          showHi ? 'opacity-100' : 'opacity-0'
+        }`}
+      >
+        <AdvancedImage
+          cldImg={cldImg}
+          className={`w-full h-full ${imgClassName}`}
+          alt={alt}
+          loading={loading}
+          decoding={decoding}
+          fetchPriority={fetchPriority}
+          onLoad={handleHiLoad}
+          onError={() => setHiError(true)}
+        />
+      </div>
+    </>
+  );
+};
+
 const useSectionMount = (rootMargin = '250px') => {
   const sectionRef = useRef(null);
   const [shouldRender, setShouldRender] = useState(false);
@@ -82,6 +170,42 @@ const useSectionMount = (rootMargin = '250px') => {
   return [sectionRef, shouldRender];
 };
 
+const useStaggerReveal = (shouldAnimate) => {
+  const gridRef = useRef(null);
+
+  useEffect(() => {
+    if (!shouldAnimate) return;
+    const node = gridRef.current;
+    if (!node) return;
+
+    const items = node.children;
+    if (!items.length) return;
+
+    gsap.set(items, { opacity: 0, y: 40, scale: 0.97 });
+
+    const trigger = ScrollTrigger.create({
+      trigger: node,
+      start: 'top 88%',
+      once: true,
+      onEnter: () => {
+        gsap.to(items, {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 1.2,
+          stagger: 0.15,
+          ease: 'expo.out',
+          clearProps: 'transform',
+        });
+      },
+    });
+
+    return () => trigger.kill();
+  }, [shouldAnimate]);
+
+  return gridRef;
+};
+
 const Home = () => {
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
 
@@ -90,8 +214,12 @@ const Home = () => {
   const [featuredRef, renderFeatured] = useSectionMount();
   const [selectedRef, renderSelected] = useSectionMount();
 
+  const wedding2GridRef = useStaggerReveal(renderFeatured);
+  const wedding1GridRef = useStaggerReveal(renderFeatured);
+  const assortedGridRef = useStaggerReveal(renderSelected);
+
   const heroImages = useMemo(
-    () => HERO_IMAGE_IDS.map((publicId) => cld.image(publicId)),
+    () => HERO_IMAGE_IDS.map((publicId) => buildOptimizedImage(publicId, 2000)),
     []
   );
 
@@ -99,7 +227,8 @@ const Home = () => {
     if (!renderFeatured) return [];
     return WEDDING_2_IMAGE_IDS.map((publicId) => ({
       id: `${publicId}-mh`,
-      cldImg: cld.image(publicId),
+      publicId,
+      cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
       className: 'col-span-12 md:col-span-6 lg:col-span-3',
     }));
@@ -109,7 +238,8 @@ const Home = () => {
     if (!renderFeatured) return [];
     return WEDDING_1_IMAGE_IDS.map((publicId) => ({
       id: publicId,
-      cldImg: cld.image(publicId),
+      publicId,
+      cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
       className: 'col-span-12 md:col-span-6 lg:col-span-3',
     }));
@@ -119,7 +249,8 @@ const Home = () => {
     if (!renderSelected) return [];
     return ASSORTED_IMAGE_IDS.map((publicId, i) => ({
       id: `as-${i + 1}`,
-      cldImg: cld.image(publicId),
+      publicId,
+      cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
       className: 'col-span-12 md:col-span-6 lg:col-span-3',
     }));
@@ -395,16 +526,21 @@ const Home = () => {
                 <h3 className="text-3xl font-serif text-slate-900 mb-3">Makayla and Hunter</h3>
                 <p className="text-sm text-slate-400 font-serif uppercase tracking-widest">Glasbern - A Historic Hotel of America • Summer 2025</p>
               </div>
-              <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
+              <div ref={wedding2GridRef} className="grid grid-cols-12 gap-4 md:gap-8 items-start">
                 {wedding2Images.map((img, i) => (
-                  <div key={img.id} className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} onClick={() => openLightbox(wedding2Images, i)}>
+                  <div 
+                    key={img.id} 
+                    className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} 
+                    onClick={() => openLightbox(wedding2Images, i)}
+                  >
                     <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}>
-                      <AdvancedImage
+                      <ProgressiveCldImage
+                        publicId={img.publicId}
                         cldImg={img.cldImg}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
                         alt={`Makayla and Hunter photo ${i + 1}`}
                         loading="lazy"
                         decoding="async"
+                        imgClassName="object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
                       />
                     </div>
                   </div>
@@ -418,16 +554,21 @@ const Home = () => {
                 <h3 className="text-3xl font-serif text-slate-900 mb-3">Molly and Brandon</h3>
                 <p className="text-sm text-slate-400 font-serif uppercase tracking-widest">Green Lane, Pennsylvania • Summer 2025</p>
               </div>
-              <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
+              <div ref={wedding1GridRef} className="grid grid-cols-12 gap-4 md:gap-8 items-start">
                 {wedding1Images.map((img, i) => (
-                  <div key={img.id} className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} onClick={() => openLightbox(wedding1Images, i)}>
+                  <div 
+                    key={img.id} 
+                    className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} 
+                    onClick={() => openLightbox(wedding1Images, i)}
+                  >
                     <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}>
-                      <AdvancedImage
+                      <ProgressiveCldImage
+                        publicId={img.publicId}
                         cldImg={img.cldImg}
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
                         alt={`Molly and Brandon photo ${i + 1}`}
                         loading="lazy"
                         decoding="async"
+                        imgClassName="object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
                       />
                     </div>
                   </div>
@@ -449,16 +590,21 @@ const Home = () => {
         </div>
 
         {renderSelected ? (
-          <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
+          <div ref={assortedGridRef} className="grid grid-cols-12 gap-4 md:gap-8 items-start">
             {assortedImages.map((img, i) => (
-              <div key={img.id} className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} onClick={() => openLightbox(assortedImages, i)}>
+              <div 
+                key={img.id} 
+                className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} 
+                onClick={() => openLightbox(assortedImages, i)}
+              >
                 <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}>
-                  <AdvancedImage
+                  <ProgressiveCldImage
+                    publicId={img.publicId}
                     cldImg={img.cldImg}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
                     alt={`Selected Work photo ${i + 1}`}
                     loading="lazy"
                     decoding="async"
+                    imgClassName="object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
                   />
                 </div>
               </div>
