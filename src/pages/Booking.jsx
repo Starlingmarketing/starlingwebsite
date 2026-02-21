@@ -350,8 +350,8 @@ const CinematicReviewCard = ({ review }) => {
   const bodyText = hasText ? review.text : 'Verified 5-star rating.';
 
   return (
-    <div className="flex flex-col h-full overflow-hidden p-2">
-      <div className="flex items-center justify-between mb-3">
+    <div className="flex flex-col h-full p-3.5 rounded-lg border border-slate-200/50">
+      <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {review?.avatar ? (
             <img
@@ -381,21 +381,13 @@ const CinematicReviewCard = ({ review }) => {
         </div>
       </div>
 
-      <div 
-        className="relative flex-1 min-h-0 overflow-hidden"
-        style={{ 
-          WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
-          maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)'
-        }}
+      <p
+        className={`text-[13px] leading-[1.6] line-clamp-2 ${
+          hasText ? 'text-slate-500 font-light' : 'text-slate-400 font-light italic'
+        }`}
       >
-        <p
-          className={`text-[13px] leading-[1.6] ${
-            hasText ? 'text-slate-500 font-light' : 'text-slate-400 font-light italic'
-          }`}
-        >
-          {bodyText}
-        </p>
-      </div>
+        {bodyText}
+      </p>
     </div>
   );
 };
@@ -600,7 +592,7 @@ const CinematicReviewSlot = ({ engineRef, slotKey, initialReview, initialDelayMs
 
 const CinematicReviewRail = ({ side = 'left', engineRef, initialReviews = [] }) => (
   <div
-    className="h-full overflow-hidden grid gap-4 pt-2 pb-16"
+    className="h-full overflow-hidden grid gap-6 pt-2 pb-16"
     style={{ gridTemplateRows: `repeat(${SLOT_COUNT_PER_SIDE}, minmax(0, 1fr))` }}
   >
     {initialReviews.map((review, i) => (
