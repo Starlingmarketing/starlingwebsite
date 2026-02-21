@@ -352,27 +352,27 @@ const createShuffleBag = (size) => shuffleInPlace(Array.from({ length: size }, (
 
 const getReviewHoldMs = (review) => {
   const text = String(review?.text ?? '').trim();
-  if (!text.length) return randInt(3400, 5200);
+  if (!text.length) return randInt(8000, 12000);
 
   const lengthFactor = Math.min(text.length, 260) / 260;
-  const base = randInt(5200, 7600);
-  const extra = Math.round(lengthFactor * randInt(1100, 3200));
-  const linger = Math.random() < 0.18 ? randInt(1200, 3200) : 0;
+  const base = randInt(12000, 18000);
+  const extra = Math.round(lengthFactor * randInt(3000, 7000));
+  const linger = Math.random() < 0.18 ? randInt(3000, 6000) : 0;
   return base + extra + linger;
 };
 
 const getReviewFadeMs = () => {
   const r = Math.random();
-  if (r < 0.12) return randInt(800, 1050);
-  if (r < 0.82) return randInt(1100, 1450);
-  return randInt(1450, 1750);
+  if (r < 0.12) return randInt(1600, 2200);
+  if (r < 0.82) return randInt(2400, 3200);
+  return randInt(3200, 4200);
 };
 
 const getReviewBreathMs = () => {
   const r = Math.random();
-  if (r < 0.65) return randInt(140, 420);
-  if (r < 0.92) return randInt(420, 900);
-  return randInt(900, 1600);
+  if (r < 0.65) return randInt(600, 1200);
+  if (r < 0.92) return randInt(1200, 2200);
+  return randInt(2200, 3800);
 };
 
 const buildBookingGridPhotoUrl = (publicId, maxWidth = 560) =>
@@ -382,24 +382,18 @@ const BOOKING_GRID_PHOTO_URL_MAP = Object.fromEntries(
   BOOKING_GRID_PHOTO_IDS.map((publicId) => [publicId, buildBookingGridPhotoUrl(publicId)]),
 );
 
-const getPhotoHoldMs = () => {
-  const base = randInt(5200, 7600);
-  const linger = Math.random() < 0.22 ? randInt(900, 2400) : 0;
-  return base + linger;
-};
-
 const getPhotoFadeMs = () => {
   const r = Math.random();
-  if (r < 0.12) return randInt(780, 980);
-  if (r < 0.82) return randInt(1020, 1350);
-  return randInt(1350, 1650);
+  if (r < 0.12) return randInt(1600, 2200);
+  if (r < 0.82) return randInt(2400, 3200);
+  return randInt(3200, 4200);
 };
 
 const getPhotoBreathMs = () => {
   const r = Math.random();
-  if (r < 0.72) return randInt(180, 520);
-  if (r < 0.92) return randInt(520, 980);
-  return randInt(980, 1600);
+  if (r < 0.72) return randInt(600, 1200);
+  if (r < 0.92) return randInt(1200, 2200);
+  return randInt(2200, 3800);
 };
 
 const CinematicReviewCard = ({ review }) => {
@@ -410,7 +404,7 @@ const CinematicReviewCard = ({ review }) => {
   const bodyText = hasText ? review.text : 'Verified 5-star rating.';
 
   return (
-    <div className="flex flex-col h-full p-3.5 rounded-[8px] bg-white border border-slate-200/50 shadow-sm">
+    <div className="flex flex-col h-full p-3.5 rounded-[8px] bg-white">
       <div className="flex items-center justify-between mb-3 flex-shrink-0">
         <div className="flex items-center gap-3 min-w-0">
           {review?.avatar ? (
@@ -490,6 +484,7 @@ const CinematicGridSlot = ({
   const itemARef = useRef(initialItem ?? null);
   const itemBRef = useRef(null);
   const showARef = useRef(true);
+  const isFirstRunRef = useRef(true);
 
   const [itemA, setItemA] = useState(itemARef.current);
   const [itemB, setItemB] = useState(itemBRef.current);
@@ -781,11 +776,21 @@ const CinematicGridSlot = ({
       timeoutRef.current = window.setTimeout(transitionToNext, holdMs);
     };
 
-    const kickoffDelay = hasMountedRef.current ? randInt(0, 80) : initialDelayMs + randInt(260, 1200);
+    const isFirstRun = !hasMountedRef.current;
     hasMountedRef.current = true;
-    timeoutRef.current = window.setTimeout(scheduleNext, kickoffDelay);
+
+    if (isFirstRun) {
+      timeoutRef.current = window.setTimeout(() => {
+        isFirstRunRef.current = false;
+        transitionToNext();
+      }, initialDelayMs);
+    } else {
+      isFirstRunRef.current = false;
+      timeoutRef.current = window.setTimeout(scheduleNext, randInt(0, 80));
+    }
 
     const handleVisibility = () => {
+      if (isFirstRunRef.current) return;
       clear();
       if (!document.hidden) scheduleNext();
     };
@@ -804,7 +809,7 @@ const CinematicGridSlot = ({
     if (item.kind === 'photo') {
       const src = BOOKING_GRID_PHOTO_URL_MAP[item.publicId];
       return (
-        <div className="relative w-full overflow-hidden rounded-[8px] bg-white border border-slate-200/50 shadow-sm aspect-[4/3] lg:aspect-auto lg:h-full">
+        <div className="relative w-full overflow-hidden rounded-[8px] bg-white aspect-[4/3] lg:aspect-auto lg:h-full">
           <img
             src={src}
             alt=""
@@ -836,6 +841,10 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
   const allowMorph = useMediaQuery('(min-width: 1024px)');
   const prefersReducedMotion = usePrefersReducedMotion();
 
+  const initialDelays = useMemo(() => {
+    return createShuffleBag(10).map((i) => i * 2200 + randInt(0, 600));
+  }, []);
+
   const [photoRows, setPhotoRows] = useState({
     0: 1, // cell 4 (row 1)
     1: 2, // cell 9 (row 2)
@@ -853,6 +862,7 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
     [],
   );
 
+  let slotDelayIdx = 0;
   let seededReviewIdx = 0;
 
   const photoCellByCol = useMemo(
@@ -913,7 +923,7 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
         });
 
         schedule();
-      }, randInt(5000, 8500));
+      }, randInt(14000, 22000));
     };
 
     schedule();
@@ -935,7 +945,9 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
             return <div key={`grid-empty-${cellIdx}`} className="hidden lg:block" />;
           }
 
+          const computedDelay = initialDelays[slotDelayIdx++];
           const photoSeed = CINEMATIC_GRID_INITIAL_PHOTO_SEEDS[cellIdx];
+          
           if (photoSeed) {
             return (
               <CinematicGridSlot
@@ -943,16 +955,14 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
                 engineRef={engineRef}
                 slotKey={`grid-${cellIdx}`}
                 initialItem={{ kind: 'photo', publicId: photoSeed.publicId }}
-                initialDelayMs={photoSeed.initialDelayMs}
+                initialDelayMs={computedDelay}
                 desiredKind={allowMorph ? (photoCellByCol[cellIdx % 4] === cellIdx ? 'photo' : 'review') : undefined}
                 allowMorph={allowMorph}
               />
             );
           }
 
-          const review = initialReviews[seededReviewIdx];
-          const reviewIdx = seededReviewIdx;
-          seededReviewIdx += 1;
+          const review = initialReviews[seededReviewIdx++];
 
           return (
             <CinematicGridSlot
@@ -960,7 +970,7 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
               engineRef={engineRef}
               slotKey={`grid-${cellIdx}`}
               initialItem={review ? { kind: 'review', review } : undefined}
-              initialDelayMs={reviewIdx * 520}
+              initialDelayMs={computedDelay}
               desiredKind={allowMorph ? (photoCellByCol[cellIdx % 4] === cellIdx ? 'photo' : 'review') : undefined}
               allowMorph={allowMorph}
             />
