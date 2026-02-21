@@ -86,7 +86,10 @@ const ReviewSourceLogo = ({ source = 'google' }) => {
 const avatarColors = ['#4285F4', '#EA4335', '#FBBC05', '#34A853', '#7B1FA2', '#FF6D00'];
 
 const ReviewCard = ({ review, index }) => (
-  <div className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+  <div
+    data-review-card="true"
+    className="bg-white rounded-lg border border-slate-200 p-6 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col"
+  >
     <div className="flex items-start gap-3 mb-3">
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {review.avatar ? (
@@ -212,7 +215,10 @@ const ShortReviewCard = ({ review, index }) => {
   const hasText = Boolean(String(review.text ?? '').trim());
 
   return (
-    <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+    <div
+      data-review-card="true"
+      className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col"
+    >
       <div className={`flex items-start gap-3 ${hasText ? 'mb-2' : ''}`}>
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {review.avatar ? (
@@ -252,7 +258,10 @@ const ShortReviewCard = ({ review, index }) => {
 };
 
 const StarOnlyCard = ({ review, index }) => (
-  <div className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
+  <div
+    data-review-card="true"
+    className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow"
+  >
     {review.avatar ? (
       <img
         src={cld.image(review.avatar).toURL()}
@@ -981,7 +990,7 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
   );
 };
 
-const ReviewsGrid = () => {
+const ReviewsGrid = ({ showHeading = true } = {}) => {
   const bigRemainder = reviews.length % 3;
   const promotedCount = bigRemainder === 0 ? 0 : 3 - bigRemainder;
 
@@ -998,11 +1007,13 @@ const ReviewsGrid = () => {
   return (
     <section className="mt-24 w-full">
       <div className="px-6 md:px-12 max-w-7xl mx-auto">
-        <h2 className="text-center text-xs uppercase tracking-[0.2em] text-slate-400">
-          What Our Clients Say
-        </h2>
+        {showHeading && (
+          <h2 className="text-center text-xs uppercase tracking-[0.2em] text-slate-400">
+            What Our Clients Say
+          </h2>
+        )}
 
-        <div className="mt-10 space-y-6">
+        <div className={`${showHeading ? 'mt-10' : 'mt-0'} space-y-6`}>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {reviews.map((review, index) => (
               <ReviewCard key={`featured-${review.name}`} review={review} index={index} />

@@ -9,7 +9,7 @@ import {
 } from '../pages/Booking';
 import { NavOverrideContext } from '../contexts/NavContext';
 
-const ScrollBookingReveal = () => {
+const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   const { setActiveOverride } = useContext(NavOverrideContext);
 
   const [formData, setFormData] = useState({
@@ -25,8 +25,8 @@ const ScrollBookingReveal = () => {
   const [showLocation, setShowLocation] = useState(false);
   const [showMessage, setShowMessage] = useState(false);
 
-  const sectionRef = useRef(null);
-  const bgRef = useRef(null);
+  const localSectionRef = useRef(null);
+  const sectionRef = externalSectionRef ?? localSectionRef;
   const formCardRef = useRef(null);
   const formFieldRefs = useRef([]);
   const reviewsRef = useRef(null);
@@ -55,7 +55,7 @@ const ScrollBookingReveal = () => {
     )?.matches;
 
     if (reducedMotion) {
-      [bgRef, formCardRef, reviewsRef].forEach((r) => {
+      [formCardRef, reviewsRef].forEach((r) => {
         if (r.current) {
           r.current.style.opacity = '1';
           r.current.style.transform = 'none';
@@ -86,7 +86,6 @@ const ScrollBookingReveal = () => {
     });
     timelineRef.current = tl;
 
-    tl.add(bgRef.current, { opacity: [0, 1], duration: 500 }, 0);
     tl.add(
       formCardRef.current,
       { opacity: [0, 1], y: [80, 0], duration: 500 },
@@ -103,6 +102,15 @@ const ScrollBookingReveal = () => {
     if (reviewsRef.current) {
       tl.add(reviewsRef.current, { opacity: [0, 1], duration: 350 }, 500);
     }
+
+    if (reviewsRef.current) {
+      tl.add(reviewsRef.current, { opacity: [1, 0], duration: 300 }, 950);
+    }
+    tl.add(
+      formCardRef.current,
+      { opacity: [1, 0], duration: 400 },
+      1050,
+    );
 
     return () => {
       tl.revert();
@@ -207,27 +215,12 @@ const ScrollBookingReveal = () => {
     <section
       ref={sectionRef}
       className="relative"
-      style={{ height: '250vh', marginTop: '-90vh' }}
+      style={{ height: '350vh', marginTop: '-90vh' }}
     >
       <div
         className="sticky top-0 h-screen flex items-center justify-center overflow-hidden pointer-events-none"
         style={{ zIndex: 20 }}
       >
-        {/* Gradient background */}
-        <div
-          ref={bgRef}
-          className="absolute inset-0 pointer-events-none"
-          style={{ opacity: 0 }}
-        >
-          <div
-            className="absolute inset-0"
-            style={{
-              background:
-                'radial-gradient(52.85% 52.85% at 49.04% 47.15%, #D0E8FF 0%, #F5F5F7 100%)',
-            }}
-          />
-        </div>
-
         {/* Reviews grid - fades in behind the form */}
         <div
           ref={reviewsRef}
