@@ -59,6 +59,15 @@ const ASSORTED_IMAGE_IDS = [
   'center_city_ag1h8b',
 ];
 
+const STACK_OFFSET_X = 56;
+const STACK_OFFSET_Y = 38;
+const STACK_COUNT = 3;
+const CARD_SHADOWS = [
+  '0 2px 8px -1px rgba(0,0,0,0.08)',
+  '0 8px 20px -4px rgba(0,0,0,0.1), 0 2px 6px -2px rgba(0,0,0,0.06)',
+  '0 16px 36px -6px rgba(0,0,0,0.12), 0 6px 14px -4px rgba(0,0,0,0.06)',
+];
+
 const buildOptimizedImage = (publicId, maxWidth) => {
   const img = cld.image(publicId).format('auto').quality('auto');
   if (typeof maxWidth === 'number') {
@@ -242,9 +251,13 @@ const useStaggerReveal = (shouldAnimate) => {
 };
 
 const Home = () => {
-  const [currentImgIdx, setCurrentImgIdx] = useState(0);
+  const [visibleSet, setVisibleSet] = useState([0, 1, 2]);
+  const [departingIdx, setDepartingIdx] = useState(null);
+  const stackIntervalRef = useRef(null);
+  const stackRef = useRef(null);
+  const visibleSetRef = useRef([0, 1, 2]);
+  const hasInitialized = useRef(false);
 
-  const intervalRef = useRef(null);
   const container = useRef(null);
   const [featuredRef, renderFeatured] = useSectionMount();
   const [selectedRef, renderSelected] = useSectionMount();
@@ -296,22 +309,40 @@ const Home = () => {
   }, [renderSelected]);
 
   useEffect(() => {
-    intervalRef.current = setInterval(() => {
-      setCurrentImgIdx((prev) => (prev + 1) % heroImages.length);
-    }, 12000);
-    return () => clearInterval(intervalRef.current);
-  }, [heroImages.length]);
-
-  const goToImage = (idx) => {
-    clearInterval(intervalRef.current);
-    setCurrentImgIdx(idx);
-    intervalRef.current = setInterval(() => {
-      setCurrentImgIdx((prev) => (prev + 1) % heroImages.length);
-    }, 12000);
-  };
+    visibleSetRef.current = visibleSet;
+  }, [visibleSet]);
 
   useEffect(() => {
-    const nextIdx = (currentImgIdx + 1) % heroImages.length;
+    const t = setTimeout(() => { hasInitialized.current = true; }, 2000);
+    return () => clearTimeout(t);
+  }, []);
+
+  const advanceStack = useCallback(() => {
+    setDepartingIdx(visibleSetRef.current[0]);
+    setVisibleSet(prev => [prev[1], prev[2], (prev[2] + 1) % heroImages.length]);
+  }, [heroImages.length]);
+
+  useEffect(() => {
+    stackIntervalRef.current = setInterval(advanceStack, 12000);
+    return () => clearInterval(stackIntervalRef.current);
+  }, [advanceStack]);
+
+  useEffect(() => {
+    if (departingIdx === null) return;
+    const t = setTimeout(() => setDepartingIdx(null), 1000);
+    return () => clearTimeout(t);
+  }, [departingIdx]);
+
+  const goToImage = useCallback((idx) => {
+    clearInterval(stackIntervalRef.current);
+    setDepartingIdx(null);
+    const len = heroImages.length;
+    setVisibleSet([(idx - 2 + len) % len, (idx - 1 + len) % len, idx]);
+    stackIntervalRef.current = setInterval(advanceStack, 12000);
+  }, [heroImages.length, advanceStack]);
+
+  useEffect(() => {
+    const nextIdx = (visibleSet[2] + 1) % heroImages.length;
     const preload = () => {
       const preloadImage = new Image();
       preloadImage.decoding = 'async';
@@ -325,7 +356,7 @@ const Home = () => {
 
     const timeoutId = window.setTimeout(preload, 600);
     return () => window.clearTimeout(timeoutId);
-  }, [currentImgIdx, heroImages]);
+  }, [visibleSet, heroImages]);
 
   const [lightbox, setLightbox] = useState(null);
 
@@ -367,16 +398,14 @@ const Home = () => {
     gsap.set('.hero-text-line', { y: 32, opacity: 0 });
     gsap.set('.hero-desc', { y: 16, opacity: 0 });
     gsap.set('.hero-link', { y: 10, opacity: 0 });
-    gsap.set('.hero-img-wrapper', { opacity: 0, y: 28 });
-    gsap.set('.hero-img', { scale: 1.06, transformOrigin: '50% 50%' });
+    gsap.set('.hero-stack-wrapper', { opacity: 0, y: 28 });
 
     if (prefersReducedMotion) {
       gsap.set('.hero-eyebrow', { y: 0, opacity: 1 });
       gsap.set('.hero-text-line', { y: 0, opacity: 1 });
       gsap.set('.hero-desc', { y: 0, opacity: 1 });
       gsap.set('.hero-link', { y: 0, opacity: 1 });
-      gsap.set('.hero-img-wrapper', { y: 0, opacity: 1 });
-      gsap.set('.hero-img', { scale: 1, clearProps: 'transform' });
+      gsap.set('.hero-stack-wrapper', { y: 0, opacity: 1 });
       return;
     }
 
@@ -426,22 +455,13 @@ const Home = () => {
         0.48
       )
       .to(
-        '.hero-img-wrapper',
+        '.hero-stack-wrapper',
         {
           opacity: 1,
           y: 0,
           duration: 1.2,
           ease: 'power2.out',
-        },
-        0.18
-      )
-      .to(
-        '.hero-img',
-        {
-          scale: 1,
-          duration: 1.6,
-          ease: 'power2.out',
-          clearProps: 'transform',
+          clearProps: 'transform,opacity',
         },
         0.18
       );
@@ -450,8 +470,8 @@ const Home = () => {
   return (
     <div ref={container} className="w-full">
       {/* Hero Section - Framed Premium Layout */}
-      <section id="home-hero" className="relative w-full pt-20 md:pt-24 pb-8 px-6 md:px-12 lg:px-24 max-w-7xl mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
-        <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-16">
+      <section id="home-hero" className="relative w-full pt-20 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24 xl:gap-40 2xl:gap-56">
           
           {/* Text Content */}
           <div className="w-full lg:w-5/12 order-2 lg:order-1 flex flex-col justify-center z-10">
@@ -508,18 +528,62 @@ const Home = () => {
             </Link>
           </div>
           
-          {/* Image Container */}
-          <div className="w-full lg:w-6/12 order-1 lg:order-2 h-[40vh] lg:h-[50vh] py-4 lg:py-6 flex items-center justify-center relative group">
-            <div className="hero-img-wrapper relative w-full h-full overflow-hidden bg-transparent flex items-center justify-center">
-              <AdvancedImage
-                key={currentImgIdx}
-                cldImg={heroImages[currentImgIdx]}
-                className="hero-img w-full h-full object-contain animate-fade-in"
-                alt={`Starling Photography Cover ${currentImgIdx + 1}`}
-                loading={currentImgIdx === 0 ? 'eager' : 'lazy'}
-                decoding="async"
-                fetchPriority={currentImgIdx === 0 ? 'high' : 'auto'}
-              />
+          {/* Staggered Image Stack */}
+          <div className="w-full lg:w-6/12 order-1 lg:order-2 py-4 lg:py-6 flex items-center justify-center relative group">
+            <div className="hero-stack-wrapper relative w-full lg:w-[637px]" ref={stackRef} style={{ aspectRatio: '637 / 426' }}>
+              {departingIdx !== null && (
+                <div
+                  key={`dep-${departingIdx}`}
+                  className="absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
+                  style={{
+                    width: `calc(100% - ${(STACK_COUNT - 1) * STACK_OFFSET_X}px)`,
+                    aspectRatio: '3 / 2',
+                    zIndex: 0,
+                    boxShadow: CARD_SHADOWS[0],
+                    animation: 'stackCardOut 0.9s cubic-bezier(0.4, 0, 1, 1) forwards',
+                  }}
+                >
+                  <AdvancedImage
+                    cldImg={heroImages[departingIdx]}
+                    className="w-full h-full object-cover"
+                    alt=""
+                  />
+                </div>
+              )}
+              {visibleSet.map((imgIdx, pos) => (
+                <div
+                  key={imgIdx}
+                  className="hero-stack-card absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
+                  style={{
+                    width: `calc(100% - ${(STACK_COUNT - 1) * STACK_OFFSET_X}px)`,
+                    aspectRatio: '3 / 2',
+                    zIndex: pos + 1,
+                    transform: `translate(${pos * STACK_OFFSET_X}px, ${pos * -STACK_OFFSET_Y}px)`,
+                    transition: 'transform 1.1s cubic-bezier(0.33, 1, 0.68, 1), box-shadow 1s ease',
+                    boxShadow: CARD_SHADOWS[pos],
+                    border: '0.5px solid rgba(0,0,0,0.06)',
+                    willChange: 'transform',
+                  }}
+                >
+                  <div
+                    className="w-full h-full"
+                    style={
+                      pos === STACK_COUNT - 1 && hasInitialized.current
+                        ? { animation: 'stackCardIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both' }
+                        : undefined
+                    }
+                  >
+                    <AdvancedImage
+                      cldImg={heroImages[imgIdx]}
+                      className="w-full h-full object-cover"
+                      alt={`Starling Photography ${imgIdx + 1}`}
+                      loading={pos === STACK_COUNT - 1 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      fetchPriority={pos === STACK_COUNT - 1 ? 'high' : 'auto'}
+                    />
+                  </div>
+                </div>
+              ))}
             </div>
             <div className="hero-dots absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-2.5 opacity-0 pointer-events-none transition-opacity duration-300 ease-out group-hover:opacity-100 focus-within:opacity-100">
               {heroImages.map((_, idx) => (
@@ -528,14 +592,15 @@ const Home = () => {
                   type="button"
                   onClick={() => goToImage(idx)}
                   className={`group/dot relative rounded-full overflow-hidden cursor-pointer focus:outline-none transition-transform duration-700 ease-out hover:scale-110 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                    idx === currentImgIdx ? 'w-6 h-[6px]' : 'w-[6px] h-[6px]'
+                    idx === visibleSet[2] ? 'w-6 h-[6px]' : 'w-[6px] h-[6px]'
                   }`}
                   aria-label={`View image ${idx + 1}`}
-                  aria-current={idx === currentImgIdx ? 'true' : undefined}
+                  aria-current={idx === visibleSet[2] ? 'true' : undefined}
                 >
                   <span className="absolute inset-0 bg-slate-200 rounded-full transition-colors duration-300 group-hover/dot:bg-slate-300" />
-                  {idx === currentImgIdx && (
+                  {idx === visibleSet[2] && (
                     <span
+                      key={`progress-${visibleSet[2]}`}
                       className="absolute inset-0 bg-slate-400 rounded-full transition-colors duration-300 group-hover/dot:bg-slate-500"
                       style={{
                         animation: 'dotProgress 12s linear forwards',

@@ -64,7 +64,6 @@ const Navbar = () => {
         paddingBottom: '12px',
         ease: 'power2.inOut',
         duration: 1,
-        force3D: true,
       },
       0
     );
@@ -79,7 +78,7 @@ const Navbar = () => {
   return (
     <nav
       ref={navRef}
-      className="fixed z-50 left-1/2 -translate-x-1/2 border"
+      className="fixed z-50 left-0 right-0 mx-auto border"
     >
       <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
         {/* Logo */}
