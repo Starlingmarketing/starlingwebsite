@@ -592,7 +592,7 @@ const CinematicReviewSlot = ({ engineRef, slotKey, initialReview, initialDelayMs
 
 const CinematicReviewRail = ({ side = 'left', engineRef, initialReviews = [] }) => (
   <div
-    className="h-full overflow-hidden grid gap-6 pt-2 pb-16"
+    className="h-full overflow-hidden grid gap-6 py-6"
     style={{ gridTemplateRows: `repeat(${SLOT_COUNT_PER_SIDE}, minmax(0, 1fr))` }}
   >
     {initialReviews.map((review, i) => (
