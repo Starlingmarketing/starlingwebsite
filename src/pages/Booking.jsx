@@ -1435,4 +1435,5 @@ const Booking = () => {
   );
 };
 
+export { ReviewsGrid, CinematicReviewGrid, cinematicReviewPool, shuffleInPlace, REVIEW_GRID_TOTAL };
 export default Booking;

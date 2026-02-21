@@ -1,10 +1,11 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useContext } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X } from 'lucide-react';
 import gsap from 'gsap';
 import logo from '../assets/2025.02.11 Starling Marking Agency Logo Design.svg';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { useGSAP } from '@gsap/react';
+import { NavOverrideContext } from '../contexts/NavContext';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -12,6 +13,8 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navRef = useRef(null);
+  const { activeOverride, triggerGalleryTransition } = useContext(NavOverrideContext);
+  const activePath = activeOverride || location.pathname;
 
   useEffect(() => {
     setIsOpen(false);
@@ -99,8 +102,16 @@ const Navbar = () => {
             <Link
               key={link.name}
               to={link.path}
+              onClick={(e) => {
+                if (activeOverride && activeOverride === link.path) {
+                  e.preventDefault();
+                } else if (activeOverride && link.path === '/') {
+                  e.preventDefault();
+                  triggerGalleryTransition();
+                }
+              }}
               className={`text-xs uppercase tracking-widest hover:text-slate-500 transition-colors duration-300 ${
-                location.pathname === link.path ? 'text-slate-900 font-medium' : 'text-slate-500'
+                activePath === link.path ? 'text-slate-900 font-medium' : 'text-slate-500'
               }`}
             >
               {link.name}
@@ -131,9 +142,17 @@ const Navbar = () => {
             <Link
               key={link.name}
               to={link.path}
-              onClick={() => setIsOpen(false)}
+              onClick={(e) => {
+                if (activeOverride && activeOverride === link.path) {
+                  e.preventDefault();
+                } else if (activeOverride && link.path === '/') {
+                  e.preventDefault();
+                  triggerGalleryTransition();
+                }
+                setIsOpen(false);
+              }}
               className={`text-xl uppercase tracking-[0.2em] transition-colors duration-300 ${
-                location.pathname === link.path ? 'text-slate-900' : 'text-slate-400'
+                activePath === link.path ? 'text-slate-900' : 'text-slate-400'
               }`}
             >
               {link.name}

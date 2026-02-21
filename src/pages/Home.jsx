@@ -8,6 +8,8 @@ import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import emailjs from '@emailjs/browser';
+import ScrollBookingReveal from '../components/ScrollBookingReveal';
+import { ReviewsGrid } from './Booking';
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
 
@@ -736,16 +738,49 @@ const Home = () => {
           <div className="h-[22vh] md:h-[28vh]" aria-hidden="true" />
         )}
 
-        <div className="flex justify-center mt-12 mb-4">
-          <button
-            onClick={() => setShowQuoteModal(true)}
-            className="group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors duration-300"
+        {/* Scroll hint */}
+        <div className="flex flex-col items-center gap-2 mt-16 mb-2">
+          <span className="text-[10px] uppercase tracking-[0.3em] text-slate-300 font-light">
+            Keep scrolling to inquire
+          </span>
+          <svg
+            className="w-4 h-4 text-slate-300 animate-bounce"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            strokeWidth={1.5}
           >
-            <span>Reach Out</span>
-            <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
-          </button>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+          </svg>
         </div>
       </section>
+
+      {/* Scroll-driven booking reveal */}
+      <ScrollBookingReveal />
+
+      {/* Full review grid with gradient continuation */}
+      <div className="relative">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-24 z-0"
+          style={{
+            height: 'clamp(800px, 100%, 2000px)',
+            background:
+              'radial-gradient(52.85% 52.85% at 49.04% 47.15%, #D0E8FF 0%, #F5F5F7 100%)',
+            WebkitMaskImage:
+              'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0) 70%)',
+            maskImage:
+              'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0.7) 35%, rgba(0,0,0,0) 70%)',
+            WebkitMaskRepeat: 'no-repeat',
+            maskRepeat: 'no-repeat',
+            WebkitMaskSize: '100% 100%',
+            maskSize: '100% 100%',
+          }}
+        />
+        <div className="relative z-[1]">
+          <ReviewsGrid />
+        </div>
+      </div>
 
       {/* Quote Modal */}
       {showQuoteModal && (
