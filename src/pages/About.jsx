@@ -48,17 +48,17 @@ const About = () => {
               art with you.
             </p>
           </div>
-        </div>
-      </div>
 
-      <div className="flex justify-center mt-12 mb-4">
-        <Link
-          to="/booking"
-          className="group inline-flex items-center gap-4 px-8 py-4 bg-slate-900 text-white hover:bg-slate-800 text-xs uppercase tracking-[0.2em] transition-colors duration-300"
-        >
-          <span>REACH OUT</span>
-          <ArrowRight size={16} strokeWidth={1} className="group-hover:translate-x-2 transition-transform duration-300" />
-        </Link>
+          <div className="flex justify-start mt-10">
+            <Link
+              to="/booking"
+              className="group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors duration-300"
+            >
+              <span>Reach Out</span>
+              <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

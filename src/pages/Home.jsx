@@ -208,8 +208,14 @@ const Home = () => {
     className: 'col-span-12 md:col-span-6 lg:col-span-3',
   }));
 
-  const assortedImages = Array.from({ length: 12 }, (_, i) => ({
+  const assortedImages = [
+    'AF1I2242-Edit-2_cor6p9',
+    'AF1I7015_2_hp56wr',
+    '3P4A3745_otnq3g',
+    'center_city_ag1h8b'
+  ].map((publicId, i) => ({
     id: `as-${i + 1}`,
+    cldImg: cld.image(publicId),
     aspectRatio: 'aspect-[4/3]',
     className: 'col-span-12 md:col-span-6 lg:col-span-3',
   }));
@@ -268,10 +274,10 @@ const Home = () => {
             </p>
             <Link
               to="/booking"
-              className="hero-link group inline-flex items-center space-x-4 text-xs uppercase tracking-[0.2em] text-slate-900 hover:text-slate-500 transition-colors"
+              className="hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors"
             >
-              <span>REACH OUT</span>
-              <ArrowRight size={16} strokeWidth={1} className="group-hover:translate-x-2 transition-transform duration-300" />
+              <span>Reach Out</span>
+              <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
             </Link>
           </div>
           
@@ -381,22 +387,24 @@ const Home = () => {
       </section>
 
       {/* Assorted / Selected Work */}
-      <section className="px-6 md:px-12 max-w-6xl mx-auto pt-4 pb-20">
+      <section className="px-6 md:px-12 max-w-7xl mx-auto pt-4 pb-20">
         <div className="flex items-center gap-6 mb-10">
           <div className="flex-1 h-px bg-slate-200" />
           <h2 className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-light whitespace-nowrap">Selected Work</h2>
           <div className="flex-1 h-px bg-slate-200" />
         </div>
 
-        <div className="grid grid-cols-12 gap-4 md:gap-6">
+        <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
           {assortedImages.map((img, i) => (
-            <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`}>
-              <div className={`w-full ${img.aspectRatio} relative overflow-hidden`}>
-                <div className="absolute inset-0 bg-slate-100 group-hover:scale-[1.03] transition-transform duration-[1600ms] ease-out flex items-center justify-center">
-                  <span className="text-slate-300/60 font-light tracking-widest text-[9px] uppercase">
-                    {i + 1}
-                  </span>
-                </div>
+            <div key={img.id} className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} onClick={() => openLightbox(assortedImages, i)}>
+              <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}>
+                <AdvancedImage
+                  cldImg={img.cldImg}
+                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
+                  alt={`Selected Work photo ${i + 1}`}
+                  loading="lazy"
+                  decoding="async"
+                />
               </div>
             </div>
           ))}
@@ -405,10 +413,10 @@ const Home = () => {
         <div className="flex justify-center mt-12 mb-4">
           <Link
             to="/booking"
-            className="group inline-flex items-center gap-4 px-8 py-4 bg-slate-900 text-white hover:bg-slate-800 text-xs uppercase tracking-[0.2em] transition-colors duration-300"
+            className="group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors duration-300"
           >
-            <span>REACH OUT</span>
-            <ArrowRight size={16} strokeWidth={1} className="group-hover:translate-x-2 transition-transform duration-300" />
+            <span>Reach Out</span>
+            <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
           </Link>
         </div>
       </section>
