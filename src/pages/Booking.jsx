@@ -186,9 +186,12 @@ const shortReviews = [
   },
 ];
 
-const ShortReviewCard = ({ review, index }) => (
-  <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
-    <div className="flex items-start gap-3 mb-2">
+const ShortReviewCard = ({ review, index }) => {
+  const hasText = Boolean(String(review.text ?? '').trim());
+
+  return (
+    <div className="bg-white rounded-lg border border-slate-200 p-5 shadow-sm hover:shadow-md transition-shadow h-full flex flex-col">
+      <div className={`flex items-start gap-3 ${hasText ? 'mb-2' : ''}`}>
       <div className="flex items-center gap-3 min-w-0 flex-1">
         {review.avatar ? (
           <img
@@ -216,12 +219,15 @@ const ShortReviewCard = ({ review, index }) => (
       <div className="flex-shrink-0">
         <ReviewSourceLogo source={review.source} />
       </div>
+      </div>
+      {hasText ? (
+        <p className="text-slate-700 text-[13px] leading-relaxed mt-2 line-clamp-5">
+          {review.text}
+        </p>
+      ) : null}
     </div>
-    <p className="text-slate-700 text-[13px] leading-relaxed mt-2 line-clamp-5">
-      {review.text}
-    </p>
-  </div>
-);
+  );
+};
 
 const StarOnlyCard = ({ review, index }) => (
   <div className="bg-white rounded-lg border border-slate-200 p-4 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow">
@@ -260,6 +266,13 @@ const ReviewsGrid = () => {
   const promotedShortReviews = shortReviews.slice(0, promotedCount);
   const remainingShortReviews = shortReviews.slice(promotedCount);
 
+  const shortRemainder = remainingShortReviews.length % 3;
+  const shortFillCountRaw = shortRemainder === 0 ? 0 : 3 - shortRemainder;
+  const shortFillCount = Math.min(shortFillCountRaw, starOnlyReviews.length);
+
+  const shortFillStarOnlyReviews = starOnlyReviews.slice(0, shortFillCount);
+  const remainingStarOnlyReviews = starOnlyReviews.slice(shortFillCount);
+
   return (
     <section className="mt-24 w-full">
       <div className="px-6 md:px-12 max-w-7xl mx-auto">
@@ -285,11 +298,22 @@ const ReviewsGrid = () => {
             {remainingShortReviews.map((review, index) => (
               <ShortReviewCard key={`short-${review.name}`} review={review} index={index} />
             ))}
+            {shortFillStarOnlyReviews.map((review, index) => (
+              <ShortReviewCard
+                key={`short-fill-stars-${review.name}`}
+                review={review}
+                index={remainingShortReviews.length + index}
+              />
+            ))}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {starOnlyReviews.map((review, index) => (
-              <StarOnlyCard key={`stars-${review.name}`} review={review} index={index} />
+            {remainingStarOnlyReviews.map((review, index) => (
+              <StarOnlyCard
+                key={`stars-${review.name}`}
+                review={review}
+                index={shortFillCount + index}
+              />
             ))}
           </div>
         </div>
