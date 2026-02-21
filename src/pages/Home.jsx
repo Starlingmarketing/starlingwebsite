@@ -328,7 +328,7 @@ const Home = () => {
       {/* Featured Galleries / Recent Work */}
       <section className="px-6 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]">
         <div className="flex justify-between items-end mb-8">
-          <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2>
+          {/* <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2> */}
         </div>
         
         <div className="space-y-20">
@@ -340,8 +340,8 @@ const Home = () => {
             </div>
             <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
               {wedding2Images.map((img, i) => (
-                <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`} onClick={() => openLightbox(wedding2Images, i)}>
-                  <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden shadow-xl shadow-slate-200/50`}>
+                <div key={img.id} className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} onClick={() => openLightbox(wedding2Images, i)}>
+                  <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}>
                     <AdvancedImage
                       cldImg={img.cldImg}
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
@@ -363,8 +363,8 @@ const Home = () => {
             </div>
             <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
               {wedding1Images.map((img, i) => (
-                <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`} onClick={() => openLightbox(wedding1Images, i)}>
-                  <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden shadow-xl shadow-slate-200/50`}>
+                <div key={img.id} className={`group cursor-pointer overflow-hidden rounded-[8px] ${img.className}`} onClick={() => openLightbox(wedding1Images, i)}>
+                  <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}>
                     <AdvancedImage
                       cldImg={img.cldImg}
                       className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
