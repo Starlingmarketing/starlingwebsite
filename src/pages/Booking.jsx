@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import emailjs from '@emailjs/browser';
 import { cld } from '../utils/cloudinary';
 
@@ -186,6 +186,27 @@ const shortReviews = [
   },
 ];
 
+const cinematicReviewPool = [
+  ...reviews.map((review, index) => ({
+    ...review,
+    __id: `featured-${index}`,
+    __index: index,
+  })),
+  ...shortReviews.map((review, index) => ({
+    ...review,
+    __id: `short-${index}`,
+    __index: reviews.length + index,
+  })),
+  ...starOnlyReviews.map((review, index) => ({
+    ...review,
+    __id: `stars-${index}`,
+    __index: reviews.length + shortReviews.length + index,
+  })),
+];
+
+const cinematicReviewsWithText = cinematicReviewPool.filter((review) => Boolean(String(review.text ?? '').trim()));
+const cinematicReviewsStarsOnly = cinematicReviewPool.filter((review) => !Boolean(String(review.text ?? '').trim()));
+
 const ShortReviewCard = ({ review, index }) => {
   const hasText = Boolean(String(review.text ?? '').trim());
 
@@ -256,6 +277,341 @@ const StarOnlyCard = ({ review, index }) => (
     <div className="flex-shrink-0">
       <ReviewSourceLogo source={review.source} />
     </div>
+  </div>
+);
+
+const usePrefersReducedMotion = () => {
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia?.('(prefers-reduced-motion: reduce)');
+    if (!mediaQueryList) return;
+
+    const handleChange = () => setPrefersReducedMotion(Boolean(mediaQueryList.matches));
+    handleChange();
+
+    if (mediaQueryList.addEventListener) {
+      mediaQueryList.addEventListener('change', handleChange);
+      return () => mediaQueryList.removeEventListener('change', handleChange);
+    }
+
+    mediaQueryList.addListener(handleChange);
+    return () => mediaQueryList.removeListener(handleChange);
+  }, []);
+
+  return prefersReducedMotion;
+};
+
+const CINEMATIC_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+const randFloat = (min, max) => min + Math.random() * (max - min);
+const randInt = (min, max) => Math.floor(randFloat(min, max + 1));
+
+const shuffleInPlace = (arr) => {
+  for (let i = arr.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+};
+
+const createShuffleBag = (size) => shuffleInPlace(Array.from({ length: size }, (_, i) => i));
+
+const getReviewHoldMs = (review) => {
+  const text = String(review?.text ?? '').trim();
+  if (!text.length) return randInt(3400, 5200);
+
+  const lengthFactor = Math.min(text.length, 260) / 260;
+  const base = randInt(5200, 7600);
+  const extra = Math.round(lengthFactor * randInt(1100, 3200));
+  const linger = Math.random() < 0.18 ? randInt(1200, 3200) : 0;
+  return base + extra + linger;
+};
+
+const getReviewFadeMs = () => {
+  const r = Math.random();
+  if (r < 0.12) return randInt(800, 1050);
+  if (r < 0.82) return randInt(1100, 1450);
+  return randInt(1450, 1750);
+};
+
+const getReviewBreathMs = () => {
+  const r = Math.random();
+  if (r < 0.65) return randInt(140, 420);
+  if (r < 0.92) return randInt(420, 900);
+  return randInt(900, 1600);
+};
+
+const CinematicReviewCard = ({ review }) => {
+  const hasText = Boolean(String(review?.text ?? '').trim());
+  const source = review?.source ?? 'google';
+  const index = review?.__index ?? 0;
+
+  const bodyText = hasText ? review.text : 'Verified 5-star rating.';
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden p-2">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-3 min-w-0">
+          {review?.avatar ? (
+            <img
+              src={cld.image(review.avatar).toURL()}
+              alt={review?.name ?? 'Review'}
+              className="w-8 h-8 rounded-full object-cover flex-shrink-0"
+            />
+          ) : (
+            <div
+              className="w-8 h-8 rounded-full flex items-center justify-center text-white text-[10px] uppercase font-medium tracking-wider flex-shrink-0"
+              style={{ backgroundColor: avatarColors[index % avatarColors.length] }}
+            >
+              {String(review?.name ?? '?').charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-slate-900 text-[11px] uppercase tracking-widest font-medium leading-tight truncate">{review?.name ?? 'Client'}</p>
+            <div className="flex items-center gap-0.5 mt-1 opacity-90">
+              {Array.from({ length: review?.rating ?? 5 }, (_, i) => (
+                <StarIcon key={i} />
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className="flex-shrink-0 opacity-70 grayscale transition-all duration-500 hover:grayscale-0">
+          <ReviewSourceLogo source={source} />
+        </div>
+      </div>
+
+      <div 
+        className="relative flex-1 min-h-0 overflow-hidden"
+        style={{ 
+          WebkitMaskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 70%, transparent 100%)'
+        }}
+      >
+        <p
+          className={`text-[13px] leading-[1.6] ${
+            hasText ? 'text-slate-500 font-light' : 'text-slate-400 font-light italic'
+          }`}
+        >
+          {bodyText}
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const SLOT_COUNT_PER_SIDE = 4;
+
+const CinematicReviewSlot = ({ engineRef, slotKey, initialReview, initialDelayMs = 0 }) => {
+  const prefersReducedMotion = usePrefersReducedMotion();
+  const timeoutRef = useRef(null);
+
+  const reviewARef = useRef(initialReview ?? null);
+  const reviewBRef = useRef(null);
+  const showARef = useRef(true);
+
+  const [reviewA, setReviewA] = useState(reviewARef.current);
+  const [reviewB, setReviewB] = useState(reviewBRef.current);
+  const [showA, setShowA] = useState(showARef.current);
+  const [fadeMs, setFadeMs] = useState(() => getReviewFadeMs());
+
+  const takeFromBag = useCallback(
+    (bagKey, list, avoidIds, { ignoreRecent = false } = {}) => {
+      if (!list.length) return null;
+
+      const engine = engineRef?.current;
+      if (!engine) return null;
+
+      if (!Array.isArray(engine[bagKey])) engine[bagKey] = [];
+      if (!Array.isArray(engine.recent)) engine.recent = [];
+
+      if (!engine[bagKey].length) engine[bagKey] = createShuffleBag(list.length);
+
+      const rejected = [];
+      const recentIds = engine.recent;
+      const recentLimit = Math.min(26, Math.max(10, Math.floor(cinematicReviewPool.length / 4)));
+      const maxAttempts = Math.max(12, Math.min(list.length, 30));
+
+      for (let attempts = 0; attempts < maxAttempts && engine[bagKey].length; attempts += 1) {
+        const idx = engine[bagKey].pop();
+        const item = list[idx];
+        const id = item?.__id;
+
+        if (!id || (avoidIds?.has?.(id) ?? false) || (!ignoreRecent && recentIds.includes(id))) {
+          rejected.push(idx);
+          continue;
+        }
+
+        if (rejected.length) engine[bagKey].unshift(...rejected);
+
+        recentIds.unshift(id);
+        if (recentIds.length > recentLimit) recentIds.length = recentLimit;
+
+        return item;
+      }
+
+      if (rejected.length) engine[bagKey].unshift(...rejected);
+      return null;
+    },
+    [engineRef],
+  );
+
+  const pickNextReview = useCallback(() => {
+    const engine = engineRef?.current;
+    const takenIds = new Set(Object.values(engine?.slots ?? {}));
+
+    const starsChance = 0.35;
+    const tryStars = cinematicReviewsStarsOnly.length && Math.random() < starsChance;
+
+    const primaryList = tryStars ? cinematicReviewsStarsOnly : cinematicReviewsWithText;
+    const primaryBag = tryStars ? 'starsBag' : 'textBag';
+    const fallbackList = tryStars ? cinematicReviewsWithText : cinematicReviewsStarsOnly;
+    const fallbackBag = tryStars ? 'textBag' : 'starsBag';
+
+    return (
+      takeFromBag(primaryBag, primaryList, takenIds) ??
+      takeFromBag(fallbackBag, fallbackList, takenIds) ??
+      takeFromBag(primaryBag, primaryList, takenIds, { ignoreRecent: true }) ??
+      takeFromBag(fallbackBag, fallbackList, takenIds, { ignoreRecent: true }) ??
+      primaryList.find((r) => r?.__id && !takenIds.has(r.__id)) ??
+      fallbackList.find((r) => r?.__id && !takenIds.has(r.__id)) ??
+      primaryList[0] ??
+      fallbackList[0] ??
+      null
+    );
+  }, [engineRef, takeFromBag]);
+
+  const getLayerStyle = useCallback(
+    (isVisible) => ({
+      opacity: isVisible ? 1 : 0,
+      transitionProperty: 'opacity',
+      transitionDuration: `${fadeMs}ms`,
+      transitionTimingFunction: 'ease-in-out',
+      willChange: 'opacity',
+    }),
+    [fadeMs],
+  );
+
+  useEffect(() => {
+    const engine = engineRef?.current;
+    if (!engine) return undefined;
+
+    if (!engine.slots) engine.slots = {};
+    if (!Array.isArray(engine.textBag)) engine.textBag = [];
+    if (!Array.isArray(engine.starsBag)) engine.starsBag = [];
+    if (!Array.isArray(engine.recent)) engine.recent = [];
+
+    const id = reviewARef.current?.__id;
+    if (id) engine.slots[slotKey] = id;
+
+    return () => {
+      const currentEngine = engineRef?.current;
+      if (!currentEngine?.slots) return;
+      delete currentEngine.slots[slotKey];
+    };
+  }, [engineRef, slotKey]);
+
+  useEffect(() => {
+    if (reviewARef.current?.__id) return;
+    const picked = pickNextReview();
+    if (!picked) return;
+
+    reviewARef.current = picked;
+    setReviewA(picked);
+
+    const engine = engineRef?.current;
+    if (engine?.slots && picked.__id) engine.slots[slotKey] = picked.__id;
+  }, [engineRef, pickNextReview, slotKey]);
+
+  useEffect(() => {
+    if (prefersReducedMotion) return;
+
+    let cancelled = false;
+
+    const clear = () => {
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    };
+
+    const transitionToNext = () => {
+      if (cancelled) return;
+
+      const nextReview = pickNextReview();
+      if (!nextReview) return;
+
+      const nextFadeMs = getReviewFadeMs();
+      setFadeMs(nextFadeMs);
+
+      if (showARef.current) {
+        reviewBRef.current = nextReview;
+        setReviewB(nextReview);
+      } else {
+        reviewARef.current = nextReview;
+        setReviewA(nextReview);
+      }
+
+      window.requestAnimationFrame(() => {
+        if (cancelled) return;
+        showARef.current = !showARef.current;
+        setShowA(showARef.current);
+        if (engineRef?.current?.slots && nextReview.__id) {
+          engineRef.current.slots[slotKey] = nextReview.__id;
+        }
+
+        timeoutRef.current = window.setTimeout(scheduleNext, nextFadeMs + getReviewBreathMs());
+      });
+    };
+
+    const scheduleNext = () => {
+      if (cancelled || document.hidden) return;
+
+      const currentReview = showARef.current ? reviewARef.current : reviewBRef.current;
+      const holdMs = getReviewHoldMs(currentReview);
+      timeoutRef.current = window.setTimeout(transitionToNext, holdMs);
+    };
+
+    timeoutRef.current = window.setTimeout(scheduleNext, initialDelayMs + randInt(300, 1800));
+
+    const handleVisibility = () => {
+      clear();
+      if (!document.hidden) scheduleNext();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
+
+    return () => {
+      cancelled = true;
+      clear();
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
+  }, [engineRef, initialDelayMs, pickNextReview, prefersReducedMotion, slotKey]);
+
+  return (
+    <div className="h-full min-h-0 grid grid-cols-1 grid-rows-1">
+      <div className="col-start-1 row-start-1 h-full" style={getLayerStyle(showA)}>
+        {reviewA ? <CinematicReviewCard review={reviewA} /> : null}
+      </div>
+      <div className="col-start-1 row-start-1 h-full" style={getLayerStyle(!showA)}>
+        {reviewB ? <CinematicReviewCard review={reviewB} /> : null}
+      </div>
+    </div>
+  );
+};
+
+const CinematicReviewRail = ({ side = 'left', engineRef, initialReviews = [] }) => (
+  <div
+    className="h-full overflow-hidden grid gap-4 pt-2 pb-16"
+    style={{ gridTemplateRows: `repeat(${SLOT_COUNT_PER_SIDE}, minmax(0, 1fr))` }}
+  >
+    {initialReviews.map((review, i) => (
+      <CinematicReviewSlot
+        key={`${side}-${i}`}
+        engineRef={engineRef}
+        slotKey={`${side}-${i}`}
+        initialReview={review}
+        initialDelayMs={i * randInt(600, 1200)}
+      />
+    ))}
   </div>
 );
 
@@ -333,6 +689,26 @@ const Booking = () => {
   });
   const [status, setStatus] = useState('idle');
 
+  const railEngineRef = useRef({
+    textBag: [],
+    starsBag: [],
+    recent: [],
+    slots: {},
+  });
+
+  const initialRailReviews = useMemo(() => {
+    const pool = [...cinematicReviewPool];
+    shuffleInPlace(pool);
+
+    const total = SLOT_COUNT_PER_SIDE * 2;
+    const picked = pool.slice(0, Math.min(total, pool.length));
+
+    return {
+      left: picked.slice(0, SLOT_COUNT_PER_SIDE),
+      right: picked.slice(SLOT_COUNT_PER_SIDE, SLOT_COUNT_PER_SIDE * 2),
+    };
+  }, []);
+
   const formatField = (value) => {
     const trimmed = String(value ?? '').trim();
     return trimmed.length ? trimmed : '—';
@@ -388,7 +764,15 @@ const Booking = () => {
   return (
     <div className="animate-fade-in opacity-0 min-h-screen py-12 md:py-24">
       <div className="px-6 md:px-12 max-w-7xl mx-auto">
-        <div className="max-w-2xl mx-auto">
+        <div className="max-w-2xl mx-auto relative">
+          <div className="hidden xl:block absolute top-0 bottom-0 right-[calc(100%+1.5rem)] 2xl:right-[calc(100%+2.5rem)] w-[17rem] 2xl:w-[19rem] pointer-events-none select-none">
+            <CinematicReviewRail
+              side="left"
+              engineRef={railEngineRef}
+              initialReviews={initialRailReviews.left}
+            />
+          </div>
+
           <div className="bg-slate-100 rounded-[8px] border border-slate-200 p-8 md:p-12">
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -511,6 +895,14 @@ const Booking = () => {
                 </p>
               )}
             </form>
+          </div>
+
+          <div className="hidden xl:block absolute top-0 bottom-0 left-[calc(100%+1.5rem)] 2xl:left-[calc(100%+2.5rem)] w-[17rem] 2xl:w-[19rem] pointer-events-none select-none">
+            <CinematicReviewRail
+              side="right"
+              engineRef={railEngineRef}
+              initialReviews={initialRailReviews.right}
+            />
           </div>
         </div>
       </div>
