@@ -184,6 +184,30 @@ const Home = () => {
     className: 'col-span-12 md:col-span-6 lg:col-span-3',
   }));
 
+  const wedding2Images = [
+    '0006__DSC3027-topaz-denoise-denoise_DxO_tpqmmc',
+    '0007__DSC3049-topaz-denoise-denoise_DxO_vh2j4m',
+    '0010__DSC3081-topaz-denoise-denoise_DxO_rzb2jn',
+    '0009__DSC3078-topaz-denoise-denoise_DxO_jsffaf',
+    '0011__DSC3102-topaz-denoise-denoise_DxO_gisjew',
+    '0008__DSC3059-topaz-denoise-denoise_DxO_mtpjqi',
+    '0005__DSC2794-topaz-denoise-denoise_DxO_sltnnl',
+    '0004__DSC2449-topaz-denoise-denoise_DxO_eo1qcp',
+    '0002__DSC1411-topaz-denoise-denoise_DxO_lmkid4',
+    '0013__DSC3294-topaz-denoise-denoise_DxO_qtfe5a',
+    '0012__DSC3116-topaz-denoise-denoise_DxO_zgyczx',
+    '0015__DSC4440-topaz-denoise-denoise_DxO_diayrl',
+    '0003__DSC1682-topaz-denoise-denoise_DxO_dqeobu',
+    '0001__DSC0749-topaz-denoise-denoise_DxO_rv1pwc',
+    '0014__DSC3296-topaz-denoise-denoise_DxO_sot3ul',
+    '0016__DSC4459-topaz-denoise-denoise_DxO_cjqihn',
+  ].map((publicId) => ({
+    id: publicId + '-mh', // unique id for Makayla and Hunter
+    cldImg: cld.image(publicId),
+    aspectRatio: 'aspect-[4/3]',
+    className: 'col-span-12 md:col-span-6 lg:col-span-3',
+  }));
+
   const assortedImages = Array.from({ length: 12 }, (_, i) => ({
     id: `as-${i + 1}`,
     aspectRatio: 'aspect-[4/3]',
@@ -308,6 +332,29 @@ const Home = () => {
         </div>
         
         <div className="space-y-20">
+          {/* Gallery 2 - Makayla and Hunter */}
+          <div>
+            <div className="mb-8 flex flex-col items-center text-center">
+              <h3 className="text-3xl font-serif text-slate-900 mb-3">Makayla and Hunter</h3>
+              <p className="text-sm text-slate-400 font-serif uppercase tracking-widest">Glasbern - A Historic Hotel of America • Summer 2025</p>
+            </div>
+            <div className="grid grid-cols-12 gap-4 md:gap-8 items-start">
+              {wedding2Images.map((img, i) => (
+                <div key={img.id} className={`group cursor-pointer overflow-hidden ${img.className}`} onClick={() => openLightbox(wedding2Images, i)}>
+                  <div className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden shadow-xl shadow-slate-200/50`}>
+                    <AdvancedImage
+                      cldImg={img.cldImg}
+                      className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-[2000ms] ease-out"
+                      alt={`Makayla and Hunter photo ${i + 1}`}
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Gallery 1 */}
           <div>
             <div className="mb-8 flex flex-col items-center text-center">
