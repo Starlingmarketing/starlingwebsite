@@ -62,11 +62,7 @@ const ASSORTED_IMAGE_IDS = [
 const STACK_OFFSET_X = 56;
 const STACK_OFFSET_Y = 38;
 const STACK_COUNT = 3;
-const CARD_SHADOWS = [
-  '0 2px 8px -1px rgba(0,0,0,0.08)',
-  '0 8px 20px -4px rgba(0,0,0,0.1), 0 2px 6px -2px rgba(0,0,0,0.06)',
-  '0 16px 36px -6px rgba(0,0,0,0.12), 0 6px 14px -4px rgba(0,0,0,0.06)',
-];
+const CARD_SHADOWS = ['none', 'none', 'none'];
 
 const buildOptimizedImage = (publicId, maxWidth) => {
   const img = cld.image(publicId).format('auto').quality('auto');
@@ -329,17 +325,9 @@ const Home = () => {
 
   useEffect(() => {
     if (departingIdx === null) return;
-    const t = setTimeout(() => setDepartingIdx(null), 1000);
+    const t = setTimeout(() => setDepartingIdx(null), 1800);
     return () => clearTimeout(t);
   }, [departingIdx]);
-
-  const goToImage = useCallback((idx) => {
-    clearInterval(stackIntervalRef.current);
-    setDepartingIdx(null);
-    const len = heroImages.length;
-    setVisibleSet([(idx - 2 + len) % len, (idx - 1 + len) % len, idx]);
-    stackIntervalRef.current = setInterval(advanceStack, 12000);
-  }, [heroImages.length, advanceStack]);
 
   useEffect(() => {
     const nextIdx = (visibleSet[2] + 1) % heroImages.length;
@@ -540,7 +528,7 @@ const Home = () => {
                     aspectRatio: '3 / 2',
                     zIndex: 0,
                     boxShadow: CARD_SHADOWS[0],
-                    animation: 'stackCardOut 0.9s cubic-bezier(0.4, 0, 1, 1) forwards',
+                    animation: 'stackCardOut 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards',
                   }}
                 >
                   <AdvancedImage
@@ -559,7 +547,7 @@ const Home = () => {
                     aspectRatio: '3 / 2',
                     zIndex: pos + 1,
                     transform: `translate(${pos * STACK_OFFSET_X}px, ${pos * -STACK_OFFSET_Y}px)`,
-                    transition: 'transform 1.1s cubic-bezier(0.33, 1, 0.68, 1), box-shadow 1s ease',
+                    transition: 'transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 1.6s ease',
                     boxShadow: CARD_SHADOWS[pos],
                     border: '0.5px solid rgba(0,0,0,0.06)',
                     willChange: 'transform',
@@ -569,46 +557,29 @@ const Home = () => {
                     className="w-full h-full"
                     style={
                       pos === STACK_COUNT - 1 && hasInitialized.current
-                        ? { animation: 'stackCardIn 0.9s cubic-bezier(0.16, 1, 0.3, 1) both' }
+                        ? { animation: 'stackCardIn 1.6s cubic-bezier(0.16, 1, 0.3, 1) both' }
                         : undefined
                     }
                   >
-                    <AdvancedImage
-                      cldImg={heroImages[imgIdx]}
-                      className="w-full h-full object-cover"
-                      alt={`Starling Photography ${imgIdx + 1}`}
-                      loading={pos === STACK_COUNT - 1 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      fetchPriority={pos === STACK_COUNT - 1 ? 'high' : 'auto'}
-                    />
+                    <div
+                      className="w-full h-full"
+                      style={
+                        pos === STACK_COUNT - 1
+                          ? { animation: 'heroKenBurns 12s ease-out forwards', willChange: 'transform' }
+                          : undefined
+                      }
+                    >
+                      <AdvancedImage
+                        cldImg={heroImages[imgIdx]}
+                        className="w-full h-full object-cover"
+                        alt={`Starling Photography ${imgIdx + 1}`}
+                        loading={pos === STACK_COUNT - 1 ? 'eager' : 'lazy'}
+                        decoding="async"
+                        fetchPriority={pos === STACK_COUNT - 1 ? 'high' : 'auto'}
+                      />
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
-            <div className="hero-dots absolute bottom-0 left-0 right-0 z-20 flex items-center justify-center gap-2.5 opacity-0 pointer-events-none transition-opacity duration-300 ease-out group-hover:opacity-100 focus-within:opacity-100">
-              {heroImages.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => goToImage(idx)}
-                  className={`group/dot relative rounded-full overflow-hidden cursor-pointer focus:outline-none transition-transform duration-700 ease-out hover:scale-110 active:scale-95 focus-visible:ring-2 focus-visible:ring-slate-400/60 focus-visible:ring-offset-2 focus-visible:ring-offset-white ${
-                    idx === visibleSet[2] ? 'w-6 h-[6px]' : 'w-[6px] h-[6px]'
-                  }`}
-                  aria-label={`View image ${idx + 1}`}
-                  aria-current={idx === visibleSet[2] ? 'true' : undefined}
-                >
-                  <span className="absolute inset-0 bg-slate-200 rounded-full transition-colors duration-300 group-hover/dot:bg-slate-300" />
-                  {idx === visibleSet[2] && (
-                    <span
-                      key={`progress-${visibleSet[2]}`}
-                      className="absolute inset-0 bg-slate-400 rounded-full transition-colors duration-300 group-hover/dot:bg-slate-500"
-                      style={{
-                        animation: 'dotProgress 12s linear forwards',
-                        transformOrigin: 'left center',
-                      }}
-                    />
-                  )}
-                </button>
               ))}
             </div>
           </div>
