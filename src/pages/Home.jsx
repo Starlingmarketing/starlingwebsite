@@ -63,11 +63,40 @@ const ASSORTED_IMAGE_IDS = [
   'center_city_ag1h8b',
 ];
 
-const STACK_OFFSET_X = 56;
-const STACK_OFFSET_Y = 38;
+const STACK_OFFSET_DESKTOP_X = 56;
+const STACK_OFFSET_DESKTOP_Y = 38;
+const STACK_OFFSET_MOBILE_X = 24;
+const STACK_OFFSET_MOBILE_Y = 16;
 const STACK_COUNT = 3;
 const CARD_SHADOWS = ['none', 'none', 'none'];
 const LIGHTBOX_RADIUS_PX = 8;
+
+const useMediaQuery = (query) => {
+  const getInitial = () => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return false;
+    return Boolean(window.matchMedia(query).matches);
+  };
+
+  const [matches, setMatches] = useState(getInitial);
+
+  useEffect(() => {
+    const mediaQueryList = window.matchMedia?.(query);
+    if (!mediaQueryList) return undefined;
+
+    const handleChange = () => setMatches(Boolean(mediaQueryList.matches));
+    handleChange();
+
+    if (mediaQueryList.addEventListener) {
+      mediaQueryList.addEventListener('change', handleChange);
+      return () => mediaQueryList.removeEventListener('change', handleChange);
+    }
+
+    mediaQueryList.addListener(handleChange);
+    return () => mediaQueryList.removeListener(handleChange);
+  }, [query]);
+
+  return matches;
+};
 
 const buildOptimizedImage = (publicId, maxWidth) => {
   const img = cld.image(publicId).format('auto').quality('auto');
@@ -306,6 +335,10 @@ const Home = () => {
   const visibleSetRef = useRef([0, 1, 2]);
   const hasInitialized = useRef(false);
 
+  const isMobileStack = useMediaQuery('(max-width: 767px)');
+  const stackOffsetX = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
+  const stackOffsetY = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
+
   const container = useRef(null);
   const bookingRevealRef = useRef(null);
   const reviewsBackdropRef = useRef(null);
@@ -334,7 +367,7 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'col-span-12 md:col-span-6 lg:col-span-3',
+      className: 'col-span-6 md:col-span-6 lg:col-span-3',
     }));
   }, [renderFeatured]);
 
@@ -345,7 +378,7 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'col-span-12 md:col-span-6 lg:col-span-3',
+      className: 'col-span-6 md:col-span-6 lg:col-span-3',
     }));
   }, [renderFeatured]);
 
@@ -356,7 +389,7 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'col-span-12 md:col-span-6 lg:col-span-3',
+      className: 'col-span-6 md:col-span-6 lg:col-span-3',
     }));
   }, [renderSelected]);
 
@@ -787,8 +820,8 @@ const Home = () => {
         opacity: 1, duration: 1.0, ease: 'power2.out', clearProps: 'opacity',
       }, 0.6)
       .to(stackCards, {
-        x: (i) => i * STACK_OFFSET_X,
-        y: (i) => i * -STACK_OFFSET_Y,
+        x: (i) => i * stackOffsetX,
+        y: (i) => i * -stackOffsetY,
         duration: 1.5, stagger: 0.1, ease: 'power4.out',
         onComplete: () => setEntranceDone(true),
       }, 0.6);
@@ -872,9 +905,9 @@ const Home = () => {
       />
       <div className="relative z-10">
         {/* Hero Section - Framed Premium Layout */}
-        <section id="home-hero" className="relative w-full pt-2 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
+        <section id="home-hero" className="relative w-full pt-8 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
           {/* Mobile-only: compact reviews eyebrow above image stack */}
-          <div className="lg:hidden flex justify-center mb-4">
+          <div className="lg:hidden flex justify-center mb-6 -mt-2">
             <div className="hero-eyebrow w-fit inline-flex items-center justify-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white border border-slate-200/80 whitespace-nowrap leading-none">
               <div className="flex items-center bg-[#F8F9FA] rounded-full px-2 py-1 border border-slate-100/50">
                 <div className="flex items-center gap-1.5">
@@ -978,7 +1011,7 @@ const Home = () => {
                   key={`dep-${departingIdx}`}
                   className="absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
                   style={{
-                    width: `calc(100% - ${(STACK_COUNT - 1) * STACK_OFFSET_X}px)`,
+                    width: `calc(100% - ${(STACK_COUNT - 1) * stackOffsetX}px)`,
                     aspectRatio: '3 / 2',
                     zIndex: 0,
                     boxShadow: CARD_SHADOWS[0],
@@ -997,10 +1030,10 @@ const Home = () => {
                   key={imgIdx}
                   className="hero-stack-card absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
                   style={{
-                    width: `calc(100% - ${(STACK_COUNT - 1) * STACK_OFFSET_X}px)`,
+                    width: `calc(100% - ${(STACK_COUNT - 1) * stackOffsetX}px)`,
                     aspectRatio: '3 / 2',
                     zIndex: pos + 1,
-                    transform: `translate(${pos * STACK_OFFSET_X}px, ${pos * -STACK_OFFSET_Y}px)`,
+                    transform: `translate(${pos * stackOffsetX}px, ${pos * -stackOffsetY}px)`,
                     transition: entranceDone ? 'transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 1.6s ease' : 'none',
                     boxShadow: CARD_SHADOWS[pos],
                     border: '0.5px solid rgba(0,0,0,0.06)',
