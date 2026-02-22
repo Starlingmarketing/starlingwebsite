@@ -1,7 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { limitFit } from '@cloudinary/url-gen/actions/resize';
 import emailjs from '@emailjs/browser';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { cld } from '../utils/cloudinary';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const reviews = [
   {
@@ -990,7 +994,40 @@ const CinematicReviewGrid = ({ engineRef, initialReviews = [] }) => {
   );
 };
 
-const ReviewsGrid = ({ showHeading = true } = {}) => {
+const ReviewsGrid = ({ showHeading = true, animate = true } = {}) => {
+  const gridRef = useRef(null);
+
+  useEffect(() => {
+    if (!animate) return;
+    const node = gridRef.current;
+    if (!node) return;
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+
+    const cards = node.querySelectorAll('[data-review-card="true"]');
+    if (!cards.length) return;
+
+    const ctx = gsap.context(() => {
+      gsap.set(cards, { opacity: 0, y: 30 });
+
+      ScrollTrigger.batch(cards, {
+        start: 'top 93%',
+        onEnter: (batch) => {
+          gsap.to(batch, {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            stagger: 0.1,
+            ease: 'power2.out',
+            overwrite: true,
+            clearProps: 'transform',
+          });
+        },
+      });
+    });
+
+    return () => ctx.revert();
+  }, [animate]);
+
   const bigRemainder = reviews.length % 3;
   const promotedCount = bigRemainder === 0 ? 0 : 3 - bigRemainder;
 
@@ -1005,7 +1042,7 @@ const ReviewsGrid = ({ showHeading = true } = {}) => {
   const remainingStarOnlyReviews = starOnlyReviews.slice(shortFillCount);
 
   return (
-    <section className="mt-24 w-full">
+    <section ref={gridRef} className="mt-24 w-full">
       <div className="px-6 md:px-12 max-w-7xl mx-auto">
         {showHeading && (
           <h2 className="text-center text-xs uppercase tracking-[0.2em] text-slate-400">
@@ -1138,8 +1175,49 @@ const Booking = () => {
       });
   };
 
+  const pageRef = useRef(null);
+  const gridWrapRef = useRef(null);
+  const formCardRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+    const gridNode = gridWrapRef.current;
+    const formNode = formCardRef.current;
+    if (!gridNode && !formNode) return;
+
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+
+      if (formNode) {
+        gsap.set(formNode, { opacity: 0, y: 30 });
+        tl.to(formNode, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          clearProps: 'transform',
+        }, 0);
+      }
+
+      if (gridNode) {
+        const cells = [...gridNode.querySelectorAll(':scope > div > div > div')];
+        if (cells.length) {
+          gsap.set(cells, { opacity: 0, y: 30 });
+          tl.to(cells, {
+            opacity: 1,
+            y: 0,
+            duration: 0.8,
+            stagger: 0.1,
+            clearProps: 'transform',
+          }, 0.15);
+        }
+      }
+    });
+
+    return () => ctx.revert();
+  }, []);
+
   return (
-    <div className="animate-fade-in opacity-0 min-h-screen py-12 md:py-24 relative isolate">
+    <div ref={pageRef} className="min-h-screen py-12 md:py-24 relative isolate">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-24 z-0 h-[clamp(1800px,220vh,3000px)] lg:h-[clamp(1600px,200vh,2600px)]"
@@ -1159,7 +1237,7 @@ const Booking = () => {
 
       <div className="relative z-10">
         <div className="px-6 md:px-12 max-w-7xl mx-auto lg:grid lg:grid-cols-1">
-          <div className="lg:col-start-1 lg:row-start-1">
+          <div ref={gridWrapRef} className="lg:col-start-1 lg:row-start-1">
             <CinematicReviewGrid
               engineRef={railEngineRef}
               initialReviews={initialGridReviews}
@@ -1168,6 +1246,7 @@ const Booking = () => {
 
           <div className="mt-10 lg:mt-0 lg:col-start-1 lg:row-start-1 lg:flex lg:items-start lg:justify-center lg:pointer-events-none lg:z-10 lg:pt-[114px]">
             <div
+              ref={formCardRef}
               className="mx-auto lg:pointer-events-auto relative overflow-hidden"
               style={{
                 width: '100%',

@@ -2,11 +2,72 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, X } from 'lucide-react';
 import { AdvancedImage } from '@cloudinary/react';
 import { cld } from '../utils/cloudinary';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import emailjs from '@emailjs/browser';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+gsap.registerPlugin(ScrollTrigger);
 
 const About = () => {
   const aboutImage = cld.image('AF1I5294_gu67ej');
+  const pageRef = useRef(null);
+  const imageRef = useRef(null);
+  const textRef = useRef(null);
+  const pressRef = useRef(null);
+
+  useEffect(() => {
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
+    const ctx = gsap.context(() => {
+      const tl = gsap.timeline({ defaults: { ease: 'power2.out' } });
+
+      if (imageRef.current) {
+        gsap.set(imageRef.current, { opacity: 0, y: 30 });
+        tl.to(imageRef.current, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          clearProps: 'transform',
+        }, 0);
+      }
+
+      if (textRef.current) {
+        const items = [...textRef.current.children];
+        gsap.set(items, { opacity: 0, y: 30 });
+        tl.to(items, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.1,
+          clearProps: 'transform',
+        }, 0.1);
+      }
+
+      if (pressRef.current) {
+        const pressItems = [
+          pressRef.current.querySelector('h2'),
+          ...pressRef.current.querySelectorAll(':scope > div > div'),
+        ].filter(Boolean);
+        gsap.set(pressItems, { opacity: 0, y: 30 });
+        ScrollTrigger.batch(pressItems, {
+          start: 'top 93%',
+          onEnter: (batch) => {
+            gsap.to(batch, {
+              opacity: 1,
+              y: 0,
+              duration: 0.8,
+              stagger: 0.1,
+              ease: 'power2.out',
+              overwrite: true,
+              clearProps: 'transform',
+            });
+          },
+        });
+      }
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [isClosingQuoteModal, setIsClosingQuoteModal] = useState(false);
@@ -55,10 +116,10 @@ const About = () => {
   };
 
   return (
-    <div className="animate-fade-in opacity-0 min-h-[80vh] px-6 md:px-12 max-w-7xl mx-auto py-8 md:py-16 flex flex-col justify-center">
+    <div ref={pageRef} className="min-h-[80vh] px-6 md:px-12 max-w-7xl mx-auto py-8 md:py-16 flex flex-col justify-center">
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
         {/* Image Section */}
-        <div className="order-2 lg:order-1 flex justify-center">
+        <div ref={imageRef} className="order-2 lg:order-1 flex justify-center">
           <div className="aspect-[4/5] bg-slate-100 w-[90%] md:w-[80%] lg:w-[85%] relative overflow-hidden">
             <AdvancedImage
               cldImg={aboutImage}
@@ -71,7 +132,7 @@ const About = () => {
         </div>
 
         {/* Text Section */}
-        <div className="order-1 lg:order-2">
+        <div ref={textRef} className="order-1 lg:order-2">
           <h2 className="text-xs uppercase tracking-[0.3em] text-slate-400 mb-4">About Starling</h2>
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-light tracking-tight text-slate-900 mb-6 leading-[1.1]">
             <span className="italic font-serif text-slate-500">Our</span> Approach.
@@ -110,7 +171,7 @@ const About = () => {
       </div>
 
       {/* Press Section */}
-      <div className="mt-24 md:mt-32 max-w-3xl mx-auto w-full">
+      <div ref={pressRef} className="mt-24 md:mt-32 max-w-3xl mx-auto w-full">
         <h2 className="text-xs uppercase tracking-[0.3em] text-slate-400 mb-10 text-center">Press</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
           <div className="text-center md:text-left">

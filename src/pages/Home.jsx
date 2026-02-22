@@ -252,6 +252,7 @@ const useStaggerReveal = (shouldAnimate) => {
 const Home = () => {
   const [visibleSet, setVisibleSet] = useState([0, 1, 2]);
   const [departingIdx, setDepartingIdx] = useState(null);
+  const [entranceDone, setEntranceDone] = useState(false);
 
   const [showQuoteModal, setShowQuoteModal] = useState(false);
   const [isClosingQuoteModal, setIsClosingQuoteModal] = useState(false);
@@ -439,14 +440,18 @@ const Home = () => {
     gsap.set('.hero-text-line', { y: 32, opacity: 0 });
     gsap.set('.hero-desc', { y: 16, opacity: 0 });
     gsap.set('.hero-link', { y: 10, opacity: 0 });
-    gsap.set('.hero-stack-wrapper', { opacity: 0, y: 28 });
+    gsap.set('.hero-stack-wrapper', { opacity: 0 });
+    const stackCards = gsap.utils.toArray('.hero-stack-card');
+    gsap.set(stackCards, { x: 0, y: 30 });
 
     if (prefersReducedMotion) {
       gsap.set('.hero-eyebrow', { y: 0, opacity: 1 });
       gsap.set('.hero-text-line', { y: 0, opacity: 1 });
       gsap.set('.hero-desc', { y: 0, opacity: 1 });
       gsap.set('.hero-link', { y: 0, opacity: 1 });
-      gsap.set('.hero-stack-wrapper', { y: 0, opacity: 1 });
+      gsap.set('.hero-stack-wrapper', { opacity: 1 });
+      gsap.set(stackCards, { clearProps: 'x,y' });
+      setEntranceDone(true);
       return;
     }
 
@@ -499,10 +504,21 @@ const Home = () => {
         '.hero-stack-wrapper',
         {
           opacity: 1,
-          y: 0,
-          duration: 1.2,
+          duration: 1.0,
           ease: 'power2.out',
-          clearProps: 'transform,opacity',
+          clearProps: 'opacity',
+        },
+        0.18
+      )
+      .to(
+        stackCards,
+        {
+          x: (i) => i * STACK_OFFSET_X,
+          y: (i) => i * -STACK_OFFSET_Y,
+          duration: 1.5,
+          stagger: 0.1,
+          ease: 'power4.out',
+          onComplete: () => setEntranceDone(true),
         },
         0.18
       );
@@ -510,7 +526,13 @@ const Home = () => {
     const content = reviewsContentRef.current;
     const wrapper = reviewsSectionRef.current;
     if (content && wrapper && !prefersReducedMotion) {
+      const cards = content.querySelectorAll('[data-review-card="true"]');
       gsap.set(content, { opacity: 0 });
+      if (cards.length) {
+        gsap.set(cards, { opacity: 0, y: 30 });
+      }
+
+      let cardsRevealed = false;
 
       gsap.to(content, {
         opacity: 1,
@@ -523,35 +545,22 @@ const Home = () => {
           onUpdate: (self) => {
             wrapper.style.pointerEvents =
               self.progress > 0.8 ? '' : 'none';
+
+            if (!cardsRevealed && self.progress > 0.6 && cards.length) {
+              cardsRevealed = true;
+              gsap.to(cards, {
+                opacity: 1,
+                y: 0,
+                duration: 0.8,
+                stagger: 0.1,
+                ease: 'power2.out',
+                overwrite: true,
+                clearProps: 'transform',
+              });
+            }
           },
         },
       });
-
-      const cards = content.querySelectorAll('[data-review-card="true"]');
-      if (cards.length) {
-        gsap.set(cards, { opacity: 0.6 });
-        ScrollTrigger.batch(cards, {
-          start: 'top 92%',
-          onEnter: (batch) => {
-            gsap.to(batch, {
-              opacity: 1,
-              duration: 0.6,
-              ease: 'power2.out',
-              stagger: 0.06,
-              overwrite: true,
-            });
-          },
-          onEnterBack: (batch) => {
-            gsap.to(batch, {
-              opacity: 1,
-              duration: 0.4,
-              ease: 'power2.out',
-              stagger: 0.04,
-              overwrite: true,
-            });
-          },
-        });
-      }
     }
 
     const backdrop = reviewsBackdropRef.current;
@@ -682,7 +691,7 @@ const Home = () => {
                     aspectRatio: '3 / 2',
                     zIndex: pos + 1,
                     transform: `translate(${pos * STACK_OFFSET_X}px, ${pos * -STACK_OFFSET_Y}px)`,
-                    transition: 'transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 1.6s ease',
+                    transition: entranceDone ? 'transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 1.6s ease' : 'none',
                     boxShadow: CARD_SHADOWS[pos],
                     border: '0.5px solid rgba(0,0,0,0.06)',
                     willChange: 'transform',
@@ -851,7 +860,7 @@ const Home = () => {
         style={{ marginTop: '-100vh', pointerEvents: 'none' }}
       >
         <div ref={reviewsContentRef} className="relative z-[25]">
-          <ReviewsGrid showHeading={false} />
+          <ReviewsGrid showHeading={false} animate={false} />
         </div>
       </div>
 
