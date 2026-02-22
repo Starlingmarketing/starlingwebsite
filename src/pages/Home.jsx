@@ -1069,7 +1069,7 @@ const Home = () => {
               </p>
               <button
                 onClick={() => setShowQuoteModal(true)}
-                className="order-4 lg:order-none hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors"
+                className="order-4 lg:order-none self-center lg:self-start hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors"
               >
                 <span>Reach Out</span>
                 <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
