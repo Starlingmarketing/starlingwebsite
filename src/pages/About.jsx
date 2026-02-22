@@ -109,6 +109,25 @@ const About = () => {
         </div>
       </div>
 
+      {/* Press Section */}
+      <div className="mt-24 md:mt-32 max-w-3xl mx-auto w-full">
+        <h2 className="text-xs uppercase tracking-[0.3em] text-slate-400 mb-10 text-center">Press</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-10 md:gap-16">
+          <div className="text-center md:text-left">
+            <h3 className="text-lg font-serif italic text-slate-800 mb-2">Bill Clinton</h3>
+            <p className="text-sm text-slate-500 font-light leading-relaxed">
+              Photography credits for Clinton's last book tour
+            </p>
+          </div>
+          <div className="text-center md:text-left">
+            <h3 className="text-lg font-serif italic text-slate-800 mb-2">CBS</h3>
+            <p className="text-sm text-slate-500 font-light leading-relaxed">
+              Credits for photos of Ukee Washington in the context of Lung Force Walk
+            </p>
+          </div>
+        </div>
+      </div>
+
       {/* Quote Modal */}
       {showQuoteModal && (
         <div
