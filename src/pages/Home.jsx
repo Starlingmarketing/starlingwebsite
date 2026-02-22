@@ -806,13 +806,24 @@ const Home = () => {
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
     if (isHeroStackedLayout) {
-      // Mobile entrance should read top-to-bottom:
-      // eyebrow → image stack → text (headline → desc → CTA)
+      // Mobile entrance top-to-bottom:
+      // eyebrow → header → image stack → subheader → CTA
       tl.to(
         '.hero-eyebrow',
         { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' },
         0,
       )
+        .to(
+          '.hero-text-line',
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.75,
+            stagger: 0.07,
+            ease: 'power3.out',
+          },
+          0.4,
+        )
         .to(
           '.hero-stack-wrapper',
           {
@@ -821,7 +832,7 @@ const Home = () => {
             ease: 'power2.out',
             clearProps: 'opacity',
           },
-          0.65,
+          0.85,
         )
         .to(
           stackCards,
@@ -833,18 +844,7 @@ const Home = () => {
             ease: 'power4.out',
             onComplete: () => setEntranceDone(true),
           },
-          0.65,
-        )
-        .to(
-          '.hero-text-line',
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.75,
-            stagger: 0.07,
-            ease: 'power3.out',
-          },
-          1.25,
+          0.85,
         )
         .to(
           '.hero-desc',
@@ -981,7 +981,7 @@ const Home = () => {
         {/* Hero Section - Framed Premium Layout */}
         <section id="home-hero" className="relative w-full pt-8 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
           {/* Mobile-only: compact reviews eyebrow above image stack */}
-          <div className="lg:hidden flex justify-center mb-6 -mt-2">
+          <div className="lg:hidden flex justify-center mb-9 -mt-2">
             <div className="hero-eyebrow max-w-full inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-1 rounded-full bg-white border border-slate-200/80 leading-none">
               <div className="flex items-center bg-[#F8F9FA] rounded-full px-2 py-1 border border-slate-100/50">
                 <div className="flex items-center gap-1.5">
@@ -1020,10 +1020,10 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-12 lg:gap-24 xl:gap-40 2xl:gap-56">
+          <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between lg:gap-24 xl:gap-40 2xl:gap-56">
           
             {/* Text Content */}
-            <div className="w-full lg:w-5/12 order-2 lg:order-1 flex flex-col justify-center z-10">
+            <div className="contents lg:flex lg:flex-col lg:w-5/12 lg:order-1 lg:justify-center lg:z-10">
               <div className="hero-eyebrow hidden lg:flex w-fit items-center justify-center gap-4 -mt-2 mb-10 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200/80">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full px-3 py-1.5 border border-slate-100/50">
                   <div className="flex items-center gap-2.5">
@@ -1060,16 +1060,16 @@ const Home = () => {
                   </div>
                 </div>
               </div>
-              <h1 className="text-xl sm:text-2xl md:text-[26px] lg:text-[28px] xl:text-[34px] max-[360px]:text-[18px] font-serif uppercase text-slate-900 leading-[1.1] tracking-normal mb-10">
+              <h1 className="order-1 lg:order-none text-[22px] sm:text-[26px] md:text-[26px] lg:text-[28px] xl:text-[34px] max-[360px]:text-[19px] font-serif uppercase text-slate-900 leading-[1.1] tracking-normal mb-2 lg:mb-10">
                 <div className="overflow-hidden"><div className="hero-text-line whitespace-nowrap">Unscripted Moments.</div></div>
                 <div className="overflow-hidden"><div className="hero-text-line whitespace-nowrap">Unforgettable Memories.</div></div>
               </h1>
-              <p className="hero-desc text-sm md:text-base text-slate-600 font-light mb-8 max-w-md leading-relaxed">
+              <p className="order-3 lg:order-none hero-desc text-sm md:text-base text-slate-600 font-light lg:mb-8 max-w-md leading-relaxed">
                 Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
               </p>
               <button
                 onClick={() => setShowQuoteModal(true)}
-                className="hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors"
+                className="order-4 lg:order-none hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors"
               >
                 <span>Reach Out</span>
                 <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
@@ -1077,7 +1077,7 @@ const Home = () => {
             </div>
           
           {/* Staggered Image Stack */}
-          <div className="w-full lg:w-6/12 order-1 lg:order-2 py-4 lg:py-6 flex items-center justify-center relative group">
+          <div className="w-full lg:w-6/12 order-2 lg:order-2 lg:py-6 flex items-center justify-center relative group">
             <div className="hero-stack-wrapper relative w-full lg:w-[637px]" ref={stackRef} style={{ aspectRatio: '637 / 426' }}>
               {departingIdx !== null && (
                 <div
