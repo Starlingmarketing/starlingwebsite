@@ -589,6 +589,20 @@ const Home = () => {
     if (!lightbox) return;
     document.documentElement.removeAttribute('data-lightbox-restoring');
     document.documentElement.setAttribute('data-lightbox-open', '');
+
+    const docEl = document.documentElement;
+    const body = document.body;
+    const prevOverflow = docEl.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPaddingRight = body.style.paddingRight;
+    const scrollBarGap = window.innerWidth - docEl.clientWidth;
+
+    docEl.style.overflow = 'hidden';
+    body.style.overflow = 'hidden';
+    if (scrollBarGap > 0) {
+      body.style.paddingRight = `${scrollBarGap}px`;
+    }
+
     const handleKey = (e) => {
       if (e.key === 'Escape') closeLightbox();
       if (e.key === 'ArrowRight') navigateLightbox(1);
@@ -599,6 +613,10 @@ const Home = () => {
       document.documentElement.removeAttribute('data-lightbox-open');
       document.documentElement.removeAttribute('data-lightbox-restoring');
       window.removeEventListener('keydown', handleKey);
+
+      docEl.style.overflow = prevOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.paddingRight = prevBodyPaddingRight;
     };
   }, [lightbox, closeLightbox, navigateLightbox]);
 
