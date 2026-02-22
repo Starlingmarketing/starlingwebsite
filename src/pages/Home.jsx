@@ -723,7 +723,7 @@ const Home = () => {
       </section>
 
       {/* Featured Galleries / Recent Work */}
-      <section ref={featuredRef} className="px-6 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]">
+      <section ref={featuredRef} data-nav-dark className="px-6 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]">
         <div className="flex justify-between items-end mb-8">
           {/* <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2> */}
         </div>
@@ -792,7 +792,7 @@ const Home = () => {
       </section>
 
       {/* Assorted / Selected Work */}
-      <section ref={selectedRef} className="px-6 md:px-12 max-w-7xl mx-auto pt-4 pb-20">
+      <section ref={selectedRef} data-nav-dark className="px-6 md:px-12 max-w-7xl mx-auto pt-4 pb-20">
         <div ref={selectedDividerRef} className="flex items-center gap-6 mb-10">
           <div className="flex-1 h-px bg-slate-200" />
           <h2 className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-light whitespace-nowrap">Selected Work</h2>

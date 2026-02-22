@@ -13,6 +13,7 @@ const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navRef = useRef(null);
+  const navBgRef = useRef(null);
   const { activeOverride, triggerGalleryTransition } = useContext(NavOverrideContext);
   const activePath = activeOverride || location.pathname;
 
@@ -20,13 +21,58 @@ const Navbar = () => {
     setIsOpen(false);
   }, [location.pathname]);
 
+  useEffect(() => {
+    let rafId;
+    let wasDark = false;
+
+    const checkOverlap = () => {
+      const nav = navRef.current;
+      const bg = navBgRef.current;
+      if (!nav || !bg) return;
+
+      const navRect = nav.getBoundingClientRect();
+      const darkSections = document.querySelectorAll('[data-nav-dark]');
+
+      let isDark = false;
+      for (const section of darkSections) {
+        const rect = section.getBoundingClientRect();
+        if (navRect.bottom > rect.top && navRect.top < rect.bottom) {
+          isDark = true;
+          break;
+        }
+      }
+
+      if (isDark !== wasDark) {
+        wasDark = isDark;
+        gsap.to(bg, {
+          opacity: isDark ? 1 : 0,
+          duration: 0.35,
+          ease: 'power2.out',
+        });
+      }
+    };
+
+    const onScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(checkOverlap);
+    };
+
+    window.addEventListener('scroll', onScroll, { passive: true });
+    checkOverlap();
+
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   useGSAP(() => {
     const vh = window.innerHeight;
 
     const tl = gsap.timeline({
       scrollTrigger: {
         start: 'top top',
-        end: '+=' + vh * 1.8,
+        end: '+=' + vh * 1.0,
         scrub: 1.2,
       },
     });
@@ -39,9 +85,9 @@ const Navbar = () => {
         backdropFilter: 'blur(0px) saturate(1)',
       },
       {
-        backgroundColor: 'rgba(255, 255, 255, 0.2)',
-        borderColor: 'rgba(255, 255, 255, 0.3)',
-        backdropFilter: 'blur(40px) saturate(1.5)',
+        backgroundColor: 'rgba(255, 255, 255, 0.55)',
+        borderColor: 'rgba(255, 255, 255, 0.35)',
+        backdropFilter: 'blur(40px) saturate(1.8)',
         ease: 'power2.out',
         duration: 0.25,
       },
@@ -83,11 +129,26 @@ const Navbar = () => {
       ref={navRef}
       className="fixed z-50 left-0 right-0 mx-auto border"
     >
-      <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center">
+      <div
+        ref={navBgRef}
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          opacity: 0,
+          backgroundColor: 'rgba(255, 255, 255, 0.4)',
+          borderRadius: '22px',
+        }}
+      />
+      <div className="max-w-7xl mx-auto px-6 md:px-12 flex justify-between items-center relative">
         {/* Logo */}
         <Link
           to="/"
           className="z-50 relative"
+          onClick={(e) => {
+            if (activeOverride) {
+              e.preventDefault();
+              triggerGalleryTransition();
+            }
+          }}
         >
           <img
             src={logo}
