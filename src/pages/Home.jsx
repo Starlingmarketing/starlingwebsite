@@ -336,6 +336,7 @@ const Home = () => {
   const hasInitialized = useRef(false);
 
   const isMobileStack = useMediaQuery('(max-width: 767px)');
+  const isHeroStackedLayout = useMediaQuery('(max-width: 1023px)');
   const stackOffsetX = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
   const stackOffsetY = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
 
@@ -367,7 +368,7 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'col-span-6 md:col-span-6 lg:col-span-3',
+      className: 'md:col-span-6 lg:col-span-3',
     }));
   }, [renderFeatured]);
 
@@ -378,7 +379,7 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'col-span-6 md:col-span-6 lg:col-span-3',
+      className: 'md:col-span-6 lg:col-span-3',
     }));
   }, [renderFeatured]);
 
@@ -389,7 +390,7 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'col-span-6 md:col-span-6 lg:col-span-3',
+      className: 'md:col-span-6 lg:col-span-3',
     }));
   }, [renderSelected]);
 
@@ -804,27 +805,100 @@ const Home = () => {
 
     const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
 
-    tl.to('.hero-eyebrow', {
-      y: 0, opacity: 1, duration: 0.8, ease: 'power2.out',
-    }, 0)
-      .to('.hero-text-line', {
-        y: 0, opacity: 1, duration: 0.9, stagger: 0.08, ease: 'power3.out',
-      }, 0)
-      .to('.hero-desc', {
-        y: 0, opacity: 1, duration: 0.8, ease: 'power2.out',
-      }, 0.32)
-      .to('.hero-link', {
-        y: 0, opacity: 1, duration: 0.7, ease: 'power2.out',
-      }, 0.48)
-      .to('.hero-stack-wrapper', {
-        opacity: 1, duration: 1.0, ease: 'power2.out', clearProps: 'opacity',
-      }, 0.6)
-      .to(stackCards, {
-        x: (i) => i * stackOffsetX,
-        y: (i) => i * -stackOffsetY,
-        duration: 1.5, stagger: 0.1, ease: 'power4.out',
-        onComplete: () => setEntranceDone(true),
-      }, 0.6);
+    if (isHeroStackedLayout) {
+      // Mobile entrance should read top-to-bottom:
+      // eyebrow → image stack → text (headline → desc → CTA)
+      tl.to(
+        '.hero-eyebrow',
+        { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' },
+        0,
+      )
+        .to(
+          '.hero-stack-wrapper',
+          {
+            opacity: 1,
+            duration: 0.75,
+            ease: 'power2.out',
+            clearProps: 'opacity',
+          },
+          0.65,
+        )
+        .to(
+          stackCards,
+          {
+            x: (i) => i * stackOffsetX,
+            y: (i) => i * -stackOffsetY,
+            duration: 1.05,
+            stagger: 0.09,
+            ease: 'power4.out',
+            onComplete: () => setEntranceDone(true),
+          },
+          0.65,
+        )
+        .to(
+          '.hero-text-line',
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.75,
+            stagger: 0.07,
+            ease: 'power3.out',
+          },
+          1.25,
+        )
+        .to(
+          '.hero-desc',
+          { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' },
+          1.55,
+        )
+        .to(
+          '.hero-link',
+          { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' },
+          1.75,
+        );
+    } else {
+      // Desktop entrance timing (existing feel)
+      tl.to(
+        '.hero-eyebrow',
+        { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' },
+        0,
+      )
+        .to(
+          '.hero-text-line',
+          {
+            y: 0,
+            opacity: 1,
+            duration: 0.9,
+            stagger: 0.08,
+            ease: 'power3.out',
+          },
+          0,
+        )
+        .to('.hero-desc', { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' }, 0.32)
+        .to('.hero-link', { y: 0, opacity: 1, duration: 0.7, ease: 'power2.out' }, 0.48)
+        .to(
+          '.hero-stack-wrapper',
+          {
+            opacity: 1,
+            duration: 1.0,
+            ease: 'power2.out',
+            clearProps: 'opacity',
+          },
+          0.6,
+        )
+        .to(
+          stackCards,
+          {
+            x: (i) => i * stackOffsetX,
+            y: (i) => i * -stackOffsetY,
+            duration: 1.5,
+            stagger: 0.1,
+            ease: 'power4.out',
+            onComplete: () => setEntranceDone(true),
+          },
+          0.6,
+        );
+    }
 
     const content = reviewsContentRef.current;
     const wrapper = reviewsSectionRef.current;
@@ -908,7 +982,7 @@ const Home = () => {
         <section id="home-hero" className="relative w-full pt-8 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
           {/* Mobile-only: compact reviews eyebrow above image stack */}
           <div className="lg:hidden flex justify-center mb-6 -mt-2">
-            <div className="hero-eyebrow w-fit inline-flex items-center justify-center gap-2 pl-1 pr-3 py-1 rounded-full bg-white border border-slate-200/80 whitespace-nowrap leading-none">
+            <div className="hero-eyebrow max-w-full inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-1 rounded-full bg-white border border-slate-200/80 leading-none">
               <div className="flex items-center bg-[#F8F9FA] rounded-full px-2 py-1 border border-slate-100/50">
                 <div className="flex items-center gap-1.5">
                   {/* Google */}
@@ -950,7 +1024,7 @@ const Home = () => {
           
             {/* Text Content */}
             <div className="w-full lg:w-5/12 order-2 lg:order-1 flex flex-col justify-center z-10">
-              <div className="hero-eyebrow hidden lg:flex w-fit items-center justify-center gap-4 mb-6 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200/80">
+              <div className="hero-eyebrow hidden lg:flex w-fit items-center justify-center gap-4 -mt-2 mb-10 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200/80">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full px-3 py-1.5 border border-slate-100/50">
                   <div className="flex items-center gap-2.5">
                     {/* Google */}
@@ -986,10 +1060,9 @@ const Home = () => {
                   </div>
                 </div>
               </div>
-              <h1 className="text-3xl md:text-4xl lg:text-5xl font-serif uppercase text-slate-900 leading-[1.1] tracking-wide mb-6">
-                <div className="overflow-hidden"><div className="hero-text-line">Intentional</div></div>
-                <div className="overflow-hidden"><div className="hero-text-line">Elegant</div></div>
-                <div className="overflow-hidden"><div className="hero-text-line">Honest</div></div>
+              <h1 className="text-xl sm:text-2xl md:text-[26px] lg:text-[28px] xl:text-[34px] max-[360px]:text-[18px] font-serif uppercase text-slate-900 leading-[1.1] tracking-normal mb-10">
+                <div className="overflow-hidden"><div className="hero-text-line whitespace-nowrap">Unscripted Moments.</div></div>
+                <div className="overflow-hidden"><div className="hero-text-line whitespace-nowrap">Unforgettable Memories.</div></div>
               </h1>
               <p className="hero-desc text-sm md:text-base text-slate-600 font-light mb-8 max-w-md leading-relaxed">
                 Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
@@ -1075,7 +1148,7 @@ const Home = () => {
       </section>
 
       {/* Featured Galleries / Recent Work */}
-      <section ref={featuredRef} data-nav-dark className="px-6 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]">
+      <section ref={featuredRef} data-nav-dark className="px-3 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]">
         <div className="flex justify-between items-end mb-8">
           {/* <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2> */}
         </div>
@@ -1084,22 +1157,24 @@ const Home = () => {
           <div className="space-y-20">
             {/* Gallery 2 - Makayla and Hunter */}
             <div>
-              <div ref={wedding2HeaderRef} className="mb-8 flex flex-col items-center text-center">
+              <div ref={wedding2HeaderRef} className="mb-8 text-center">
                 <h3 className="text-3xl font-serif text-slate-900 mb-3">Makayla and Hunter</h3>
-                <p className="text-sm text-slate-400 font-serif uppercase tracking-widest">Glasbern - A Historic Hotel of America • Summer 2025</p>
+                <p className="text-sm text-slate-400 font-serif uppercase tracking-widest whitespace-normal break-words max-w-full">
+                  Glasbern - A Historic Hotel of America • Summer 2025
+                </p>
               </div>
-              <div ref={wedding2GridRef} className="group/gallery grid grid-cols-12 gap-4 md:gap-8 items-start">
+              <div ref={wedding2GridRef} className="group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start">
                 {wedding2Images.map((img, i) => (
                   <div 
                     key={img.id} 
-                    className={`relative group cursor-pointer rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
+                    className={`relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
                     onClick={(e) => openLightbox(wedding2Images, i, e)}
                     onMouseEnter={handleCardEnter}
                     onMouseLeave={handleCardLeave}
                   >
                     <div
                       data-gallery-card-inner="true"
-                      className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}
+                      className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[4px] md:rounded-[8px] shadow-xl shadow-slate-200/50`}
                     >
                       <ProgressiveCldImage
                         publicId={img.publicId}
@@ -1117,22 +1192,24 @@ const Home = () => {
 
             {/* Gallery 1 */}
             <div>
-              <div ref={wedding1HeaderRef} className="mb-8 flex flex-col items-center text-center">
+              <div ref={wedding1HeaderRef} className="mb-8 text-center">
                 <h3 className="text-3xl font-serif text-slate-900 mb-3">Molly and Brandon</h3>
-                <p className="text-sm text-slate-400 font-serif uppercase tracking-widest">Green Lane, Pennsylvania • Summer 2025</p>
+                <p className="text-sm text-slate-400 font-serif uppercase tracking-widest whitespace-normal break-words max-w-full">
+                  Green Lane, Pennsylvania • Summer 2025
+                </p>
               </div>
-              <div ref={wedding1GridRef} className="group/gallery grid grid-cols-12 gap-4 md:gap-8 items-start">
+              <div ref={wedding1GridRef} className="group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start">
                 {wedding1Images.map((img, i) => (
                   <div 
                     key={img.id} 
-                    className={`relative group cursor-pointer rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
+                    className={`relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
                     onClick={(e) => openLightbox(wedding1Images, i, e)}
                     onMouseEnter={handleCardEnter}
                     onMouseLeave={handleCardLeave}
                   >
                     <div
                       data-gallery-card-inner="true"
-                      className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}
+                      className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[4px] md:rounded-[8px] shadow-xl shadow-slate-200/50`}
                     >
                       <ProgressiveCldImage
                         publicId={img.publicId}
@@ -1154,7 +1231,7 @@ const Home = () => {
       </section>
 
       {/* Assorted / Selected Work */}
-      <section ref={selectedRef} data-nav-dark className="px-6 md:px-12 max-w-7xl mx-auto pt-4 pb-20">
+      <section ref={selectedRef} data-nav-dark className="px-3 md:px-12 max-w-7xl mx-auto pt-4 pb-20">
         <div ref={selectedDividerRef} className="flex items-center gap-6 mb-10">
           <div className="flex-1 h-px bg-slate-200" />
           <h2 className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-light whitespace-nowrap">Selected Work</h2>
@@ -1162,18 +1239,18 @@ const Home = () => {
         </div>
 
         {renderSelected ? (
-          <div ref={assortedGridRef} className="group/gallery grid grid-cols-12 gap-4 md:gap-8 items-start">
+          <div ref={assortedGridRef} className="group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start">
             {assortedImages.map((img, i) => (
               <div 
                 key={img.id} 
-                className={`relative group cursor-pointer rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
+                className={`relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
                 onClick={(e) => openLightbox(assortedImages, i, e)}
                 onMouseEnter={handleCardEnter}
                 onMouseLeave={handleCardLeave}
               >
                 <div
                   data-gallery-card-inner="true"
-                  className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[8px] shadow-xl shadow-slate-200/50`}
+                  className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[4px] md:rounded-[8px] shadow-xl shadow-slate-200/50`}
                 >
                   <ProgressiveCldImage
                     publicId={img.publicId}
