@@ -11,6 +11,13 @@
   }
 }
 
+@layer utilities {
+  .font-inter {
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+      "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  }
+}
+
 /* Animations */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
@@ -71,6 +78,26 @@
   }
 }
 
+@keyframes liquidGlassShimmer {
+  0% { background-position: 250% 0; }
+  100% { background-position: -50% 0; }
+}
+
+.liquid-glass-shimmer {
+  animation: liquidGlassShimmer 10s ease-in-out infinite;
+}
+
+nav[data-menu-open] {
+  background-color: transparent !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+nav[data-menu-open] [data-nav-bg] {
+  opacity: 0 !important;
+}
+
 [data-lightbox-open] nav {
   background-color: transparent !important;
   border-color: transparent !important;
@@ -91,4 +118,14 @@
 
 [data-lightbox-restoring] [data-nav-bg] {
   transition: opacity 0.98s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root {
+  --starling-mobile-nav-menu-h: clamp(240px, 34vh, 380px);
+}
+
+@supports (height: 1svh) {
+  :root {
+    --starling-mobile-nav-menu-h: clamp(240px, 34svh, 380px);
+  }
 }
