@@ -536,6 +536,8 @@ const Home = () => {
     const controls = lightboxControlsRef.current;
     const sourceEl = lightboxSourceRef.current;
 
+    if (imageWrap) imageWrap.style.willChange = '';
+
     if (!imageWrap || !backdrop) {
       setLightbox(null);
       lightboxPhaseRef.current = 'idle';
@@ -711,8 +713,12 @@ const Home = () => {
     });
   }, []);
 
+  const lightboxSessionId = lightbox?.openId ?? null;
+  const lightboxIndex = lightbox?.index ?? 0;
+  const lightboxImages = lightbox?.images ?? null;
+
   useEffect(() => {
-    if (!lightbox) return;
+    if (!lightboxSessionId) return;
     document.documentElement.removeAttribute('data-lightbox-restoring');
     document.documentElement.setAttribute('data-lightbox-open', '');
 
@@ -781,7 +787,35 @@ const Home = () => {
         window.scrollTo(0, savedScrollY);
       }
     };
-  }, [lightbox, closeLightbox, navigateLightbox]);
+  }, [lightboxSessionId, closeLightbox, navigateLightbox]);
+
+  useEffect(() => {
+    if (!lightboxSessionId || !lightboxImages || lightboxImages.length < 2) return;
+
+    const total = lightboxImages.length;
+    const next = lightboxImages[(lightboxIndex + 1) % total];
+    const prev = lightboxImages[(lightboxIndex - 1 + total) % total];
+    const urls = [next, prev]
+      .map((img) => img?.cldImg?.toURL?.())
+      .filter((url) => typeof url === 'string' && url.length > 0);
+
+    const preload = () => {
+      for (const url of urls) {
+        const img = new Image();
+        img.decoding = 'async';
+        img.src = url;
+        img.decode?.().catch(() => {});
+      }
+    };
+
+    if (typeof window.requestIdleCallback === 'function') {
+      const idleId = window.requestIdleCallback(preload, { timeout: 1200 });
+      return () => window.cancelIdleCallback?.(idleId);
+    }
+
+    const timeoutId = window.setTimeout(preload, 150);
+    return () => window.clearTimeout(timeoutId);
+  }, [lightboxIndex, lightboxImages, lightboxSessionId]);
 
   useEffect(() => {
     if (!lightbox?.openId || lightboxPhaseRef.current !== 'opening') return;
@@ -932,11 +966,15 @@ const Home = () => {
     const fwd = (lightbox.index - prevIdx + total) % total;
     const dir = fwd <= total / 2 ? 1 : -1;
 
+    imageWrap.style.willChange = 'opacity, transform';
     navAnimRef.current = animate(imageWrap, {
       opacity: [0, 1],
       translateX: [40 * dir, 0],
       duration: 400,
       ease: 'outQuint',
+      onComplete: () => {
+        imageWrap.style.willChange = '';
+      },
     });
   }, [lightbox, lightbox?.index, lightbox?.openId]);
 

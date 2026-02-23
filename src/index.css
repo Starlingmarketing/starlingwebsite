@@ -162,6 +162,12 @@ nav[data-menu-open] [data-nav-bg] {
     transition: opacity 0.28s ease;
   }
 
+  /* Keep swipe gestures from ever triggering page/URL bar scroll. */
+  [data-starling-lightbox] {
+    touch-action: none;
+    overscroll-behavior: none;
+  }
+
   [data-lightbox-restoring] nav {
     transition: background-color 0.98s cubic-bezier(0.16, 1, 0.3, 1),
                 border-color 0.98s cubic-bezier(0.16, 1, 0.3, 1),
@@ -190,13 +196,6 @@ nav[data-menu-open] [data-nav-bg] {
   [data-lightbox-open] nav {
     opacity: 0 !important;
     pointer-events: none !important;
-  }
-
-  /* Let Tailwind's `fixed inset-0` anchor to every viewport edge so the
-     lightbox stays fullscreen even when mobile Safari's chrome toggles. */
-  [data-starling-lightbox] {
-    touch-action: none;
-    overscroll-behavior: none;
   }
 
   #home-hero {
