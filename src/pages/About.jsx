@@ -171,7 +171,7 @@ const About = () => {
         <button
           type="button"
           onClick={() => setShowQuoteModal(true)}
-          className="group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors duration-300"
+          className="group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors duration-300"
         >
           <span>Reach Out</span>
           <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
@@ -218,11 +218,11 @@ const About = () => {
             </p>
           </div>
 
-          <div className="flex justify-start mt-10">
+          <div className="flex justify-center lg:justify-start mt-10">
             <button
               ref={reachOutButtonRef}
               onClick={() => setShowQuoteModal(true)}
-              className="group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors duration-300"
+              className="group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors duration-300"
             >
               <span>Reach Out</span>
               <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />

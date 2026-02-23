@@ -487,6 +487,7 @@ const Home = () => {
   const lightboxOpenIdRef = useRef(null);
   const prevLightboxIndexRef = useRef(null);
   const navAnimRef = useRef(null);
+  const touchStartRef = useRef(null);
 
   const openLightbox = useCallback((images, index, e) => {
     if (lightboxPhaseRef.current !== 'idle') return;
@@ -684,10 +685,30 @@ const Home = () => {
       if (e.key === 'ArrowLeft') navigateLightbox(-1);
     };
     window.addEventListener('keydown', handleKey);
+
+    const SWIPE_THRESHOLD = 50;
+    const handleTouchStart = (e) => {
+      const t = e.touches[0];
+      touchStartRef.current = { x: t.clientX, y: t.clientY };
+    };
+    const handleTouchEnd = (e) => {
+      if (!touchStartRef.current) return;
+      const t = e.changedTouches[0];
+      const dx = t.clientX - touchStartRef.current.x;
+      const dy = t.clientY - touchStartRef.current.y;
+      touchStartRef.current = null;
+      if (Math.abs(dx) < SWIPE_THRESHOLD || Math.abs(dy) > Math.abs(dx)) return;
+      navigateLightbox(dx < 0 ? 1 : -1);
+    };
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd);
+
     return () => {
       document.documentElement.removeAttribute('data-lightbox-open');
       document.documentElement.removeAttribute('data-lightbox-restoring');
       window.removeEventListener('keydown', handleKey);
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
 
       docEl.style.overflow = prevOverflow;
       body.style.overflow = prevBodyOverflow;
@@ -1530,7 +1551,7 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none px-16">
+          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none px-4 md:px-16">
             <div
               ref={lightboxImageWrapRef}
               className="pointer-events-auto overflow-hidden shadow-2xl shadow-slate-900/10"
@@ -1539,7 +1560,7 @@ const Home = () => {
               <div ref={lightboxImageInnerRef} style={{ transformOrigin: 'center' }}>
                 <AdvancedImage
                   cldImg={lightbox.images[lightbox.index].cldImg}
-                  className="block max-w-[85vw] max-h-[80vh] object-contain"
+                  className="block max-w-[92vw] md:max-w-[85vw] max-h-[80vh] object-contain"
                   alt={`Photo ${lightbox.index + 1} of ${lightbox.images.length}`}
                 />
               </div>

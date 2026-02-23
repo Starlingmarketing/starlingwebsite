@@ -235,8 +235,8 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   return (
     <section
       ref={sectionRef}
-      className="relative pointer-events-none"
-      style={{ height: '350vh', marginTop: '-90vh' }}
+      className="relative pointer-events-none h-[280vh] md:h-[350vh]"
+      style={{ marginTop: '-90vh' }}
     >
       <div
         className="sticky top-0 h-screen flex items-center justify-center overflow-hidden pointer-events-none"
@@ -245,7 +245,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
         {/* Reviews grid - fades in behind the form */}
         <div
           ref={reviewsRef}
-          className="absolute inset-0 flex items-center justify-center overflow-hidden pointer-events-none"
+          className="absolute inset-0 hidden md:flex items-center justify-center overflow-hidden pointer-events-none"
           style={{ opacity: 0 }}
         >
           <div className="w-full px-6 md:px-12">
@@ -269,22 +269,20 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
           }}
         >
           <div
-            className="relative overflow-hidden"
+            className="relative overflow-hidden px-6 py-8 sm:px-11 sm:py-9"
             style={{
               borderRadius: 22,
               backgroundColor: '#242424',
               border: '1px solid #000000',
-              padding: '36px 44px',
             }}
           >
             {/* Success overlay */}
             <div
-              className={`absolute inset-0 flex flex-col items-center justify-between transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${
+              className={`absolute inset-0 flex flex-col items-center justify-between transition-all ease-[cubic-bezier(0.23,1,0.32,1)] px-6 py-8 sm:px-11 sm:py-9 ${
                 status === 'success'
                   ? 'opacity-100 translate-y-0 z-10 pointer-events-auto duration-1000 delay-500'
                   : 'opacity-0 translate-y-8 -z-10 pointer-events-none duration-500 delay-0'
               }`}
-              style={{ padding: '36px 44px' }}
             >
               <div className="flex-1 flex items-center justify-center w-full">
                 <p
@@ -342,14 +340,14 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                       willChange: 'opacity, transform',
                     }}
                   >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
                       <div
                         className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${busyClass}`}
                         style={td(0, 300)}
                       >
                         <label
                           htmlFor="scroll-name"
-                          className="block text-xs uppercase tracking-widest mb-5"
+                          className="block text-xs uppercase tracking-widest mb-3 sm:mb-5"
                           style={{ color: '#FFFFFF' }}
                         >
                           Full Name
@@ -374,7 +372,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                       >
                         <label
                           htmlFor="scroll-email"
-                          className="block text-xs uppercase tracking-widest mb-5"
+                          className="block text-xs uppercase tracking-widest mb-3 sm:mb-5"
                           style={{ color: '#FFFFFF' }}
                         >
                           Email Address
@@ -408,13 +406,13 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                       className={`mt-7 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${busyClass}`}
                       style={td(100, 400)}
                     >
-                      <label
-                        htmlFor="scroll-phone"
-                        className="block text-xs uppercase tracking-widest mb-5"
-                        style={{ color: '#FFFFFF' }}
-                      >
-                        Phone Number
-                      </label>
+                        <label
+                          htmlFor="scroll-phone"
+                          className="block text-xs uppercase tracking-widest mb-3 sm:mb-5"
+                          style={{ color: '#FFFFFF' }}
+                        >
+                          Phone Number
+                        </label>
                       <input
                         type="tel"
                         id="scroll-phone"
@@ -438,7 +436,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                       willChange: 'opacity, transform',
                     }}
                   >
-                    <div className="flex justify-between mt-7">
+                    <div className="flex flex-wrap gap-x-4 gap-y-2 sm:justify-between mt-7">
                       <div
                         className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${busyClass}`}
                         style={td(150, 450)}

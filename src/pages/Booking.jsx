@@ -1237,7 +1237,7 @@ const Booking = () => {
 
       <div className="relative z-10">
         <div className="px-6 md:px-12 max-w-7xl mx-auto lg:grid lg:grid-cols-1">
-          <div ref={gridWrapRef} className="lg:col-start-1 lg:row-start-1">
+          <div ref={gridWrapRef} className="hidden lg:block lg:col-start-1 lg:row-start-1">
             <CinematicReviewGrid
               engineRef={railEngineRef}
               initialReviews={initialGridReviews}
@@ -1247,23 +1247,21 @@ const Booking = () => {
           <div className="mt-10 lg:mt-0 lg:col-start-1 lg:row-start-1 lg:flex lg:items-start lg:justify-center lg:pointer-events-none lg:z-10 lg:pt-[114px]">
             <div
               ref={formCardRef}
-              className="mx-auto lg:pointer-events-auto relative overflow-hidden"
+              className="mx-auto lg:pointer-events-auto relative overflow-hidden px-6 py-8 sm:px-11 sm:py-9"
               style={{
                 width: '100%',
                 maxWidth: 608,
                 borderRadius: 22,
                 backgroundColor: '#242424',
                 border: '1px solid #000000',
-                padding: '36px 44px',
               }}
             >
               <div
-                className={`absolute inset-0 flex flex-col items-center justify-between transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                className={`absolute inset-0 flex flex-col items-center justify-between transition-all ease-[cubic-bezier(0.23,1,0.32,1)] px-6 py-8 sm:px-11 sm:py-9 ${
                   status === 'success' 
                     ? 'opacity-100 translate-y-0 z-10 pointer-events-auto duration-1000 delay-500' 
                     : 'opacity-0 translate-y-8 -z-10 pointer-events-none duration-500 delay-0'
                 }`}
-                style={{ padding: '36px 44px' }}
               >
                 <div className="flex-1 flex items-center justify-center w-full">
                   <p className="text-white text-center font-light" style={{ fontFamily: 'Inter, sans-serif', fontSize: '18px', lineHeight: '1.5' }}>
@@ -1305,12 +1303,12 @@ const Booking = () => {
                     pointerEvents: (status === 'sending' || status === 'success') ? 'none' : 'auto',
                   }}
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
                     <div
                       className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${(status === 'sending' || status === 'success') ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'}`}
                       style={{ transitionDelay: (status === 'sending' || status === 'success') ? '0ms' : '300ms' }}
                     >
-                      <label htmlFor="name" className="block text-xs uppercase tracking-widest mb-5" style={{ color: '#FFFFFF' }}>
+                      <label htmlFor="name" className="block text-xs uppercase tracking-widest mb-3 sm:mb-5" style={{ color: '#FFFFFF' }}>
                         Full Name
                       </label>
                       <input
@@ -1328,7 +1326,7 @@ const Booking = () => {
                       className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${(status === 'sending' || status === 'success') ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'}`}
                       style={{ transitionDelay: (status === 'sending' || status === 'success') ? '50ms' : '350ms' }}
                     >
-                      <label htmlFor="email" className="block text-xs uppercase tracking-widest mb-5" style={{ color: '#FFFFFF' }}>
+                      <label htmlFor="email" className="block text-xs uppercase tracking-widest mb-3 sm:mb-5" style={{ color: '#FFFFFF' }}>
                         Email Address
                       </label>
                       <input
@@ -1348,7 +1346,7 @@ const Booking = () => {
                   className={`mt-7 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${(status === 'sending' || status === 'success') ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'}`}
                   style={{ transitionDelay: (status === 'sending' || status === 'success') ? '100ms' : '400ms' }}
                 >
-                  <label htmlFor="phone" className="block text-xs uppercase tracking-widest mb-5" style={{ color: '#FFFFFF' }}>
+                  <label htmlFor="phone" className="block text-xs uppercase tracking-widest mb-3 sm:mb-5" style={{ color: '#FFFFFF' }}>
                     Phone Number
                   </label>
                   <input
@@ -1362,7 +1360,7 @@ const Booking = () => {
                   />
                 </div>
 
-                <div className="flex justify-between mt-7">
+                <div className="flex flex-wrap gap-x-4 gap-y-2 sm:justify-between mt-7">
                   <div
                     className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${(status === 'sending' || status === 'success') ? 'opacity-0 -translate-y-4 pointer-events-none' : 'opacity-100 translate-y-0'}`}
                     style={{ transitionDelay: (status === 'sending' || status === 'success') ? '150ms' : '450ms' }}
