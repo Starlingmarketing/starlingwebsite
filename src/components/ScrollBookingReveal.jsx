@@ -37,6 +37,7 @@ const useMediaQuery = (query) => {
 const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   const { setActiveOverride } = useContext(NavOverrideContext);
   const showCinematicGrid = useMediaQuery('(min-width: 768px)');
+  const isMobile = !showCinematicGrid;
 
   const [formData, setFormData] = useState({
     name: '',
@@ -80,7 +81,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
       '(prefers-reduced-motion: reduce)',
     )?.matches;
 
-    if (reducedMotion) {
+    if (reducedMotion || isMobile) {
       [formCardRef, reviewsRef].forEach((r) => {
         if (r.current) {
           r.current.style.opacity = '1';
@@ -152,9 +153,11 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
       timelineRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sectionRef is a stable ref
-  }, []);
+  }, [isMobile]);
 
   useEffect(() => {
+    if (isMobile) return;
+
     const section = sectionRef.current;
     if (!section) return;
 
@@ -190,7 +193,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
       setActiveOverride(null);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sectionRef is a stable ref
-  }, [setActiveOverride]);
+  }, [setActiveOverride, isMobile]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -259,6 +262,149 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   const td = (sendMs, idleMs) => ({
     transitionDelay: isBusy ? `${sendMs}ms` : `${idleMs}ms`,
   });
+
+  if (isMobile) {
+    return (
+      <section
+        ref={sectionRef}
+        className="relative py-16 px-4 flex items-center justify-center"
+        style={{ zIndex: 20 }}
+      >
+        <div
+          ref={formCardRef}
+          className="relative z-10 w-full pointer-events-auto"
+          style={{ maxWidth: 608 }}
+        >
+          <div
+            data-booking-form-card="true"
+            className="relative overflow-hidden px-6 py-8 sm:px-11 sm:py-9"
+            style={{
+              borderRadius: 22,
+              backgroundColor: '#242424',
+              border: '1px solid #000000',
+            }}
+          >
+            {/* Success overlay */}
+            <div
+              data-booking-form-success="true"
+              className={`absolute inset-0 flex flex-col items-center justify-between transition-all ease-[cubic-bezier(0.23,1,0.32,1)] px-6 py-8 sm:px-11 sm:py-9 ${
+                status === 'success'
+                  ? 'opacity-100 translate-y-0 z-10 pointer-events-auto duration-1000 delay-500'
+                  : 'opacity-0 translate-y-8 -z-10 pointer-events-none duration-500 delay-0'
+              }`}
+            >
+              <div className="flex-1 flex items-center justify-center w-full">
+                <p
+                  className="text-white text-center font-light"
+                  style={{
+                    fontFamily: 'Inter, sans-serif',
+                    fontSize: '18px',
+                    lineHeight: '1.5',
+                  }}
+                >
+                  Thank you for your submission.
+                  <br />
+                  We&apos;ll be in touch shortly.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStatus('idle')}
+                className="flex items-center justify-center cursor-pointer transition-opacity duration-300 hover:opacity-80 shrink-0"
+                style={{
+                  width: 143,
+                  height: 24,
+                  backgroundColor: '#F7F7F7',
+                  borderRadius: 6,
+                  color: '#000000',
+                  fontFamily: 'Inter, sans-serif',
+                  fontWeight: 400,
+                  fontSize: 14,
+                  border: 'none',
+                }}
+              >
+                New Inquiry
+              </button>
+            </div>
+
+            {/* Form */}
+            <div
+              className={`transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                status === 'success' ? 'pointer-events-none' : 'pointer-events-auto'
+              }`}
+            >
+              <form onSubmit={handleSubmit} className="w-full">
+                <div style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
+                    <div
+                      className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${busyClass}`}
+                      style={td(0, 300)}
+                    >
+                      <label htmlFor="scroll-name" className="block text-xs uppercase tracking-widest mb-3 sm:mb-5" style={{ color: '#FFFFFF' }}>Full Name</label>
+                      <input type="text" id="scroll-name" name="name" value={formData.name} onChange={handleChange} required className="w-full bg-transparent py-2 text-sm text-white font-light focus:outline-none" style={{ border: 'none', borderBottom: '1px solid #B7B7B7' }} />
+                    </div>
+                    <div
+                      className={`transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${busyClass}`}
+                      style={td(50, 350)}
+                    >
+                      <label htmlFor="scroll-email" className="block text-xs uppercase tracking-widest mb-3 sm:mb-5" style={{ color: '#FFFFFF' }}>Email Address</label>
+                      <input type="email" id="scroll-email" name="email" value={formData.email} onChange={handleChange} required className="w-full bg-transparent py-2 text-sm text-white font-light focus:outline-none" style={{ border: 'none', borderBottom: '1px solid #B7B7B7' }} />
+                    </div>
+                  </div>
+
+                  <div
+                    className={`mt-7 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${busyClass}`}
+                    style={td(100, 400)}
+                  >
+                    <label htmlFor="scroll-phone" className="block text-xs uppercase tracking-widest mb-3 sm:mb-5" style={{ color: '#FFFFFF' }}>Phone Number</label>
+                    <input type="tel" id="scroll-phone" name="phone" value={formData.phone} onChange={handleChange} className="w-full bg-transparent py-2 text-sm text-white font-light focus:outline-none" style={{ border: 'none', borderBottom: '1px solid #B7B7B7' }} />
+                  </div>
+
+                  <div className="flex flex-wrap gap-x-4 gap-y-2 sm:justify-between mt-7">
+                    <button type="button" onClick={() => setShowDate((v) => !v)} className="text-sm font-light cursor-pointer transition-opacity hover:opacity-70" style={{ color: '#636363' }}>{showDate ? '−' : '+'} event date</button>
+                    <button type="button" onClick={() => setShowLocation((v) => !v)} className="text-sm font-light cursor-pointer transition-opacity hover:opacity-70" style={{ color: '#636363' }}>{showLocation ? '−' : '+'} location</button>
+                    <button type="button" onClick={() => setShowMessage((v) => !v)} className="text-sm font-light cursor-pointer transition-opacity hover:opacity-70" style={{ color: '#636363' }}>{showMessage ? '−' : '+'} tell us more</button>
+                  </div>
+
+                  <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showDate ? 100 : 0, opacity: showDate ? 1 : 0 }}>
+                    <div className="mt-6">
+                      <label htmlFor="scroll-date" className="block text-xs uppercase tracking-widest mb-4" style={{ color: '#FFFFFF' }}>Event Date</label>
+                      <input type="date" id="scroll-date" name="date" value={formData.date} onChange={handleChange} className="w-full bg-transparent py-2 text-sm text-white font-light focus:outline-none [&::-webkit-calendar-picker-indicator]:invert" style={{ border: 'none', borderBottom: '1px solid #B7B7B7', colorScheme: 'dark' }} />
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showLocation ? 100 : 0, opacity: showLocation ? 1 : 0 }}>
+                    <div className="mt-6">
+                      <label htmlFor="scroll-location" className="block text-xs uppercase tracking-widest mb-4" style={{ color: '#FFFFFF' }}>Location / Venue</label>
+                      <input type="text" id="scroll-location" name="location" value={formData.location} onChange={handleChange} className="w-full bg-transparent py-2 text-sm text-white font-light focus:outline-none" style={{ border: 'none', borderBottom: '1px solid #B7B7B7' }} />
+                    </div>
+                  </div>
+
+                  <div className="overflow-hidden transition-all duration-300 ease-in-out" style={{ maxHeight: showMessage ? 160 : 0, opacity: showMessage ? 1 : 0 }}>
+                    <div className="mt-6">
+                      <label htmlFor="scroll-message" className="block text-xs uppercase tracking-widest mb-4" style={{ color: '#FFFFFF' }}>Tell Us More</label>
+                      <textarea id="scroll-message" name="message" value={formData.message} onChange={handleChange} rows={3} className="w-full bg-transparent py-2 text-sm text-white font-light focus:outline-none resize-none" style={{ border: 'none', borderBottom: '1px solid #B7B7B7' }} />
+                    </div>
+                  </div>
+
+                  <div
+                    className={`flex justify-center mt-9 transition-all duration-700 ease-[cubic-bezier(0.23,1,0.32,1)] ${busyClass}`}
+                    style={td(450, 750)}
+                  >
+                    <button type="submit" disabled={status === 'sending'} className="flex items-center justify-center cursor-pointer transition-opacity duration-300" style={{ width: 143, height: 24, backgroundColor: '#F7F7F7', borderRadius: 6, color: '#000000', fontFamily: 'Inter, sans-serif', fontWeight: 400, fontSize: 14, border: 'none', opacity: status === 'sending' ? 0.8 : 1 }}>Submit</button>
+                  </div>
+
+                  {status === 'error' && (
+                    <p className="text-red-400 text-sm font-light mt-4 text-center">Something went wrong. Please try again or email us directly.</p>
+                  )}
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </section>
+    );
+  }
 
   return (
     <section

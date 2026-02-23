@@ -342,7 +342,6 @@ const Home = () => {
   const isMobileLandscape = useMediaQuery(
     '(max-width: 1023px) and (orientation: landscape) and (max-height: 500px)'
   );
-  const isHeroStackedLayout = useMediaQuery('(max-width: 1023px)');
   const stackOffsetX = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
   const stackOffsetY = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
 
@@ -445,14 +444,10 @@ const Home = () => {
     };
   }, [isMobileStack]);
 
-  useEffect(() => {
-    const t = setTimeout(() => { setHasInitialized(true); }, 2000);
-    return () => clearTimeout(t);
-  }, []);
-
   const advanceStack = useCallback(() => {
     setDepartingIdx(visibleSetRef.current[0]);
     setVisibleSet(prev => [prev[1], prev[2], (prev[2] + 1) % heroImages.length]);
+    setHasInitialized(true);
   }, [heroImages.length]);
 
   useEffect(() => {
@@ -923,122 +918,37 @@ const Home = () => {
 
   useGSAP(() => {
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    const scopeEl = container.current;
+    const introItems = gsap.utils
+      .toArray('.hero-intro-item', scopeEl || undefined)
+      .filter((el) => el instanceof HTMLElement)
+      .filter((el) => window.getComputedStyle(el).display !== 'none');
 
-    gsap.set('.hero-eyebrow', { y: 20, opacity: 0 });
-    gsap.set('.hero-text-line', { y: 32, opacity: 0 });
-    gsap.set('.hero-desc', { y: 16, opacity: 0 });
-    gsap.set('.hero-link', { y: 10, opacity: 0 });
-    gsap.set('.hero-stack-wrapper', { opacity: 0 });
-    const stackCards = gsap.utils.toArray('.hero-stack-card');
-    gsap.set(stackCards, { x: 0, y: 30 });
-
-    if (prefersReducedMotion) {
-      gsap.set('.hero-eyebrow', { y: 0, opacity: 1 });
-      gsap.set('.hero-text-line', { y: 0, opacity: 1 });
-      gsap.set('.hero-desc', { y: 0, opacity: 1 });
-      gsap.set('.hero-link', { y: 0, opacity: 1 });
-      gsap.set('.hero-stack-wrapper', { opacity: 1 });
-      gsap.set(stackCards, { clearProps: 'x,y' });
+    if (!introItems.length) {
       setEntranceDone(true);
       return;
     }
 
-    const tl = gsap.timeline({ defaults: { ease: 'power3.out' } });
-
-    if (isHeroStackedLayout) {
-      // Mobile entrance top-to-bottom:
-      // eyebrow → header → image stack → subheader → CTA
-      tl.to(
-        '.hero-eyebrow',
-        { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' },
-        0,
-      )
-        .to(
-          '.hero-text-line',
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.75,
-            stagger: 0.07,
-            ease: 'power3.out',
-          },
-          0.4,
-        )
-        .to(
-          '.hero-stack-wrapper',
-          {
-            opacity: 1,
-            duration: 0.75,
-            ease: 'power2.out',
-            clearProps: 'opacity',
-          },
-          0.85,
-        )
-        .to(
-          stackCards,
-          {
-            x: (i) => i * stackOffsetX,
-            y: (i) => i * -stackOffsetY,
-            duration: 1.05,
-            stagger: 0.09,
-            ease: 'power4.out',
-            onComplete: () => setEntranceDone(true),
-          },
-          0.85,
-        )
-        .to(
-          '.hero-desc',
-          { y: 0, opacity: 1, duration: 0.65, ease: 'power2.out' },
-          1.55,
-        )
-        .to(
-          '.hero-link',
-          { y: 0, opacity: 1, duration: 0.6, ease: 'power2.out' },
-          1.75,
-        );
-    } else {
-      // Desktop entrance timing (existing feel)
-      tl.to(
-        '.hero-eyebrow',
-        { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' },
-        0,
-      )
-        .to(
-          '.hero-text-line',
-          {
-            y: 0,
-            opacity: 1,
-            duration: 0.9,
-            stagger: 0.08,
-            ease: 'power3.out',
-          },
-          0,
-        )
-        .to('.hero-desc', { y: 0, opacity: 1, duration: 0.8, ease: 'power2.out' }, 0.32)
-        .to('.hero-link', { y: 0, opacity: 1, duration: 0.7, ease: 'power2.out' }, 0.48)
-        .to(
-          '.hero-stack-wrapper',
-          {
-            opacity: 1,
-            duration: 1.0,
-            ease: 'power2.out',
-            clearProps: 'opacity',
-          },
-          0.6,
-        )
-        .to(
-          stackCards,
-          {
-            x: (i) => i * stackOffsetX,
-            y: (i) => i * -stackOffsetY,
-            duration: 1.5,
-            stagger: 0.1,
-            ease: 'power4.out',
-            onComplete: () => setEntranceDone(true),
-          },
-          0.6,
-        );
+    if (prefersReducedMotion) {
+      gsap.set(introItems, { opacity: 1, y: 0, clearProps: 'transform' });
+      setEntranceDone(true);
+      return;
     }
+
+    // Unified "fade up + in" intro for hero (no per-card fan-out).
+    gsap.fromTo(
+      introItems,
+      { opacity: 0, y: 20 },
+      {
+        opacity: 1,
+        y: 0,
+        duration: 0.7,
+        stagger: 0.08,
+        ease: 'power2.out',
+        clearProps: 'transform',
+        onComplete: () => setEntranceDone(true),
+      },
+    );
 
     const content = reviewsContentRef.current;
     const wrapper = reviewsSectionRef.current;
@@ -1139,7 +1049,7 @@ const Home = () => {
         {/* Hero Section - Framed Premium Layout */}
         <section id="home-hero" className="relative w-full pt-4 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
           {/* Mobile-only: compact reviews eyebrow above image stack */}
-          <div className="hero-mobile-eyebrow-row lg:hidden flex justify-center mb-9 -mt-2">
+          <div className="hero-mobile-eyebrow-row hero-intro-item lg:hidden flex justify-center mb-9 -mt-2">
             <div className="hero-eyebrow max-w-full inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-1 rounded-full bg-white border border-slate-200/80 leading-none">
               <div className="flex items-center bg-[#F8F9FA] rounded-full px-2 py-1 border border-slate-100/50">
                 <div className="flex items-center gap-1.5">
@@ -1182,7 +1092,7 @@ const Home = () => {
           
             {/* Text Content */}
             <div className="hero-text-col contents lg:flex lg:flex-col lg:w-5/12 lg:order-1 lg:justify-center lg:z-10">
-              <div className="hero-eyebrow hidden lg:flex w-fit items-center justify-center gap-4 -mt-2 mb-10 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200/80">
+              <div className="hero-eyebrow hero-intro-item hidden lg:flex w-fit items-center justify-center gap-4 -mt-2 mb-10 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200/80">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full px-3 py-1.5 border border-slate-100/50">
                   <div className="flex items-center gap-2.5">
                     {/* Google */}
@@ -1218,17 +1128,17 @@ const Home = () => {
                   </div>
                 </div>
               </div>
-              <h1 className="order-1 lg:order-none text-[22px] sm:text-[26px] md:text-[26px] lg:text-[28px] xl:text-[34px] max-[360px]:text-[19px] font-serif uppercase text-slate-900 leading-[1.1] tracking-normal mb-2 lg:mb-10">
+              <h1 className="hero-intro-item order-1 lg:order-none text-[22px] sm:text-[26px] md:text-[26px] lg:text-[28px] xl:text-[34px] max-[360px]:text-[19px] font-serif uppercase text-slate-900 leading-[1.1] tracking-normal mb-2 lg:mb-10">
                 <div className="overflow-hidden"><div className="hero-text-line whitespace-nowrap">Unscripted Moments.</div></div>
                 <div className="overflow-hidden"><div className="hero-text-line whitespace-nowrap">Unforgettable Memories.</div></div>
               </h1>
-              <p className="order-3 lg:order-none hero-desc text-sm md:text-base text-slate-600 font-light lg:mb-8 max-w-md leading-relaxed">
+              <p className="hero-intro-item order-3 lg:order-none hero-desc text-sm md:text-base text-slate-600 font-light lg:mb-8 max-w-md leading-relaxed">
                 Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
               </p>
               <button
                 ref={heroReachOutButtonRef}
                 onClick={() => setShowQuoteModal(true)}
-                className="order-4 lg:order-none self-center lg:self-start hero-link group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors"
+                className="hero-intro-item order-4 lg:order-none self-center lg:self-start hero-link group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors"
               >
                 <span>Reach Out</span>
                 <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
@@ -1236,7 +1146,7 @@ const Home = () => {
             </div>
           
           {/* Staggered Image Stack */}
-          <div className="hero-stack-col w-full lg:w-6/12 order-2 lg:order-2 lg:py-6 flex items-center justify-center relative group">
+          <div className="hero-stack-col hero-intro-item w-full lg:w-6/12 order-2 lg:order-2 lg:py-6 flex items-center justify-center relative group">
             <div className="hero-stack-wrapper relative w-full lg:w-[637px]" ref={stackRef} style={{ aspectRatio: '637 / 426' }}>
               {departingIdx !== null && (
                 <div
@@ -1318,7 +1228,7 @@ const Home = () => {
         </div>
 
         {renderFeatured ? (
-          <div className="space-y-20">
+          <div className="space-y-28 md:space-y-20">
             {/* Gallery 2 - Makayla and Hunter */}
             <div>
               <div ref={wedding2HeaderRef} className="mb-8 text-center">
@@ -1446,8 +1356,8 @@ const Home = () => {
           <div className="h-[22vh] md:h-[28vh]" aria-hidden="true" />
         )}
 
-        {/* Scroll hint */}
-        <div className="flex flex-col items-center gap-2 mt-16 mb-2">
+        {/* Scroll hint (desktop only — mobile shows form inline) */}
+        <div className="hidden md:flex flex-col items-center gap-2 mt-16 mb-2">
           <span className="text-[10px] uppercase tracking-[0.3em] text-slate-300 font-light">
             Keep scrolling to inquire
           </span>
@@ -1470,7 +1380,7 @@ const Home = () => {
       <div
         ref={reviewsSectionRef}
         className="relative"
-        style={{ marginTop: '-100vh', pointerEvents: 'none' }}
+        style={{ marginTop: isMobileStack ? 0 : '-100vh', pointerEvents: 'none' }}
       >
         <div ref={reviewsContentRef} className="relative z-[25]">
           <ReviewsGrid showHeading={false} animate={false} />
