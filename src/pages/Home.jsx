@@ -336,7 +336,12 @@ const Home = () => {
   const visibleSetRef = useRef([0, 1, 2]);
   const hasInitialized = useRef(false);
 
-  const isMobileStack = useMediaQuery('(max-width: 767px)');
+  const isMobileStack = useMediaQuery(
+    '(max-width: 767px), (orientation: landscape) and (max-height: 500px)'
+  );
+  const isMobileLandscape = useMediaQuery(
+    '(max-width: 1023px) and (orientation: landscape) and (max-height: 500px)'
+  );
   const isHeroStackedLayout = useMediaQuery('(max-width: 1023px)');
   const stackOffsetX = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
   const stackOffsetY = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
@@ -370,9 +375,9 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'md:col-span-6 lg:col-span-3',
+      className: isMobileLandscape ? 'md:col-span-3 lg:col-span-3' : 'md:col-span-6 lg:col-span-3',
     }));
-  }, [renderFeatured]);
+  }, [renderFeatured, isMobileLandscape]);
 
   const wedding1Images = useMemo(() => {
     if (!renderFeatured) return [];
@@ -381,9 +386,9 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'md:col-span-6 lg:col-span-3',
+      className: isMobileLandscape ? 'md:col-span-3 lg:col-span-3' : 'md:col-span-6 lg:col-span-3',
     }));
-  }, [renderFeatured]);
+  }, [renderFeatured, isMobileLandscape]);
 
   const assortedImages = useMemo(() => {
     if (!renderSelected) return [];
@@ -392,9 +397,9 @@ const Home = () => {
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
-      className: 'md:col-span-6 lg:col-span-3',
+      className: isMobileLandscape ? 'md:col-span-3 lg:col-span-3' : 'md:col-span-6 lg:col-span-3',
     }));
-  }, [renderSelected]);
+  }, [renderSelected, isMobileLandscape]);
 
   useEffect(() => {
     visibleSetRef.current = visibleSet;
@@ -488,6 +493,9 @@ const Home = () => {
   const prevLightboxIndexRef = useRef(null);
   const navAnimRef = useRef(null);
   const touchStartRef = useRef(null);
+  const lightboxOpenRadiusPx = isMobileLandscape ? 0 : LIGHTBOX_RADIUS_PX;
+  const lightboxOpenRadius = `${lightboxOpenRadiusPx}px / ${lightboxOpenRadiusPx}px`;
+  const lightboxSourceRadiusPx = LIGHTBOX_RADIUS_PX;
 
   const openLightbox = useCallback((images, index, e) => {
     if (lightboxPhaseRef.current !== 'idle') return;
@@ -529,7 +537,7 @@ const Home = () => {
     }
 
     imageWrap.style.opacity = '1';
-    imageWrap.style.borderRadius = `${LIGHTBOX_RADIUS_PX}px / ${LIGHTBOX_RADIUS_PX}px`;
+    imageWrap.style.borderRadius = lightboxOpenRadius;
     imageWrap.style.willChange = 'transform, border-radius';
     if (imageInner) imageInner.style.willChange = 'transform';
 
@@ -567,8 +575,8 @@ const Home = () => {
       const coverScale = Math.max(scaleX, scaleY);
       const innerScaleX = coverScale / scaleX;
       const innerScaleY = coverScale / scaleY;
-      const radiusTo = `${(LIGHTBOX_RADIUS_PX / scaleX).toFixed(3)}px / ${(
-        LIGHTBOX_RADIUS_PX / scaleY
+      const radiusTo = `${(lightboxSourceRadiusPx / scaleX).toFixed(3)}px / ${(
+        lightboxSourceRadiusPx / scaleY
       ).toFixed(3)}px`;
 
       tl.add(
@@ -578,7 +586,7 @@ const Home = () => {
           translateY: [0, deltaY],
           scaleX: [1, scaleX],
           scaleY: [1, scaleY],
-          borderRadius: [`${LIGHTBOX_RADIUS_PX}px / ${LIGHTBOX_RADIUS_PX}px`, radiusTo],
+          borderRadius: [lightboxOpenRadius, radiusTo],
           duration: 980,
           ease: 'inOutCubic',
         },
@@ -620,7 +628,7 @@ const Home = () => {
         ease: 'inOutCubic',
       }, 0);
     }
-  }, []);
+  }, [lightboxOpenRadius, lightboxSourceRadiusPx]);
 
   const navigateLightbox = useCallback((dir) => {
     if (lightboxPhaseRef.current !== 'open') return;
@@ -756,8 +764,8 @@ const Home = () => {
       const coverScale = Math.max(scaleX, scaleY);
       const innerScaleX = coverScale / scaleX;
       const innerScaleY = coverScale / scaleY;
-      const radiusFrom = `${(LIGHTBOX_RADIUS_PX / scaleX).toFixed(3)}px / ${(
-        LIGHTBOX_RADIUS_PX / scaleY
+      const radiusFrom = `${(lightboxSourceRadiusPx / scaleX).toFixed(3)}px / ${(
+        lightboxSourceRadiusPx / scaleY
       ).toFixed(3)}px`;
 
       imageWrap.style.transform = `translateX(${deltaX}px) translateY(${deltaY}px) scaleX(${scaleX}) scaleY(${scaleY})`;
@@ -788,7 +796,7 @@ const Home = () => {
         translateY: [deltaY, 0],
         scaleX: [scaleX, 1],
         scaleY: [scaleY, 1],
-        borderRadius: [radiusFrom, `${LIGHTBOX_RADIUS_PX}px / ${LIGHTBOX_RADIUS_PX}px`],
+        borderRadius: [radiusFrom, lightboxOpenRadius],
         duration: 1050,
         ease: 'outQuint',
       }, 0);
@@ -813,6 +821,13 @@ const Home = () => {
 
     requestAnimationFrame(() => requestAnimationFrame(runFlip));
   }, [lightbox?.openId]);
+
+  useEffect(() => {
+    if (!lightbox || lightboxPhaseRef.current !== 'open') return;
+    const imageWrap = lightboxImageWrapRef.current;
+    if (!imageWrap) return;
+    imageWrap.style.borderRadius = lightboxOpenRadius;
+  }, [isMobileLandscape, lightbox?.openId, lightboxOpenRadius]);
 
   useEffect(() => {
     if (!lightbox) {
@@ -1061,7 +1076,7 @@ const Home = () => {
         {/* Hero Section - Framed Premium Layout */}
         <section id="home-hero" className="relative w-full pt-4 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
           {/* Mobile-only: compact reviews eyebrow above image stack */}
-          <div className="lg:hidden flex justify-center mb-9 -mt-2">
+          <div className="hero-mobile-eyebrow-row lg:hidden flex justify-center mb-9 -mt-2">
             <div className="hero-eyebrow max-w-full inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-1 rounded-full bg-white border border-slate-200/80 leading-none">
               <div className="flex items-center bg-[#F8F9FA] rounded-full px-2 py-1 border border-slate-100/50">
                 <div className="flex items-center gap-1.5">
@@ -1100,10 +1115,10 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between lg:gap-24 xl:gap-40 2xl:gap-56">
+          <div className="hero-primary-layout flex flex-col gap-7 lg:flex-row lg:items-center lg:justify-between lg:gap-24 xl:gap-40 2xl:gap-56">
           
             {/* Text Content */}
-            <div className="contents lg:flex lg:flex-col lg:w-5/12 lg:order-1 lg:justify-center lg:z-10">
+            <div className="hero-text-col contents lg:flex lg:flex-col lg:w-5/12 lg:order-1 lg:justify-center lg:z-10">
               <div className="hero-eyebrow hidden lg:flex w-fit items-center justify-center gap-4 -mt-2 mb-10 pl-1.5 pr-4 py-1.5 rounded-full bg-white border border-slate-200/80">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full px-3 py-1.5 border border-slate-100/50">
                   <div className="flex items-center gap-2.5">
@@ -1158,7 +1173,7 @@ const Home = () => {
             </div>
           
           {/* Staggered Image Stack */}
-          <div className="w-full lg:w-6/12 order-2 lg:order-2 lg:py-6 flex items-center justify-center relative group">
+          <div className="hero-stack-col w-full lg:w-6/12 order-2 lg:order-2 lg:py-6 flex items-center justify-center relative group">
             <div className="hero-stack-wrapper relative w-full lg:w-[637px]" ref={stackRef} style={{ aspectRatio: '637 / 426' }}>
               {departingIdx !== null && (
                 <div
@@ -1229,7 +1244,12 @@ const Home = () => {
       </section>
 
       {/* Featured Galleries / Recent Work */}
-      <section ref={featuredRef} data-nav-dark className="px-3 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]">
+      <section
+        id="home-featured"
+        ref={featuredRef}
+        data-nav-dark
+        className="px-3 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]"
+      >
         <div className="flex justify-between items-end mb-8">
           {/* <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2> */}
         </div>
@@ -1244,11 +1264,14 @@ const Home = () => {
                   Glasbern - A Historic Hotel of America • Summer 2025
                 </p>
               </div>
-              <div ref={wedding2GridRef} className="group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start">
+              <div
+                ref={wedding2GridRef}
+                className="home-gallery-grid group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start"
+              >
                 {wedding2Images.map((img, i) => (
                   <div 
                     key={img.id} 
-                    className={`relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
+                    className={`home-gallery-card relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
                     onClick={(e) => openLightbox(wedding2Images, i, e)}
                     onMouseEnter={handleCardEnter}
                     onMouseLeave={handleCardLeave}
@@ -1279,11 +1302,14 @@ const Home = () => {
                   Green Lane, Pennsylvania • Summer 2025
                 </p>
               </div>
-              <div ref={wedding1GridRef} className="group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start">
+              <div
+                ref={wedding1GridRef}
+                className="home-gallery-grid group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start"
+              >
                 {wedding1Images.map((img, i) => (
                   <div 
                     key={img.id} 
-                    className={`relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
+                    className={`home-gallery-card relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
                     onClick={(e) => openLightbox(wedding1Images, i, e)}
                     onMouseEnter={handleCardEnter}
                     onMouseLeave={handleCardLeave}
@@ -1312,7 +1338,12 @@ const Home = () => {
       </section>
 
       {/* Assorted / Selected Work */}
-      <section ref={selectedRef} data-nav-dark className="px-3 md:px-12 max-w-7xl mx-auto pt-4 pb-20">
+      <section
+        id="home-selected"
+        ref={selectedRef}
+        data-nav-dark
+        className="px-3 md:px-12 max-w-7xl mx-auto pt-4 pb-20"
+      >
         <div ref={selectedDividerRef} className="flex items-center gap-6 mb-10">
           <div className="flex-1 h-px bg-slate-200" />
           <h2 className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-light whitespace-nowrap">Selected Work</h2>
@@ -1320,11 +1351,14 @@ const Home = () => {
         </div>
 
         {renderSelected ? (
-          <div ref={assortedGridRef} className="group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start">
+          <div
+            ref={assortedGridRef}
+            className="home-gallery-grid group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start"
+          >
             {assortedImages.map((img, i) => (
               <div 
                 key={img.id} 
-                className={`relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
+                className={`home-gallery-card relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
                 onClick={(e) => openLightbox(assortedImages, i, e)}
                 onMouseEnter={handleCardEnter}
                 onMouseLeave={handleCardLeave}
@@ -1510,10 +1544,12 @@ const Home = () => {
 
       {/* Lightbox */}
       {lightbox && (
-        <div className="fixed inset-0 z-50">
+        <div className="fixed inset-0 z-50" data-starling-lightbox>
           <div
             ref={lightboxBackdropRef}
-            className="absolute inset-0 bg-white/70 backdrop-blur-3xl"
+            className={`absolute inset-0 ${
+              isMobileLandscape ? 'bg-black' : 'bg-white/70 backdrop-blur-3xl'
+            }`}
             onClick={closeLightbox}
             style={{ opacity: 0 }}
           />
@@ -1521,24 +1557,44 @@ const Home = () => {
           <div ref={lightboxControlsRef} style={{ opacity: 0 }}>
             <button
               onClick={closeLightbox}
-              className="absolute top-8 right-8 z-20 p-2 text-slate-400 hover:text-slate-800 transition-colors duration-300"
+              style={
+                isMobileLandscape
+                  ? {
+                      top: 'calc(env(safe-area-inset-top) + 12px)',
+                      right: 'calc(env(safe-area-inset-right) + 12px)',
+                    }
+                  : undefined
+              }
+              className={`absolute z-20 p-2 transition-colors duration-300 ${
+                isMobileLandscape
+                  ? 'w-12 h-12 p-0 flex items-center justify-center bg-transparent text-white/90 hover:text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]'
+                  : 'top-8 right-8 text-slate-400 hover:text-slate-800'
+              }`}
               aria-label="Close"
             >
-              <X size={18} strokeWidth={1.5} />
+              <X size={isMobileLandscape ? 28 : 18} strokeWidth={isMobileLandscape ? 1.75 : 1.5} />
             </button>
 
             {lightbox.images.length > 1 && (
               <>
                 <button
                   onClick={() => navigateLightbox(-1)}
-                  className="absolute left-4 md:left-8 z-20 p-3 text-slate-300 hover:text-slate-600 transition-colors duration-300"
+                  className={`absolute z-20 p-3 transition-colors duration-300 ${
+                    isMobileLandscape
+                      ? 'left-3 top-1/2 -translate-y-1/2 text-white/80 hover:text-white'
+                      : 'left-4 md:left-8 text-slate-300 hover:text-slate-600'
+                  }`}
                   aria-label="Previous image"
                 >
                   <ChevronLeft size={24} strokeWidth={1} />
                 </button>
                 <button
                   onClick={() => navigateLightbox(1)}
-                  className="absolute right-4 md:right-8 z-20 p-3 text-slate-300 hover:text-slate-600 transition-colors duration-300"
+                  className={`absolute z-20 p-3 transition-colors duration-300 ${
+                    isMobileLandscape
+                      ? 'right-3 top-1/2 -translate-y-1/2 text-white/80 hover:text-white'
+                      : 'right-4 md:right-8 text-slate-300 hover:text-slate-600'
+                  }`}
                   aria-label="Next image"
                 >
                   <ChevronRight size={24} strokeWidth={1} />
@@ -1546,21 +1602,43 @@ const Home = () => {
               </>
             )}
 
-            <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 text-[10px] text-slate-400 tracking-[0.3em] font-light tabular-nums">
+            <div
+              className={`absolute bottom-6 left-1/2 -translate-x-1/2 z-20 text-[10px] tracking-[0.3em] font-light tabular-nums ${
+                isMobileLandscape ? 'text-white/60' : 'text-slate-400'
+              }`}
+            >
               {lightbox.index + 1} — {lightbox.images.length}
             </div>
           </div>
 
-          <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none px-4 md:px-16">
+          <div
+            className={`absolute inset-0 flex items-center justify-center z-10 pointer-events-none ${
+              isMobileLandscape ? 'p-0' : 'px-4 md:px-16'
+            }`}
+          >
             <div
               ref={lightboxImageWrapRef}
-              className="pointer-events-auto overflow-hidden shadow-2xl shadow-slate-900/10"
-              style={{ transformOrigin: 'center', borderRadius: '8px', opacity: 0 }}
+              className={`pointer-events-auto overflow-hidden ${
+                isMobileLandscape ? 'w-full h-full shadow-none' : 'shadow-2xl shadow-slate-900/10'
+              }`}
+              style={{
+                transformOrigin: 'center',
+                borderRadius: isMobileLandscape ? '0px' : '8px',
+                opacity: 0,
+              }}
             >
-              <div ref={lightboxImageInnerRef} style={{ transformOrigin: 'center' }}>
+              <div
+                ref={lightboxImageInnerRef}
+                className={isMobileLandscape ? 'w-full h-full' : undefined}
+                style={{ transformOrigin: 'center' }}
+              >
                 <AdvancedImage
                   cldImg={lightbox.images[lightbox.index].cldImg}
-                  className="block max-w-[92vw] md:max-w-[85vw] max-h-[80vh] object-contain"
+                  className={
+                    isMobileLandscape
+                      ? 'block w-full h-full max-w-none max-h-none object-contain'
+                      : 'block max-w-[92vw] md:max-w-[85vw] max-h-[80vh] object-contain'
+                  }
                   alt={`Photo ${lightbox.index + 1} of ${lightbox.images.length}`}
                 />
               </div>
