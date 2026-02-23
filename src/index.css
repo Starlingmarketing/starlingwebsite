@@ -149,17 +149,49 @@ nav[data-menu-open] [data-nav-bg] {
   [data-lightbox-open] nav {
     background-color: transparent !important;
     border-color: transparent !important;
-    backdrop-filter: blur(0px) saturate(1) !important;
-    -webkit-backdrop-filter: blur(0px) saturate(1) !important;
-    transition: background-color 0.28s ease,
-                border-color 0.28s ease,
-                backdrop-filter 0.28s ease,
-                -webkit-backdrop-filter 0.28s ease;
+    transition: background-color var(--starling-lightbox-nav-open-duration, 280ms) cubic-bezier(0.16, 1, 0.3, 1),
+                border-color var(--starling-lightbox-nav-open-duration, 280ms) cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   [data-lightbox-open] [data-nav-bg] {
     opacity: 0 !important;
-    transition: opacity 0.28s ease;
+    transition: opacity var(--starling-lightbox-nav-open-duration, 280ms) cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  nav [data-nav-logo-default],
+  nav [data-nav-logo-invert] {
+    transition: opacity 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  nav [data-nav-logo-default] { opacity: 1; }
+  nav [data-nav-logo-invert] { opacity: 0; }
+
+  nav[data-menu-open] [data-nav-logo-default],
+  [data-lightbox-open] nav [data-nav-logo-default],
+  [data-quote-modal-open] nav [data-nav-logo-default] {
+    opacity: 0;
+  }
+
+  nav[data-menu-open] [data-nav-logo-invert],
+  [data-lightbox-open] nav [data-nav-logo-invert],
+  [data-quote-modal-open] nav [data-nav-logo-invert] {
+    opacity: 1;
+  }
+
+  [data-lightbox-open] nav [data-nav-logo-default],
+  [data-lightbox-open] nav [data-nav-logo-invert] {
+    transition-duration: var(--starling-lightbox-nav-open-duration, 280ms);
+  }
+
+  [data-lightbox-open] nav [data-nav-toggle],
+  [data-quote-modal-open] nav [data-nav-toggle] {
+    color: rgba(255, 255, 255, 0.92) !important;
+    filter: drop-shadow(0 2px 12px rgba(0, 0, 0, 0.55));
+  }
+
+  [data-lightbox-open] nav [data-nav-toggle]:hover,
+  [data-quote-modal-open] nav [data-nav-toggle]:hover {
+    color: rgba(255, 255, 255, 1) !important;
   }
 
   /* Keep swipe gestures from ever triggering page/URL bar scroll. */

@@ -302,6 +302,21 @@ const Home = () => {
     }, isSlow ? 1500 : 350);
   }, []);
 
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const docEl = document.documentElement;
+    if (showQuoteModal) {
+      docEl.setAttribute('data-quote-modal-open', '');
+    } else {
+      docEl.removeAttribute('data-quote-modal-open');
+    }
+
+    return () => {
+      docEl.removeAttribute('data-quote-modal-open');
+    };
+  }, [showQuoteModal]);
+
   const handleQuoteSubmit = (e) => {
     e.preventDefault();
     setQuoteStatus('sending');
@@ -804,11 +819,15 @@ const Home = () => {
     lightboxScrollRestoredRef.current = true;
     lightboxScrollLockRef.current = null;
 
-    document.documentElement.removeAttribute('data-lightbox-restoring');
-    document.documentElement.style.removeProperty('--starling-lightbox-nav-restore-duration');
-    document.documentElement.setAttribute('data-lightbox-open', '');
-
     const docEl = document.documentElement;
+    docEl.style.setProperty(
+      '--starling-lightbox-nav-open-duration',
+      `${isMobileLandscape ? 420 : 1050}ms`,
+    );
+    docEl.removeAttribute('data-lightbox-restoring');
+    docEl.style.removeProperty('--starling-lightbox-nav-restore-duration');
+    docEl.setAttribute('data-lightbox-open', '');
+
     const body = document.body;
     const prevOverflow = docEl.style.overflow;
     const prevBodyOverflow = body.style.overflow;
@@ -904,6 +923,7 @@ const Home = () => {
           lightboxNavRestoreTimerRef.current = null;
         }
         lightboxNavRestoreActiveRef.current = false;
+        docEl.style.removeProperty('--starling-lightbox-nav-open-duration');
         docEl.style.removeProperty('--starling-lightbox-nav-restore-duration');
         restoreLightboxScrollLock();
         lightboxScrollLockRef.current = null;
@@ -919,10 +939,11 @@ const Home = () => {
         docEl.style.removeProperty('--starling-lightbox-nav-restore-duration');
       }
 
+      docEl.style.removeProperty('--starling-lightbox-nav-open-duration');
       restoreLightboxScrollLock();
       lightboxScrollLockRef.current = null;
     };
-  }, [lightboxSessionId, closeLightbox, navigateLightbox, restoreLightboxScrollLock]);
+  }, [isMobileLandscape, lightboxSessionId, closeLightbox, navigateLightbox, restoreLightboxScrollLock]);
 
   useEffect(() => {
     if (!lightboxSessionId || !lightboxImages || lightboxImages.length < 2) return;
@@ -1587,7 +1608,7 @@ const Home = () => {
       {/* Quote Modal */}
       {showQuoteModal && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center px-4"
+          className="fixed inset-0 z-[60] flex items-center justify-center px-4"
           style={{
             animation: isClosingQuoteModal === 'slow'
               ? 'lightboxOut 1.5s cubic-bezier(0.23,1,0.32,1) forwards'
@@ -1597,17 +1618,9 @@ const Home = () => {
           }}
         >
           <div
-            className="absolute inset-0 bg-white/70 backdrop-blur-3xl"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm md:bg-white/70 md:backdrop-blur-3xl"
             onClick={() => closeQuoteModal(false)}
           />
-
-          <button
-            onClick={() => closeQuoteModal(false)}
-            className="absolute top-8 right-8 z-20 p-2 text-slate-400 hover:text-slate-800 transition-colors duration-300"
-            aria-label="Close"
-          >
-            <X size={18} strokeWidth={1.5} />
-          </button>
 
           <div
             className="relative z-10 w-full animate-fade-in"
@@ -1619,6 +1632,14 @@ const Home = () => {
               padding: '36px 44px',
             }}
           >
+            <button
+              type="button"
+              onClick={() => closeQuoteModal(false)}
+              className="absolute top-4 right-4 z-30 p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all"
+              aria-label="Close"
+            >
+              <X size={24} strokeWidth={1.5} />
+            </button>
             <form onSubmit={handleQuoteSubmit}>
               <div
                 className={`absolute inset-0 flex flex-col items-center justify-center transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${

@@ -248,13 +248,21 @@ const Navbar = () => {
                 setIsOpen(false);
               }}
             >
-              <img
-                src={logo}
-                alt="Starling"
-                className={`h-9 md:h-10 w-auto transition-[filter] duration-200 ${
-                  isOpen ? 'invert' : ''
-                }`}
-              />
+              <span className="relative inline-block h-9 md:h-10">
+                <img
+                  src={logo}
+                  alt="Starling"
+                  data-nav-logo-default
+                  className="block h-full w-auto"
+                />
+                <img
+                  src={logo}
+                  alt=""
+                  aria-hidden="true"
+                  data-nav-logo-invert
+                  className="absolute left-0 top-0 block h-full w-auto opacity-0 invert drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]"
+                />
+              </span>
             </Link>
 
             {/* Desktop Nav */}
@@ -284,6 +292,7 @@ const Navbar = () => {
             <button
               ref={mobileMenuButtonRef}
               type="button"
+              data-nav-toggle
               className={`md:hidden z-50 relative w-11 h-11 -mr-2 grid place-items-center rounded-full transition-colors duration-200 focus:outline-none focus-visible:ring-2 ${
                 isOpen
                   ? 'text-white/70 hover:text-white focus-visible:ring-white/40'
