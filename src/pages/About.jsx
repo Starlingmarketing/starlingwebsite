@@ -21,7 +21,6 @@ const useMediaQuery = (query) => {
     const mql = window.matchMedia(query);
     const onChange = (e) => setMatches(e.matches);
 
-    setMatches(mql.matches);
     if (mql.addEventListener) mql.addEventListener('change', onChange);
     else mql.addListener(onChange);
 
