@@ -538,6 +538,32 @@ const Home = () => {
 
     imageWrap.style.opacity = '1';
     imageWrap.style.borderRadius = lightboxOpenRadius;
+    if (isMobileLandscape) {
+      imageWrap.style.willChange = 'opacity, transform';
+      if (imageInner) imageInner.style.willChange = '';
+
+      const tl = createTimeline({
+        onComplete: () => {
+          imageWrap.style.willChange = '';
+          if (imageInner) imageInner.style.willChange = '';
+          setLightbox(null);
+          lightboxPhaseRef.current = 'idle';
+        },
+      });
+
+      if (controls) {
+        tl.add(controls, { opacity: [1, 0], duration: 160, ease: 'outCubic' }, 0);
+      }
+
+      tl.add(
+        imageWrap,
+        { opacity: [1, 0], scale: [1, 0.985], duration: 320, ease: 'inOutCubic' },
+        0,
+      );
+      tl.add(backdrop, { opacity: [1, 0], duration: 320, ease: 'inOutCubic' }, 0);
+      return;
+    }
+
     imageWrap.style.willChange = 'transform, border-radius';
     if (imageInner) imageInner.style.willChange = 'transform';
 
@@ -628,7 +654,7 @@ const Home = () => {
         ease: 'inOutCubic',
       }, 0);
     }
-  }, [lightboxOpenRadius, lightboxSourceRadiusPx]);
+  }, [isMobileLandscape, lightboxOpenRadius, lightboxSourceRadiusPx]);
 
   const navigateLightbox = useCallback((dir) => {
     if (lightboxPhaseRef.current !== 'open') return;
@@ -725,7 +751,7 @@ const Home = () => {
   }, [lightbox, closeLightbox, navigateLightbox]);
 
   useEffect(() => {
-    if (!lightbox || lightboxPhaseRef.current !== 'opening') return;
+    if (!lightbox?.openId || lightboxPhaseRef.current !== 'opening') return;
 
     const runFlip = () => {
       const imageWrap = lightboxImageWrapRef.current;
@@ -741,6 +767,29 @@ const Home = () => {
 
       backdrop.style.opacity = '0';
       if (controls) controls.style.opacity = '0';
+
+      if (isMobileLandscape) {
+        imageWrap.style.opacity = '0';
+        imageWrap.style.transform = '';
+        imageWrap.style.borderRadius = lightboxOpenRadius;
+        imageWrap.style.willChange = 'opacity, transform';
+        if (imageInner) {
+          imageInner.style.transform = '';
+          imageInner.style.willChange = '';
+        }
+
+        const tl = createTimeline({
+          onComplete: () => {
+            imageWrap.style.willChange = '';
+            lightboxPhaseRef.current = 'open';
+          },
+        });
+
+        tl.add(backdrop, { opacity: [0, 1], duration: 240, ease: 'outCubic' }, 0);
+        tl.add(imageWrap, { opacity: [0, 1], scale: [0.985, 1], duration: 420, ease: 'outQuint' }, 0);
+        if (controls) tl.add(controls, { opacity: [0, 1], duration: 260, ease: 'outCubic' }, 180);
+        return;
+      }
 
       const sourceRect = sourceEl?.getBoundingClientRect();
       const finalRect = imageWrap.getBoundingClientRect();
@@ -820,7 +869,7 @@ const Home = () => {
     };
 
     requestAnimationFrame(() => requestAnimationFrame(runFlip));
-  }, [lightbox?.openId]);
+  }, [isMobileLandscape, lightbox?.openId, lightboxOpenRadius, lightboxSourceRadiusPx]);
 
   useEffect(() => {
     if (!lightbox || lightboxPhaseRef.current !== 'open') return;
