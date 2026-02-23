@@ -15,6 +15,7 @@ const About = () => {
   const imageRef = useRef(null);
   const textRef = useRef(null);
   const pressRef = useRef(null);
+  const reachOutButtonRef = useRef(null);
 
   useEffect(() => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
@@ -73,6 +74,7 @@ const About = () => {
   const [isClosingQuoteModal, setIsClosingQuoteModal] = useState(false);
   const [quoteForm, setQuoteForm] = useState({ phone: '' });
   const [quoteStatus, setQuoteStatus] = useState('idle');
+  const [showStickyReachOut, setShowStickyReachOut] = useState(false);
 
   const closeQuoteModal = (isSlow = false) => {
     setIsClosingQuoteModal(isSlow ? 'slow' : 'fast');
@@ -115,8 +117,66 @@ const About = () => {
       });
   };
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    let rafId = 0;
+    const update = () => {
+      const isMobile = window.matchMedia?.('(max-width: 767px)')?.matches ?? false;
+      if (!isMobile) {
+        setShowStickyReachOut(false);
+        return;
+      }
+
+      const btn = reachOutButtonRef.current;
+      if (!btn) {
+        setShowStickyReachOut(false);
+        return;
+      }
+
+      const rect = btn.getBoundingClientRect();
+      setShowStickyReachOut(rect.bottom <= 0);
+    };
+
+    const onScrollOrResize = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        update();
+      });
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    update();
+
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, []);
+
   return (
     <div ref={pageRef} className="min-h-[80vh] px-6 md:px-12 max-w-7xl mx-auto py-8 md:py-16 flex flex-col justify-center">
+      <div
+        className={[
+          'md:hidden fixed inset-x-0 z-40 flex justify-center transition-[opacity,transform] duration-300 ease-out',
+          showStickyReachOut && !showQuoteModal
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-3 pointer-events-none',
+        ].join(' ')}
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+      >
+        <button
+          type="button"
+          onClick={() => setShowQuoteModal(true)}
+          className="group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors duration-300"
+        >
+          <span>Reach Out</span>
+          <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
+        </button>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-20 items-center">
         {/* Image Section */}
         <div ref={imageRef} className="order-2 lg:order-1 flex justify-center">
@@ -160,6 +220,7 @@ const About = () => {
 
           <div className="flex justify-start mt-10">
             <button
+              ref={reachOutButtonRef}
               onClick={() => setShowQuoteModal(true)}
               className="group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors duration-300"
             >

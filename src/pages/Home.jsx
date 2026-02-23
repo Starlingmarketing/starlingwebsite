@@ -289,6 +289,7 @@ const Home = () => {
   const [isClosingQuoteModal, setIsClosingQuoteModal] = useState(false);
   const [quoteForm, setQuoteForm] = useState({ phone: '' });
   const [quoteStatus, setQuoteStatus] = useState('idle');
+  const [showStickyReachOut, setShowStickyReachOut] = useState(false);
 
   const closeQuoteModal = useCallback((isSlow = false) => {
     setIsClosingQuoteModal(isSlow ? 'slow' : 'fast');
@@ -341,6 +342,7 @@ const Home = () => {
   const stackOffsetY = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
 
   const container = useRef(null);
+  const heroReachOutButtonRef = useRef(null);
   const bookingRevealRef = useRef(null);
   const reviewsBackdropRef = useRef(null);
   const reviewsSectionRef = useRef(null);
@@ -397,6 +399,45 @@ const Home = () => {
   useEffect(() => {
     visibleSetRef.current = visibleSet;
   }, [visibleSet]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+
+    if (!isMobileStack) {
+      setShowStickyReachOut(false);
+      return undefined;
+    }
+
+    let rafId = 0;
+    const update = () => {
+      const btn = heroReachOutButtonRef.current;
+      if (!btn) {
+        setShowStickyReachOut(false);
+        return;
+      }
+
+      const rect = btn.getBoundingClientRect();
+      setShowStickyReachOut(rect.bottom <= 0);
+    };
+
+    const onScrollOrResize = () => {
+      if (rafId) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = 0;
+        update();
+      });
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    update();
+
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      if (rafId) window.cancelAnimationFrame(rafId);
+    };
+  }, [isMobileStack]);
 
   useEffect(() => {
     const t = setTimeout(() => { hasInitialized.current = true; }, 2000);
@@ -977,9 +1018,27 @@ const Home = () => {
             'radial-gradient(52.85% 52.85% at 49.04% 47.15%, #D0E8FF 0%, #F5F5F7 100%)',
         }}
       />
+      <div
+        className={[
+          'md:hidden fixed inset-x-0 z-40 flex justify-center transition-[opacity,transform] duration-300 ease-out',
+          showStickyReachOut && !showQuoteModal
+            ? 'opacity-100 translate-y-0 pointer-events-auto'
+            : 'opacity-0 translate-y-3 pointer-events-none',
+        ].join(' ')}
+        style={{ bottom: 'calc(env(safe-area-inset-bottom) + 16px)' }}
+      >
+        <button
+          type="button"
+          onClick={() => setShowQuoteModal(true)}
+          className="group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors"
+        >
+          <span>Reach Out</span>
+          <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
+        </button>
+      </div>
       <div className="relative z-10">
         {/* Hero Section - Framed Premium Layout */}
-        <section id="home-hero" className="relative w-full pt-8 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
+        <section id="home-hero" className="relative w-full pt-4 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
           {/* Mobile-only: compact reviews eyebrow above image stack */}
           <div className="lg:hidden flex justify-center mb-9 -mt-2">
             <div className="hero-eyebrow max-w-full inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-1 rounded-full bg-white border border-slate-200/80 leading-none">
@@ -1068,8 +1127,9 @@ const Home = () => {
                 Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
               </p>
               <button
+                ref={heroReachOutButtonRef}
                 onClick={() => setShowQuoteModal(true)}
-                className="order-4 lg:order-none self-center lg:self-start hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#242424] text-white rounded-[17px] text-[12px] font-normal hover:bg-black transition-colors"
+                className="order-4 lg:order-none self-center lg:self-start hero-link group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors"
               >
                 <span>Reach Out</span>
                 <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
