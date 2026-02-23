@@ -499,9 +499,42 @@ const Home = () => {
   const prevLightboxIndexRef = useRef(null);
   const navAnimRef = useRef(null);
   const touchStartRef = useRef(null);
+  const lightboxNavRestoreTimerRef = useRef(null);
+  const lightboxNavRestoreRafRef = useRef(null);
+  const lightboxNavRestoreActiveRef = useRef(false);
+  const lightboxScrollLockRef = useRef(null);
+  const lightboxScrollRestoredRef = useRef(true);
   const lightboxOpenRadiusPx = isMobileLandscape ? 0 : LIGHTBOX_RADIUS_PX;
   const lightboxOpenRadius = `${lightboxOpenRadiusPx}px / ${lightboxOpenRadiusPx}px`;
   const lightboxSourceRadiusPx = LIGHTBOX_RADIUS_PX;
+
+  const restoreLightboxScrollLock = useCallback(() => {
+    if (lightboxScrollRestoredRef.current) return;
+
+    const lock = lightboxScrollLockRef.current;
+    if (!lock) {
+      lightboxScrollRestoredRef.current = true;
+      return;
+    }
+
+    const docEl = document.documentElement;
+    const body = document.body;
+
+    docEl.style.overflow = lock.prevOverflow ?? '';
+    docEl.style.overscrollBehavior = lock.prevHtmlOverscrollBehavior ?? '';
+    body.style.overflow = lock.prevBodyOverflow ?? '';
+    body.style.paddingRight = lock.prevBodyPaddingRight ?? '';
+
+    if (lock.isMobile) {
+      body.style.position = lock.prevBodyPosition ?? '';
+      body.style.top = lock.prevBodyTop ?? '';
+      body.style.width = lock.prevBodyWidth ?? '';
+      body.style.overscrollBehavior = lock.prevBodyOverscrollBehavior ?? '';
+      window.scrollTo(0, lock.savedScrollY ?? 0);
+    }
+
+    lightboxScrollRestoredRef.current = true;
+  }, []);
 
   const openLightbox = useCallback((images, index, e) => {
     if (lightboxPhaseRef.current !== 'idle') return;
@@ -575,19 +608,58 @@ const Home = () => {
     imageWrap.style.willChange = 'transform, border-radius, opacity';
     if (imageInner) imageInner.style.willChange = 'transform';
 
-    document.documentElement.setAttribute('data-lightbox-restoring', '');
-    document.documentElement.removeAttribute('data-lightbox-open');
-    const restoreTimer = setTimeout(() => {
-      document.documentElement.removeAttribute('data-lightbox-restoring');
-    }, 1100);
+    const docEl = document.documentElement;
+    const prefersReducedMotion =
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+
+    if (lightboxNavRestoreRafRef.current) {
+      cancelAnimationFrame(lightboxNavRestoreRafRef.current);
+      lightboxNavRestoreRafRef.current = null;
+    }
+    if (lightboxNavRestoreTimerRef.current) {
+      clearTimeout(lightboxNavRestoreTimerRef.current);
+      lightboxNavRestoreTimerRef.current = null;
+    }
+
+    if (prefersReducedMotion) {
+      lightboxNavRestoreActiveRef.current = false;
+      docEl.removeAttribute('data-lightbox-open');
+      docEl.removeAttribute('data-lightbox-restoring');
+      docEl.style.removeProperty('--starling-lightbox-nav-restore-duration');
+    } else {
+      // Restore real scroll position first so ScrollTrigger-driven nav styling doesn't "snap".
+      restoreLightboxScrollLock();
+
+      const restoreDurationMs = isMobileStack ? 520 : 980;
+      docEl.style.setProperty('--starling-lightbox-nav-restore-duration', `${restoreDurationMs}ms`);
+      docEl.setAttribute('data-lightbox-restoring', '');
+      lightboxNavRestoreActiveRef.current = true;
+
+      // Wait a frame so `scrollTo()` has taken effect, then start the nav fade-in.
+      lightboxNavRestoreRafRef.current = requestAnimationFrame(() => {
+        lightboxNavRestoreRafRef.current = null;
+        try {
+          ScrollTrigger.update();
+        } catch {
+          // no-op
+        }
+
+        docEl.removeAttribute('data-lightbox-open');
+
+        lightboxNavRestoreTimerRef.current = window.setTimeout(() => {
+          document.documentElement.removeAttribute('data-lightbox-restoring');
+          document.documentElement.style.removeProperty('--starling-lightbox-nav-restore-duration');
+          lightboxNavRestoreTimerRef.current = null;
+          lightboxNavRestoreActiveRef.current = false;
+        }, restoreDurationMs + 160);
+      });
+    }
 
     const sourceRect = sourceEl?.getBoundingClientRect();
     const currentRect = imageWrap.getBoundingClientRect();
 
     const tl = createTimeline({
       onComplete: () => {
-        clearTimeout(restoreTimer);
-        document.documentElement.removeAttribute('data-lightbox-restoring');
         imageWrap.style.willChange = '';
         if (imageInner) imageInner.style.willChange = '';
         setLightbox(null);
@@ -672,7 +744,7 @@ const Home = () => {
         ease: 'inOutCubic',
       }, 0);
     }
-  }, [isMobileLandscape, isMobileStack, lightboxOpenRadius, lightboxSourceRadiusPx]);
+  }, [isMobileLandscape, isMobileStack, lightboxOpenRadius, lightboxSourceRadiusPx, restoreLightboxScrollLock]);
 
   const navigateLightbox = useCallback((dir) => {
     if (lightboxPhaseRef.current !== 'open') return;
@@ -719,7 +791,21 @@ const Home = () => {
 
   useEffect(() => {
     if (!lightboxSessionId) return;
+
+    if (lightboxNavRestoreRafRef.current) {
+      cancelAnimationFrame(lightboxNavRestoreRafRef.current);
+      lightboxNavRestoreRafRef.current = null;
+    }
+    if (lightboxNavRestoreTimerRef.current) {
+      clearTimeout(lightboxNavRestoreTimerRef.current);
+      lightboxNavRestoreTimerRef.current = null;
+    }
+    lightboxNavRestoreActiveRef.current = false;
+    lightboxScrollRestoredRef.current = true;
+    lightboxScrollLockRef.current = null;
+
     document.documentElement.removeAttribute('data-lightbox-restoring');
+    document.documentElement.style.removeProperty('--starling-lightbox-nav-restore-duration');
     document.documentElement.setAttribute('data-lightbox-open', '');
 
     const docEl = document.documentElement;
@@ -727,11 +813,30 @@ const Home = () => {
     const prevOverflow = docEl.style.overflow;
     const prevBodyOverflow = body.style.overflow;
     const prevBodyPaddingRight = body.style.paddingRight;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyWidth = body.style.width;
+    const prevBodyOverscrollBehavior = body.style.overscrollBehavior;
+    const prevHtmlOverscrollBehavior = docEl.style.overscrollBehavior;
     const scrollBarGap = window.innerWidth - docEl.clientWidth;
 
     const isMobile = window.matchMedia('(max-width: 1023px)').matches;
     const savedScrollY = window.scrollY;
     if (isMobile) {
+      lightboxScrollRestoredRef.current = false;
+      lightboxScrollLockRef.current = {
+        isMobile,
+        savedScrollY,
+        prevOverflow,
+        prevBodyOverflow,
+        prevBodyPaddingRight,
+        prevBodyPosition,
+        prevBodyTop,
+        prevBodyWidth,
+        prevBodyOverscrollBehavior,
+        prevHtmlOverscrollBehavior,
+      };
+
       docEl.style.overflow = 'hidden';
       body.style.overflow = 'hidden';
       body.style.position = 'fixed';
@@ -742,6 +847,19 @@ const Home = () => {
       if (scrollBarGap > 0) {
         body.style.paddingRight = `${scrollBarGap}px`;
       }
+    } else {
+      lightboxScrollLockRef.current = {
+        isMobile,
+        savedScrollY,
+        prevOverflow,
+        prevBodyOverflow,
+        prevBodyPaddingRight,
+        prevBodyPosition,
+        prevBodyTop,
+        prevBodyWidth,
+        prevBodyOverscrollBehavior,
+        prevHtmlOverscrollBehavior,
+      };
     }
 
     const handleKey = (e) => {
@@ -769,25 +887,42 @@ const Home = () => {
     window.addEventListener('touchend', handleTouchEnd);
 
     return () => {
-      document.documentElement.removeAttribute('data-lightbox-open');
-      document.documentElement.removeAttribute('data-lightbox-restoring');
       window.removeEventListener('keydown', handleKey);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchend', handleTouchEnd);
 
-      docEl.style.overflow = prevOverflow;
-      body.style.overflow = prevBodyOverflow;
-      body.style.paddingRight = prevBodyPaddingRight;
-      if (isMobile) {
-        body.style.position = '';
-        body.style.top = '';
-        body.style.width = '';
-        body.style.overscrollBehavior = '';
-        docEl.style.overscrollBehavior = '';
-        window.scrollTo(0, savedScrollY);
+      const prefersReducedMotion =
+        window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches ?? false;
+
+      if (prefersReducedMotion) {
+        if (lightboxNavRestoreRafRef.current) {
+          cancelAnimationFrame(lightboxNavRestoreRafRef.current);
+          lightboxNavRestoreRafRef.current = null;
+        }
+        if (lightboxNavRestoreTimerRef.current) {
+          clearTimeout(lightboxNavRestoreTimerRef.current);
+          lightboxNavRestoreTimerRef.current = null;
+        }
+        lightboxNavRestoreActiveRef.current = false;
+        docEl.style.removeProperty('--starling-lightbox-nav-restore-duration');
+        restoreLightboxScrollLock();
+        lightboxScrollLockRef.current = null;
+        docEl.removeAttribute('data-lightbox-open');
+        docEl.removeAttribute('data-lightbox-restoring');
+        return;
       }
+
+      // If we're not already mid-restore (normal close), just hard-reset attributes.
+      if (!lightboxNavRestoreActiveRef.current) {
+        docEl.removeAttribute('data-lightbox-open');
+        docEl.removeAttribute('data-lightbox-restoring');
+        docEl.style.removeProperty('--starling-lightbox-nav-restore-duration');
+      }
+
+      restoreLightboxScrollLock();
+      lightboxScrollLockRef.current = null;
     };
-  }, [lightboxSessionId, closeLightbox, navigateLightbox]);
+  }, [lightboxSessionId, closeLightbox, navigateLightbox, restoreLightboxScrollLock]);
 
   useEffect(() => {
     if (!lightboxSessionId || !lightboxImages || lightboxImages.length < 2) return;
