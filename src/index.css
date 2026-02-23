@@ -202,9 +202,7 @@ nav[data-menu-open] [data-nav-bg] {
 
   [data-lightbox-restoring] nav {
     transition: background-color var(--starling-lightbox-nav-restore-duration, 980ms) cubic-bezier(0.16, 1, 0.3, 1),
-                border-color var(--starling-lightbox-nav-restore-duration, 980ms) cubic-bezier(0.16, 1, 0.3, 1),
-                backdrop-filter var(--starling-lightbox-nav-restore-duration, 980ms) cubic-bezier(0.16, 1, 0.3, 1),
-                -webkit-backdrop-filter var(--starling-lightbox-nav-restore-duration, 980ms) cubic-bezier(0.16, 1, 0.3, 1);
+                border-color var(--starling-lightbox-nav-restore-duration, 980ms) cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   [data-lightbox-restoring] [data-nav-bg] {
