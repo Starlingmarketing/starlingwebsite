@@ -1301,7 +1301,7 @@ const Home = () => {
       </div>
       <div className="relative z-10">
         {/* Hero Section - Framed Premium Layout */}
-        <section id="home-hero" className="relative w-full pt-4 md:pt-24 pb-8 px-6 md:px-12 lg:px-20 xl:px-32 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
+        <section id="home-hero" className="relative w-full pt-4 md:pt-24 pb-8 max-w-[1440px] mx-auto min-h-[50vh] lg:min-h-[50vh] flex flex-col justify-center">
           {/* Mobile-only: compact reviews eyebrow above image stack */}
           <div className="hero-mobile-eyebrow-row hero-intro-item md:hidden flex justify-center mb-9 -mt-2">
             <div className="hero-eyebrow max-w-full inline-flex flex-wrap items-center justify-center gap-x-2 gap-y-1 px-3 py-1 rounded-full bg-white border border-slate-200/80 leading-none">
@@ -1342,11 +1342,11 @@ const Home = () => {
             </div>
           </div>
 
-          <div className="hero-primary-layout flex flex-col gap-7 md:flex-row md:items-center md:justify-between md:gap-12 lg:gap-24 xl:gap-40 2xl:gap-56">
+          <div className="hero-primary-layout flex flex-col md:flex-row md:items-center md:justify-between">
           
             {/* Text Content */}
             <div className="hero-text-col contents md:flex md:flex-col md:w-5/12 md:order-1 md:justify-center md:z-10">
-              <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-4 -mt-2 mb-6 lg:mb-10 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80 md:scale-[0.8] lg:scale-100 md:origin-left">
+              <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-4 -mt-2 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full md:px-2 xl:px-3 md:py-1 xl:py-1.5 border border-slate-100/50">
                   <div className="flex items-center md:gap-1.5 xl:gap-2.5">
                     {/* Google */}
@@ -1382,17 +1382,17 @@ const Home = () => {
                   </div>
                 </div>
               </div>
-              <h1 className="hero-intro-item order-1 md:order-none text-[22px] sm:text-[26px] md:text-[2.75vw] lg:text-[28px] xl:text-[34px] max-[360px]:text-[19px] font-serif uppercase text-slate-900 leading-[1.1] tracking-normal mb-2 md:mb-6 lg:mb-10">
+              <h1 className="hero-intro-item order-1 md:order-none font-serif uppercase text-slate-900 leading-[1.1] tracking-normal">
                 <div className="hero-text-line whitespace-nowrap pr-2">Unscripted Moments.</div>
                 <div className="hero-text-line whitespace-nowrap pr-2">Unforgettable Memories.</div>
               </h1>
-              <p className="hero-intro-item order-3 md:order-none hero-desc text-sm md:text-[1.5vw] lg:text-base text-slate-600 font-light md:mb-6 lg:mb-8 max-w-md leading-relaxed">
+              <p className="hero-intro-item order-3 md:order-none hero-desc text-slate-600 font-light max-w-md leading-relaxed">
                 Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
               </p>
               <button
                 ref={heroReachOutButtonRef}
                 onClick={() => setShowQuoteModal(true)}
-                className="hero-intro-item order-4 md:order-none self-center md:self-start hero-link group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors md:scale-[0.85] lg:scale-100 md:origin-left"
+                className="hero-intro-item order-4 md:order-none self-center md:self-start hero-link group inline-flex items-center justify-center gap-1.5 w-[130px] h-[30px] sm:w-[112px] sm:h-[24px] bg-[#242424] text-white rounded-[17px] text-[13px] sm:text-[12px] font-normal hover:bg-black transition-colors"
               >
                 <span>Reach Out</span>
                 <ArrowRight size={14} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />

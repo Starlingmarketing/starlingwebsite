@@ -337,6 +337,66 @@ nav[data-menu-open] [data-nav-bg] {
   }
 }
 
+/* ─── Fluid hero scaling ─────────────────────────────────────────── */
+#home-hero {
+  padding-left: 1.5rem;
+  padding-right: 1.5rem;
+}
+
+#home-hero .hero-primary-layout {
+  gap: 1.75rem;
+}
+
+#home-hero h1 {
+  font-size: clamp(19px, 2.5vw + 11px, 26px);
+  margin-bottom: 0.5rem;
+}
+
+#home-hero .hero-desc {
+  font-size: 0.875rem;
+}
+
+@media (min-width: 768px) {
+  #home-hero {
+    padding-left: clamp(3rem, 15.63vw - 72px, 8rem);
+    padding-right: clamp(3rem, 15.63vw - 72px, 8rem);
+  }
+
+  #home-hero .hero-primary-layout {
+    gap: clamp(3rem, 22.92vw - 128px, 14rem);
+  }
+
+  #home-hero h1 {
+    font-size: clamp(21px, 2.54vw + 1.5px, 34px);
+    margin-bottom: clamp(1.5rem, 6.25vw - 24px, 2.5rem);
+  }
+
+  #home-hero .hero-desc {
+    font-size: clamp(12px, 0.78vw + 6px, 1rem);
+    margin-bottom: clamp(1.5rem, 3.13vw, 2rem);
+  }
+
+  #home-hero .hero-eyebrow {
+    --_fluid: clamp(0px, 100vw - 768px, 256px);
+    scale: calc(0.8 + 0.2 * tan(atan2(var(--_fluid), 256px)));
+    transform-origin: left center;
+    margin-bottom: clamp(1.5rem, 6.25vw - 24px, 2.5rem);
+  }
+
+  #home-hero .hero-link {
+    --_fluid: clamp(0px, 100vw - 768px, 256px);
+    scale: calc(0.85 + 0.15 * tan(atan2(var(--_fluid), 256px)));
+    transform-origin: left center;
+  }
+}
+
+@media (min-width: 1024px) {
+  #home-hero .hero-eyebrow,
+  #home-hero .hero-link {
+    scale: 1;
+  }
+}
+
 @media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
   [data-lightbox-open] nav,
   [data-quote-modal-open] nav {
