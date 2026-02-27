@@ -369,6 +369,7 @@ const Home = () => {
   const stackRef = useRef(null);
   const visibleSetRef = useRef([0, 1, 2]);
   const [hasInitialized, setHasInitialized] = useState(false);
+  const [stackWidth, setStackWidth] = useState(null);
 
   const isMobileStack = useMediaQuery(
     '(max-width: 767px), (orientation: landscape) and (max-height: 500px)'
@@ -376,8 +377,62 @@ const Home = () => {
   const isMobileLandscape = useMediaQuery(
     '(max-width: 1023px) and (orientation: landscape) and (max-height: 500px)'
   );
-  const stackOffsetX = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
-  const stackOffsetY = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
+  const [viewportWidth, setViewportWidth] = useState(() =>
+    (typeof window === 'undefined' ? 1440 : window.innerWidth)
+  );
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener('resize', handleResize, { passive: true });
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const node = stackRef.current;
+    if (!node) return undefined;
+    if (typeof ResizeObserver === 'undefined') return undefined;
+
+    const ro = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      const width = entry?.contentRect?.width;
+      if (typeof width === 'number' && Number.isFinite(width) && width > 0) {
+        setStackWidth(width);
+      }
+    });
+
+    ro.observe(node);
+    return () => ro.disconnect();
+  }, []);
+
+  const clampNumber = (min, value, max) => Math.min(max, Math.max(min, value));
+
+  const stackOffsetX = useMemo(() => {
+    const width = stackWidth ?? (isMobileStack ? 360 : 637);
+    const ratio = isMobileStack ? 0.07 : 0.088; // match existing look at default sizes, compress on narrow widths
+    const min = isMobileStack ? 10 : 18;
+    const max = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
+    return Math.round(clampNumber(min, width * ratio, max));
+  }, [stackWidth, isMobileStack]);
+
+  const stackOffsetY = useMemo(() => {
+    const width = stackWidth ?? (isMobileStack ? 360 : 637);
+    const ratio = isMobileStack ? 0.045 : 0.06;
+    const min = isMobileStack ? 7 : 12;
+    const max = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
+    return Math.round(clampNumber(min, width * ratio, max));
+  }, [stackWidth, isMobileStack]);
+
+  const stackWrapperTranslateX = useMemo(() => {
+    if (isMobileStack) return 0;
+    const w = typeof viewportWidth === 'number' && Number.isFinite(viewportWidth) ? viewportWidth : 1440;
+    const start = 768;
+    const end = 1120;
+    const t = clampNumber(0, (w - start) / (end - start), 1);
+    const eased = t * t * (3 - 2 * t); // smoothstep
+    return Math.round(-stackOffsetX * eased);
+  }, [isMobileStack, viewportWidth, stackOffsetX]);
 
   const container = useRef(null);
   const heroReachOutButtonRef = useRef(null);
@@ -1401,7 +1456,14 @@ const Home = () => {
           
           {/* Staggered Image Stack */}
           <div className="hero-stack-col hero-intro-item w-full md:w-6/12 order-2 md:order-2 md:py-6 flex items-center justify-center relative group">
-            <div className="hero-stack-wrapper relative w-full md:w-[637px]" ref={stackRef} style={{ aspectRatio: '637 / 426' }}>
+            <div
+              className="hero-stack-wrapper relative w-full md:w-[637px]"
+              ref={stackRef}
+              style={{
+                aspectRatio: '637 / 426',
+                transform: isMobileStack ? undefined : `translateX(${stackWrapperTranslateX}px)`,
+              }}
+            >
               {departingIdx !== null && (
                 <div
                   key={`dep-${departingIdx}`}

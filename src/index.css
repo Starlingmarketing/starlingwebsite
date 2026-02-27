@@ -397,6 +397,13 @@ nav[data-menu-open] [data-nav-bg] {
   }
 }
 
+/* Landing hero: prevent stack overlapping the H1 on narrower widths. */
+@media (min-width: 768px) and (max-width: 1120px) and (min-height: 501px) {
+  #home-hero .hero-stack-col {
+    justify-content: flex-start;
+  }
+}
+
 @media (max-width: 1023px) and (orientation: landscape) and (max-height: 500px) {
   [data-lightbox-open] nav,
   [data-quote-modal-open] nav {
