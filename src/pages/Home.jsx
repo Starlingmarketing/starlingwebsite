@@ -428,10 +428,10 @@ const Home = () => {
     if (isMobileStack) return 0;
     const w = typeof viewportWidth === 'number' && Number.isFinite(viewportWidth) ? viewportWidth : 1440;
     const start = 768;
-    const end = 1120;
+    const end = 1440;
     const t = clampNumber(0, (w - start) / (end - start), 1);
     const eased = t * t * (3 - 2 * t); // smoothstep
-    return Math.round(-stackOffsetX * eased);
+    return Math.round(36 + stackOffsetX * (0.75 + 1.0 * eased));
   }, [isMobileStack, viewportWidth, stackOffsetX]);
 
   const container = useRef(null);
@@ -1330,7 +1330,7 @@ const Home = () => {
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-24 z-0 h-[120vh] max-h-[1200px]"
         style={{
-          background: 'radial-gradient(90.91% 59.44% at 49.04% 47.15%, #D0E8FF 0%, #F5F5F7 100%)',
+          background: 'radial-gradient(70% 65% at 65% 30%, #D0E8FF 0%, #EDF3FA 45%, #FFFFFF 100%)',
           WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%)',
           maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,1) 70%, rgba(0,0,0,0) 100%)',
         }}
@@ -1341,8 +1341,7 @@ const Home = () => {
         className="pointer-events-none fixed inset-0 z-0"
         style={{
           opacity: 0,
-          background:
-            'radial-gradient(52.85% 52.85% at 49.04% 47.15%, #D0E8FF 0%, #F5F5F7 100%)',
+          background: 'radial-gradient(52.85% 52.85% at 49.04% 47.15%, #D0E8FF 0%, #F5F5F7 100%)',
         }}
       />
       <div
@@ -1410,7 +1409,7 @@ const Home = () => {
           
             {/* Text Content Box */}
             <div 
-              className="hero-text-col relative z-20 flex flex-col justify-center order-1 md:absolute md:left-12 md:top-1/2 md:-translate-y-1/2 w-full md:w-[480px] lg:w-[604px] md:h-[318px] bg-[#F7F7F7]/85 md:backdrop-blur-md rounded-[22px] px-6 md:px-[42px] py-8 md:pt-[30px] md:pb-[26px] mb-8 md:mb-0 shadow-lg md:shadow-2xl md:shadow-black/5"
+              className="hero-text-col relative z-20 flex flex-col justify-center order-1 md:absolute md:-left-10 lg:-left-24 xl:-left-36 md:top-1/2 md:-translate-y-1/2 w-full md:w-[480px] lg:w-[604px] md:h-[318px] bg-white/[0.97] rounded-[22px] px-6 md:px-[42px] py-8 md:pt-[30px] md:pb-[26px] mb-8 md:mb-0"
             >
               <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-3 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80 mb-2">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full md:px-2 xl:px-2 md:py-1 xl:py-1 border border-slate-100/50">
