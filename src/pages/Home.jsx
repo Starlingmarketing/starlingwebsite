@@ -1409,7 +1409,7 @@ const Home = () => {
           
             {/* Text Content Box */}
             <div 
-              className="hero-text-col relative z-20 flex flex-col justify-center items-center order-1 md:absolute md:-left-10 lg:-left-24 xl:-left-36 md:top-1/2 md:-translate-y-1/2 w-full md:w-[480px] lg:w-[604px] md:h-[318px] bg-white/[0.97] rounded-[22px] px-6 md:px-[42px] py-8 md:pt-[20px] md:pb-[26px] mb-8 md:mb-0"
+              className="hero-text-col relative z-20 flex flex-col justify-center md:justify-start items-center order-1 md:absolute md:-left-10 lg:-left-24 xl:-left-36 md:top-1/2 md:-translate-y-1/2 w-full md:w-[480px] lg:w-[604px] md:h-[318px] bg-white/[0.97] rounded-[22px] px-6 md:px-[42px] py-8 md:pt-[17px] md:pb-[47px] mb-8 md:mb-0"
             >
               <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-3 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80 mb-4">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full md:px-2 xl:px-2 md:py-1 xl:py-1 border border-slate-100/50">
@@ -1447,22 +1447,24 @@ const Home = () => {
                   </div>
                 </div>
               </div>
-              <div className="text-left">
+              <div className="text-left md:w-full md:flex md:flex-col md:flex-1">
                 <h1 className="hero-intro-item font-serif text-[44px] md:text-[54px] lg:text-[62px] text-[#18181B] leading-[1.02] tracking-normal mb-4 md:mb-5">
                   <div className="hero-text-line whitespace-nowrap">Unscripted Moments.</div>
                   <div className="hero-text-line whitespace-nowrap">Unforgettable Memories.</div>
                 </h1>
-                <p className="hero-intro-item hero-desc text-[#6B6B76] font-light text-[13px] md:text-[13px] max-w-sm leading-[1.5] md:leading-[1.5] mb-5 md:mb-5">
-                  Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
-                </p>
-                <button
-                  ref={heroReachOutButtonRef}
-                  onClick={() => setShowQuoteModal(true)}
-                  className="hero-intro-item hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[30px] bg-[#18181B] text-white rounded-full text-[13px] font-normal hover:bg-black transition-colors"
-                >
-                  <span>Reach Out</span>
-                  <ArrowRight size={13} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
-                </button>
+                <div className="max-w-[386px] md:mx-auto md:flex md:flex-col md:flex-1">
+                  <p className="hero-intro-item hero-desc text-[#6B6B76] font-light text-[13px] leading-[1.5] md:leading-[1.5] mb-5 md:mb-5">
+                    Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
+                  </p>
+                  <button
+                    ref={heroReachOutButtonRef}
+                    onClick={() => setShowQuoteModal(true)}
+                    className="hero-intro-item hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#18181B] text-white rounded-full text-[13px] font-normal hover:bg-black transition-colors md:mt-auto"
+                  >
+                    <span>Reach Out</span>
+                    <ArrowRight size={13} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
+                  </button>
+                </div>
               </div>
             </div>
           

@@ -367,12 +367,13 @@ nav[data-menu-open] [data-nav-bg] {
   }
 
   #home-hero h1 {
-    font-size: clamp(21px, 2.54vw + 1.5px, 34px);
-    margin-bottom: clamp(0.625rem, 1vw, 1rem);
+    font-size: clamp(28px, 2.98vw + 5px, 48px);
+    margin-bottom: 14px;
   }
 
   #home-hero .hero-desc {
-    font-size: clamp(12px, 0.78vw + 6px, 1rem);
+    font-size: 13px;
+    max-width: 386px;
     margin-bottom: clamp(0.75rem, 1.2vw, 1.125rem);
   }
 
@@ -380,7 +381,7 @@ nav[data-menu-open] [data-nav-bg] {
     --_fluid: clamp(0px, 100vw - 768px, 256px);
     scale: calc(0.8 + 0.2 * tan(atan2(var(--_fluid), 256px)));
     transform-origin: left center;
-    margin-bottom: clamp(0.625rem, 1vw, 1rem);
+    margin-bottom: 18px;
   }
 
   #home-hero .hero-link {
