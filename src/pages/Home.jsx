@@ -67,10 +67,10 @@ const ASSORTED_IMAGE_IDS = [
   'center_city_ag1h8b',
 ];
 
-const STACK_OFFSET_DESKTOP_X = 56;
-const STACK_OFFSET_DESKTOP_Y = 38;
-const STACK_OFFSET_MOBILE_X = 24;
-const STACK_OFFSET_MOBILE_Y = 16;
+const STACK_OFFSET_DESKTOP_X = 44;
+const STACK_OFFSET_DESKTOP_Y = 32;
+const STACK_OFFSET_MOBILE_X = 20;
+const STACK_OFFSET_MOBILE_Y = 14;
 const STACK_COUNT = 3;
 const CARD_SHADOWS = ['none', 'none', 'none'];
 const LIGHTBOX_RADIUS_PX = 0;
@@ -410,16 +410,16 @@ const Home = () => {
 
   const stackOffsetX = useMemo(() => {
     const width = stackWidth ?? (isMobileStack ? 360 : 900);
-    const ratio = isMobileStack ? 0.07 : 0.088; // match existing look at default sizes, compress on narrow widths
-    const min = isMobileStack ? 10 : 18;
+    const ratio = isMobileStack ? 0.058 : 0.07;
+    const min = isMobileStack ? 9 : 16;
     const max = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
     return Math.round(clampNumber(min, width * ratio, max));
   }, [stackWidth, isMobileStack]);
 
   const stackOffsetY = useMemo(() => {
     const width = stackWidth ?? (isMobileStack ? 360 : 900);
-    const ratio = isMobileStack ? 0.045 : 0.06;
-    const min = isMobileStack ? 7 : 12;
+    const ratio = isMobileStack ? 0.04 : 0.05;
+    const min = isMobileStack ? 6 : 10;
     const max = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
     return Math.round(clampNumber(min, width * ratio, max));
   }, [stackWidth, isMobileStack]);
@@ -1409,7 +1409,7 @@ const Home = () => {
           
             {/* Text Content Box */}
             <div 
-              className="hero-text-col relative z-20 flex flex-col justify-center md:justify-start items-center order-1 md:absolute md:-left-10 lg:-left-24 xl:-left-36 md:top-1/2 md:-translate-y-1/2 w-full md:w-[480px] lg:w-[604px] md:h-[318px] bg-white/[0.97] rounded-[22px] px-6 md:px-[42px] py-8 md:pt-[17px] md:pb-[47px] mb-8 md:mb-0"
+              className="hero-text-col relative z-20 flex flex-col justify-center md:justify-start items-center order-1 md:absolute md:-left-[64px] lg:-left-[128px] xl:-left-[176px] md:top-1/2 md:-translate-y-1/2 w-full md:w-[480px] lg:w-[604px] md:h-[318px] bg-white/[0.97] rounded-[22px] px-6 md:px-[42px] py-8 md:pt-[17px] md:pb-[47px] mb-8 md:mb-0"
             >
               <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-3 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80 mb-4">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full md:px-2 xl:px-2 md:py-1 xl:py-1 border border-slate-100/50">
@@ -1469,7 +1469,7 @@ const Home = () => {
             </div>
           
             {/* Staggered Image Stack */}
-            <div className="hero-stack-col hero-intro-item w-full order-2 md:ml-auto md:w-[600px] lg:w-[900px] flex items-center justify-end relative group py-8 md:py-16">
+            <div className="hero-stack-col hero-intro-item w-full order-2 md:ml-auto md:mr-[-8px] lg:mr-[-24px] md:w-[600px] lg:w-[900px] flex items-center justify-end relative group py-8 md:py-16">
               <div
                 className="hero-stack-wrapper relative w-full md:w-[600px] lg:w-[900px]"
               ref={stackRef}
@@ -1478,6 +1478,35 @@ const Home = () => {
                 transform: isMobileStack ? undefined : `translateX(${stackWrapperTranslateX}px)`,
               }}
             >
+              {!isMobileStack && (() => {
+                const backIdx = visibleSet[0];
+                const bgCards = [
+                  { idx: (backIdx - 2 + heroImages.length) % heroImages.length, opacity: 0.05, offset: 2 },
+                  { idx: (backIdx - 1 + heroImages.length) % heroImages.length, opacity: 0.2, offset: 1 },
+                ];
+                return bgCards.map((card, i) => (
+                  <div
+                    key={`bg-${i}`}
+                    className="absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
+                    style={{
+                      width: `calc(100% - ${(STACK_COUNT - 1) * stackOffsetX}px)`,
+                      aspectRatio: '3 / 2',
+                      zIndex: 0,
+                      transform: `translate(${-card.offset * stackOffsetX}px, ${card.offset * stackOffsetY}px)`,
+                      opacity: card.opacity,
+                      border: '0.5px solid rgba(0,0,0,0.06)',
+                    }}
+                  >
+                    <AdvancedImage
+                      cldImg={heroImages[card.idx]}
+                      className="w-full h-full object-cover"
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                    />
+                  </div>
+                ));
+              })()}
               {departingIdx !== null && (
                 <div
                   key={`dep-${departingIdx}`}
@@ -1497,7 +1526,9 @@ const Home = () => {
                   />
                 </div>
               )}
-              {visibleSet.map((imgIdx, pos) => (
+              {visibleSet.map((imgIdx, pos) => {
+                const leftShift = pos >= 1 ? Math.round(stackOffsetX * 0.4) : 0;
+                return (
                 <div
                   key={imgIdx}
                   className="hero-stack-card absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
@@ -1505,7 +1536,7 @@ const Home = () => {
                     width: `calc(100% - ${(STACK_COUNT - 1) * stackOffsetX}px)`,
                     aspectRatio: '3 / 2',
                     zIndex: pos + 1,
-                    transform: `translate(${pos * stackOffsetX}px, ${pos * -stackOffsetY}px)`,
+                    transform: `translate(${pos * stackOffsetX - leftShift}px, ${pos * -stackOffsetY}px)`,
                     transition: entranceDone ? 'transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 1.6s ease' : 'none',
                     boxShadow: CARD_SHADOWS[pos],
                     border: '0.5px solid rgba(0,0,0,0.06)',
@@ -1539,7 +1570,8 @@ const Home = () => {
                     </div>
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
           </div>
 
