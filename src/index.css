@@ -288,6 +288,12 @@ nav[data-menu-open] [data-nav-bg] {
     filter: drop-shadow(0 1px 4px rgba(255, 255, 255, 0.3));
   }
 
+  [data-quote-modal-open] nav [data-nav-reach-out],
+  [data-lightbox-open] nav [data-nav-reach-out] {
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+
   /* Keep swipe gestures from ever triggering page/URL bar scroll. */
   [data-starling-lightbox] {
     touch-action: none;

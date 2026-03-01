@@ -11,6 +11,7 @@ gsap.registerPlugin(ScrollTrigger);
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [showNavReachOut, setShowNavReachOut] = useState(false);
   const location = useLocation();
   const navRef = useRef(null);
   const navBgRef = useRef(null);
@@ -101,6 +102,48 @@ const Navbar = () => {
       cancelAnimationFrame(rafId);
     };
   }, []);
+
+  useEffect(() => {
+    if (location.pathname !== '/') {
+      setShowNavReachOut(false);
+      return undefined;
+    }
+
+    const mql = window.matchMedia('(min-width: 768px)');
+    let rafId = 0;
+
+    const update = () => {
+      if (!mql.matches) {
+        setShowNavReachOut(false);
+        return;
+      }
+      const btn = document.querySelector('[data-hero-reach-out]');
+      if (!btn) {
+        setShowNavReachOut(false);
+        return;
+      }
+      const rect = btn.getBoundingClientRect();
+      setShowNavReachOut(rect.bottom <= 0);
+    };
+
+    const onScrollOrResize = () => {
+      if (rafId) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = 0;
+        update();
+      });
+    };
+
+    window.addEventListener('scroll', onScrollOrResize, { passive: true });
+    window.addEventListener('resize', onScrollOrResize, { passive: true });
+    update();
+
+    return () => {
+      window.removeEventListener('scroll', onScrollOrResize);
+      window.removeEventListener('resize', onScrollOrResize);
+      if (rafId) cancelAnimationFrame(rafId);
+    };
+  }, [location.pathname]);
 
   useGSAP(() => {
     const vh = window.innerHeight;
@@ -244,6 +287,26 @@ const Navbar = () => {
                 'inset 0 1px 0.5px rgba(255,255,255,0.12), inset 0 -0.5px 0.5px rgba(255,255,255,0.04)',
             }}
           />
+        </div>
+
+        {/* Desktop REACH OUT — centered, appears when hero button scrolls off */}
+        <div
+          data-nav-reach-out
+          className={`hidden md:flex items-stretch justify-center absolute inset-0 z-10 transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+            showNavReachOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          }`}
+        >
+          <div className="flex items-center">
+            <div className="w-px self-stretch bg-white" />
+            <button
+              type="button"
+              onClick={() => window.dispatchEvent(new CustomEvent('starling:open-quote'))}
+              className="w-[179px] text-xs uppercase tracking-widest text-black transition-colors duration-300 cursor-pointer text-center"
+            >
+              Reach Out
+            </button>
+            <div className="w-px self-stretch bg-white" />
+          </div>
         </div>
 
         <div className="max-w-7xl mx-auto px-6 md:px-12 relative">

@@ -326,6 +326,12 @@ const Home = () => {
     };
   }, [showQuoteModal, isClosingQuoteModal]);
 
+  useEffect(() => {
+    const openFromNav = () => setShowQuoteModal(true);
+    window.addEventListener('starling:open-quote', openFromNav);
+    return () => window.removeEventListener('starling:open-quote', openFromNav);
+  }, []);
+
   const handleQuoteSubmit = (e) => {
     e.preventDefault();
     setQuoteStatus('sending');
@@ -1502,6 +1508,7 @@ const Home = () => {
                   </p>
                   <button
                     ref={heroReachOutButtonRef}
+                    data-hero-reach-out
                     onClick={() => setShowQuoteModal(true)}
                     className="hero-intro-item hero-link group inline-flex items-center justify-center gap-1.5 w-[112px] h-[24px] bg-[#18181B] text-white rounded-full text-[13px] font-normal hover:bg-black transition-colors md:mt-auto"
                   >
