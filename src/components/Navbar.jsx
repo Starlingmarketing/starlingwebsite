@@ -105,7 +105,6 @@ const Navbar = () => {
 
   useEffect(() => {
     if (location.pathname !== '/') {
-      setShowNavReachOut(false);
       return undefined;
     }
 
@@ -293,7 +292,7 @@ const Navbar = () => {
         <div
           data-nav-reach-out
           className={`hidden md:flex items-stretch justify-center absolute inset-0 z-10 pointer-events-none transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-            showNavReachOut ? 'opacity-100' : 'opacity-0'
+            showNavReachOut && location.pathname === '/' ? 'opacity-100' : 'opacity-0'
           }`}
         >
           <div className="flex items-center">

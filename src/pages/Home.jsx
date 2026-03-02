@@ -386,15 +386,11 @@ const Home = () => {
   const [viewportWidth, setViewportWidth] = useState(() =>
     (typeof window === 'undefined' ? 1440 : window.innerWidth)
   );
-  const [viewportHeight, setViewportHeight] = useState(() =>
-    (typeof window === 'undefined' ? 900 : window.innerHeight)
-  );
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
     const handleResize = () => {
       setViewportWidth(window.innerWidth);
-      setViewportHeight(window.innerHeight);
     };
     handleResize();
     window.addEventListener('resize', handleResize, { passive: true });
