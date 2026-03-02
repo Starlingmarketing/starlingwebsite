@@ -368,46 +368,19 @@ nav[data-menu-open] [data-nav-bg] {
     padding-right: clamp(3rem, 15.63vw - 72px, 8rem);
   }
 
-  #home-hero .hero-primary-layout {
-    gap: clamp(3rem, 22.92vw - 128px, 14rem);
-  }
-
   #home-hero h1 {
-    font-size: clamp(28px, 2.98vw + 5px, 48px);
+    font-size: 48px;
     margin-bottom: 14px;
   }
 
   #home-hero .hero-desc {
     font-size: 13px;
     max-width: 386px;
-    margin-bottom: clamp(0.75rem, 1.2vw, 1.125rem);
-  }
-
-  #home-hero .hero-eyebrow {
-    --_fluid: clamp(0px, 100vw - 768px, 256px);
-    scale: calc(0.8 + 0.2 * tan(atan2(var(--_fluid), 256px)));
-    transform-origin: left center;
     margin-bottom: 18px;
   }
 
-  #home-hero .hero-link {
-    --_fluid: clamp(0px, 100vw - 768px, 256px);
-    scale: calc(0.85 + 0.15 * tan(atan2(var(--_fluid), 256px)));
-    transform-origin: left center;
-  }
-}
-
-@media (min-width: 1024px) {
-  #home-hero .hero-eyebrow,
-  #home-hero .hero-link {
-    scale: 1;
-  }
-}
-
-/* Landing hero: prevent stack overlapping the H1 on narrower widths. */
-@media (min-width: 768px) and (max-width: 1120px) and (min-height: 501px) {
-  #home-hero .hero-stack-col {
-    justify-content: flex-start;
+  #home-hero .hero-eyebrow {
+    margin-bottom: 18px;
   }
 }
 

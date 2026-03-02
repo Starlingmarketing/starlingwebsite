@@ -438,24 +438,17 @@ const Home = () => {
 
   const stackWrapperTranslateX = useMemo(() => {
     if (isMobileStack) return 0;
-    const w = typeof viewportWidth === 'number' && Number.isFinite(viewportWidth) ? viewportWidth : 1440;
-    const start = 768;
-    const end = 1440;
-    const t = clampNumber(0, (w - start) / (end - start), 1);
-    const eased = t * t * (3 - 2 * t); // smoothstep
-    return Math.round(36 + stackOffsetX * (0.75 + 1.0 * eased));
-  }, [isMobileStack, viewportWidth, stackOffsetX]);
+    return Math.round(36 + stackOffsetX * 1.75);
+  }, [isMobileStack, stackOffsetX]);
 
   const heroScale = useMemo(() => {
     if (isMobileStack) return 1;
-    const refW = 1920;
-    const refH = 1080;
-    const w = typeof viewportWidth === 'number' ? viewportWidth : refW;
-    const h = typeof viewportHeight === 'number' ? viewportHeight : refH;
-    if (w >= refW && h >= refH) return 1;
-    const raw = Math.min(w / refW, h / refH);
-    return Math.max(0.85, 1 - (1 - raw) * 0.5);
-  }, [isMobileStack, viewportWidth, viewportHeight]);
+    const w = typeof viewportWidth === 'number' ? viewportWidth : 1440;
+    if (w >= 1440) return 1;
+    const pad = Math.min(128, Math.max(48, 0.1563 * w - 72));
+    const available = w - 2 * pad;
+    return Math.max(0.55, available / 1184);
+  }, [isMobileStack, viewportWidth]);
 
   const heroLayoutRef = useRef(null);
   const [heroNaturalHeight, setHeroNaturalHeight] = useState(0);
@@ -470,6 +463,22 @@ const Home = () => {
     ro.observe(el);
     return () => ro.disconnect();
   }, [isMobileStack]);
+
+  const heroLayoutStyle = useMemo(() => {
+    if (isMobileStack) return undefined;
+    if (heroScale >= 1) {
+      return { width: 1184, marginLeft: 'auto', marginRight: 'auto' };
+    }
+    const w = typeof viewportWidth === 'number' ? viewportWidth : 1440;
+    const pad = Math.min(128, Math.max(48, 0.1563 * w - 72));
+    const containerW = w - 2 * pad;
+    const tx = Math.round((containerW - 1184) / 2);
+    return {
+      width: 1184,
+      transform: `translateX(${tx}px) scale(${heroScale})`,
+      transformOrigin: 'top center',
+    };
+  }, [isMobileStack, heroScale, viewportWidth]);
 
   const container = useRef(null);
   const heroReachOutButtonRef = useRef(null);
@@ -1451,15 +1460,12 @@ const Home = () => {
             <div
               ref={heroLayoutRef}
               className="hero-primary-layout relative flex flex-col md:block md:px-12 w-full"
-              style={!isMobileStack && heroScale < 1 ? {
-                transform: `scale(${heroScale})`,
-                transformOrigin: 'top center',
-              } : undefined}
+              style={heroLayoutStyle}
             >
           
             {/* Text Content Box */}
             <div 
-              className="hero-text-col contents md:z-20 md:flex md:flex-col md:justify-start md:items-center md:absolute md:-left-[64px] lg:-left-[128px] xl:-left-[176px] md:top-1/2 md:-translate-y-1/2 md:w-[480px] lg:w-[604px] md:h-[318px] md:bg-white/[0.97] md:rounded-[22px] md:px-[42px] md:pt-[17px] md:pb-[47px]"
+              className="hero-text-col contents md:z-20 md:flex md:flex-col md:justify-start md:items-center md:absolute md:-left-[80px] md:top-1/2 md:-translate-y-1/2 md:w-[604px] md:h-[318px] md:bg-white/[0.97] md:rounded-[22px] md:px-[42px] md:pt-[17px] md:pb-[47px]"
             >
               <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-3 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80 mb-4">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full md:px-2 xl:px-2 md:py-1 xl:py-1 border border-slate-100/50">
@@ -1498,12 +1504,12 @@ const Home = () => {
                 </div>
               </div>
               <div className="contents md:flex md:flex-col md:flex-1 md:w-full text-left">
-                <h1 className="hero-intro-item order-1 md:order-none font-serif uppercase md:normal-case text-[44px] md:text-[54px] lg:text-[62px] text-[#18181B] leading-[1.02] tracking-normal mb-4 md:mb-5">
+                <h1 className="hero-intro-item order-1 md:order-none font-serif uppercase md:normal-case text-[44px] md:text-[54px] lg:text-[62px] text-[#18181B] leading-[1.15] md:leading-[1.02] tracking-normal mb-6 md:mb-5">
                   <div className="hero-text-line whitespace-nowrap">Unscripted Moments.</div>
                   <div className="hero-text-line whitespace-nowrap">Unforgettable Memories.</div>
                 </h1>
-                <div className="order-3 md:order-none w-full max-w-[386px] md:mx-auto md:flex md:flex-col md:flex-1">
-                  <p className="hero-intro-item hero-desc text-[#6B6B76] font-light text-[13px] leading-[1.5] md:leading-[1.5] mb-5 md:mb-5">
+                <div className="order-3 md:order-none w-full max-w-[386px] mx-auto md:flex md:flex-col md:flex-1">
+                  <p className="hero-intro-item hero-desc text-[#6B6B76] font-light text-[13px] leading-[1.5] md:leading-[1.5] mb-8 md:mb-5">
                     Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
                   </p>
                   <button
@@ -1520,9 +1526,9 @@ const Home = () => {
             </div>
           
             {/* Staggered Image Stack */}
-            <div className="hero-stack-col hero-intro-item w-full order-2 md:ml-auto md:mr-[-8px] lg:mr-[-24px] md:w-[600px] lg:w-[900px] flex items-center justify-end relative group md:py-16">
+            <div className="hero-stack-col hero-intro-item w-full order-2 md:ml-auto md:mr-[-24px] md:w-[900px] flex items-center justify-end relative group md:py-16">
               <div
-                className="hero-stack-wrapper relative w-full md:w-[600px] lg:w-[900px]"
+                className="hero-stack-wrapper relative w-full md:w-[900px]"
               ref={stackRef}
               style={{
                 aspectRatio: '637 / 426',
