@@ -39,17 +39,9 @@ const WEDDING_2_IMAGE_IDS = [
   '0007__DSC3049-topaz-denoise-denoise_DxO_vh2j4m',
   '0010__DSC3081-topaz-denoise-denoise_DxO_rzb2jn',
   '0009__DSC3078-topaz-denoise-denoise_DxO_jsffaf',
-  '0011__DSC3102-topaz-denoise-denoise_DxO_gisjew',
+  '0001__DSC0749-topaz-denoise-denoise_DxO_rv1pwc',
   '0008__DSC3059-topaz-denoise-denoise_DxO_mtpjqi',
   '0005__DSC2794-topaz-denoise-denoise_DxO_sltnnl',
-  '0004__DSC2449-topaz-denoise-denoise_DxO_eo1qcp',
-  '0002__DSC1411-topaz-denoise-denoise_DxO_lmkid4',
-  '0013__DSC3294-topaz-denoise-denoise_DxO_qtfe5a',
-  '0012__DSC3116-topaz-denoise-denoise_DxO_zgyczx',
-  '0015__DSC4440-topaz-denoise-denoise_DxO_diayrl',
-  '0003__DSC1682-topaz-denoise-denoise_DxO_dqeobu',
-  '0001__DSC0749-topaz-denoise-denoise_DxO_rv1pwc',
-  '0014__DSC3296-topaz-denoise-denoise_DxO_sot3ul',
   '0016__DSC4459-topaz-denoise-denoise_DxO_cjqihn',
 ];
 
@@ -65,6 +57,14 @@ const ASSORTED_IMAGE_IDS = [
   'AF1I7015_2_hp56wr',
   '3P4A3745_otnq3g',
   'center_city_ag1h8b',
+  '481666221_1153185816742175_5478825840378387253_n_ghztfm',
+  '481208611_1153185853408838_4828418083954240645_n_ibeopl',
+  '486975237_1174151831312240_7366045333287137682_n_q31v3y',
+  '467500758_18303674563206065_3791607323077205586_n_n9awon',
+  '467556740_18303681562206065_6578080749619128591_n_roaquw',
+  '481777607_4086871861532488_3131714259942236180_n_h5cbs9',
+  '482247755_4092919330927741_6702387078515023031_n_bvw40o',
+  '476573711_4064025533817121_6295416143369206442_n_ewzzea',
 ];
 
 const STACK_OFFSET_DESKTOP_X = 44;
@@ -1632,12 +1632,59 @@ const Home = () => {
         </div>
       </section>
 
+      {/* Assorted / Selected Work */}
+      <section
+        id="home-selected"
+        ref={selectedRef}
+        data-nav-dark
+        className="px-3 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100"
+      >
+        <div ref={selectedDividerRef} className="flex items-center gap-6 mb-10">
+          <div className="flex-1 h-px bg-slate-200" />
+          <h2 className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-light whitespace-nowrap">Selected Work</h2>
+          <div className="flex-1 h-px bg-slate-200" />
+        </div>
+
+        {renderSelected ? (
+          <div
+            ref={assortedGridRef}
+            className="home-gallery-grid group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start"
+          >
+            {assortedImages.map((img, i) => (
+              <div 
+                key={img.id} 
+                className={`home-gallery-card relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
+                onClick={(e) => openLightbox(assortedImages, i, e)}
+                onMouseEnter={handleCardEnter}
+                onMouseLeave={handleCardLeave}
+              >
+                <div
+                  data-gallery-card-inner="true"
+                  className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[4px] md:rounded-[8px] shadow-xl shadow-slate-200/50`}
+                >
+                  <ProgressiveCldImage
+                    publicId={img.publicId}
+                    cldImg={img.cldImg}
+                    alt={`Selected Work photo ${i + 1}`}
+                    loading="lazy"
+                    decoding="async"
+                    imgClassName="object-cover"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="h-[22vh] md:h-[28vh]" aria-hidden="true" />
+        )}
+      </section>
+
       {/* Featured Galleries / Recent Work */}
       <section
         id="home-featured"
         ref={featuredRef}
         data-nav-dark
-        className="px-3 md:px-12 max-w-7xl mx-auto py-12 border-t border-slate-100 min-h-[50vh]"
+        className="px-3 md:px-12 max-w-7xl mx-auto py-12 min-h-[50vh]"
       >
         <div className="flex justify-between items-end mb-8">
           {/* <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2> */}
@@ -1724,7 +1771,7 @@ const Home = () => {
             {/* Gallery 3 - Neeshay */}
             <div>
               <div ref={wedding3HeaderRef} className="mb-8 text-center">
-                <h3 className="text-xl md:text-2xl font-serif text-slate-900 mb-2 md:mb-3">Neeshay White</h3>
+                <h3 className="text-xl md:text-2xl font-serif text-slate-900 mb-2 md:mb-3">Neeshay and James</h3>
                 <p className="text-[10px] md:text-[11px] text-slate-400 font-serif uppercase tracking-widest whitespace-normal break-words max-w-full">
                   Ardmore, Pennsylvania
                 </p>
@@ -1761,53 +1808,6 @@ const Home = () => {
           </div>
         ) : (
           <div className="h-[40vh] md:h-[45vh]" aria-hidden="true" />
-        )}
-      </section>
-
-      {/* Assorted / Selected Work */}
-      <section
-        id="home-selected"
-        ref={selectedRef}
-        data-nav-dark
-        className="px-3 md:px-12 max-w-7xl mx-auto pt-4 pb-20"
-      >
-        <div ref={selectedDividerRef} className="flex items-center gap-6 mb-10">
-          <div className="flex-1 h-px bg-slate-200" />
-          <h2 className="text-[11px] uppercase tracking-[0.3em] text-slate-400 font-light whitespace-nowrap">Selected Work</h2>
-          <div className="flex-1 h-px bg-slate-200" />
-        </div>
-
-        {renderSelected ? (
-          <div
-            ref={assortedGridRef}
-            className="home-gallery-grid group/gallery grid grid-cols-2 md:grid-cols-12 gap-2 md:gap-8 items-start"
-          >
-            {assortedImages.map((img, i) => (
-              <div 
-                key={img.id} 
-                className={`home-gallery-card relative group cursor-pointer rounded-[4px] md:rounded-[8px] transition-[filter] duration-500 group-hover/gallery:brightness-[0.85] hover:!brightness-100 ${img.className}`} 
-                onClick={(e) => openLightbox(assortedImages, i, e)}
-                onMouseEnter={handleCardEnter}
-                onMouseLeave={handleCardLeave}
-              >
-                <div
-                  data-gallery-card-inner="true"
-                  className={`w-full bg-slate-50 ${img.aspectRatio} relative overflow-hidden rounded-[4px] md:rounded-[8px] shadow-xl shadow-slate-200/50`}
-                >
-                  <ProgressiveCldImage
-                    publicId={img.publicId}
-                    cldImg={img.cldImg}
-                    alt={`Selected Work photo ${i + 1}`}
-                    loading="lazy"
-                    decoding="async"
-                    imgClassName="object-cover"
-                  />
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <div className="h-[22vh] md:h-[28vh]" aria-hidden="true" />
         )}
 
         {/* Scroll hint (desktop only — mobile shows form inline) */}
