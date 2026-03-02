@@ -1465,7 +1465,7 @@ const Home = () => {
           
             {/* Text Content Box */}
             <div 
-              className="hero-text-col contents md:z-20 md:flex md:flex-col md:justify-start md:items-center md:absolute md:-left-[80px] md:top-1/2 md:-translate-y-1/2 md:w-[604px] md:h-[318px] md:bg-white/[0.97] md:rounded-[22px] md:px-[42px] md:pt-[17px] md:pb-[47px]"
+              className="hero-text-col contents md:z-20 md:flex md:flex-col md:justify-start md:items-center md:absolute md:-left-[130px] md:top-1/2 md:-translate-y-1/2 md:w-[604px] md:h-[318px] md:bg-white/[0.97] md:rounded-[22px] md:px-[42px] md:pt-[17px] md:pb-[47px]"
             >
               <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-3 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80 mb-4">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full md:px-2 xl:px-2 md:py-1 xl:py-1 border border-slate-100/50">
@@ -1526,7 +1526,7 @@ const Home = () => {
             </div>
           
             {/* Staggered Image Stack */}
-            <div className="hero-stack-col hero-intro-item w-full order-2 mb-2 md:mb-0 md:ml-auto md:mr-[-24px] md:w-[900px] flex items-center justify-end relative group md:py-16">
+            <div className="hero-stack-col hero-intro-item w-full order-2 mb-2 md:mb-0 md:ml-auto md:mr-[-72px] md:w-[900px] flex items-center justify-end relative group md:py-16">
               <div
                 className="hero-stack-wrapper relative w-full md:w-[900px]"
               ref={stackRef}

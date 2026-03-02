@@ -292,8 +292,8 @@ const Navbar = () => {
         {/* Desktop REACH OUT — centered, appears when hero button scrolls off */}
         <div
           data-nav-reach-out
-          className={`hidden md:flex items-stretch justify-center absolute inset-0 z-10 transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
-            showNavReachOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
+          className={`hidden md:flex items-stretch justify-center absolute inset-0 z-10 pointer-events-none transition-opacity duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] ${
+            showNavReachOut ? 'opacity-100' : 'opacity-0'
           }`}
         >
           <div className="flex items-center">
@@ -301,7 +301,7 @@ const Navbar = () => {
             <button
               type="button"
               onClick={() => window.dispatchEvent(new CustomEvent('starling:open-quote'))}
-              className="w-[179px] text-xs uppercase tracking-widest text-black transition-colors duration-300 cursor-pointer text-center"
+              className="w-[179px] text-xs uppercase tracking-widest text-black transition-colors duration-300 cursor-pointer text-center pointer-events-auto"
             >
               Reach Out
             </button>
