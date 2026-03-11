@@ -2446,36 +2446,70 @@ const Home = () => {
   useGSAP(() => {
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     const scopeEl = container.current;
+    const isRenderableIntroNode = (el) => {
+      if (!(el instanceof HTMLElement)) return false;
+      const { display } = window.getComputedStyle(el);
+      return display !== 'none' && display !== 'contents';
+    };
+    const introPanel =
+      gsap.utils
+        .toArray('.hero-intro-panel', scopeEl || undefined)
+        .find(isRenderableIntroNode) || null;
     const introItems = gsap.utils
       .toArray('.hero-intro-item', scopeEl || undefined)
-      .filter((el) => el instanceof HTMLElement)
-      .filter((el) => window.getComputedStyle(el).display !== 'none');
+      .filter(isRenderableIntroNode);
 
-    if (!introItems.length) {
+    if (!introPanel && !introItems.length) {
       setEntranceDone(true);
       return;
     }
 
     if (prefersReducedMotion) {
-      gsap.set(introItems, { opacity: 1, y: 0, clearProps: 'transform' });
+      if (introPanel) {
+        gsap.set(introPanel, { opacity: 1, y: 0, scale: 1, clearProps: 'transform,opacity' });
+      }
+      if (introItems.length) {
+        gsap.set(introItems, { opacity: 1, y: 0, clearProps: 'transform' });
+      }
       setEntranceDone(true);
       return;
     }
 
-    // Unified "fade up + in" intro for hero (no per-card fan-out).
-    gsap.fromTo(
-      introItems,
-      { opacity: 0, y: 20 },
-      {
-        opacity: 1,
-        y: 0,
-        duration: 0.7,
-        stagger: 0.08,
-        ease: 'power2.out',
-        clearProps: 'transform',
-        onComplete: () => setEntranceDone(true),
-      },
-    );
+    const introTimeline = gsap.timeline({
+      onComplete: () => setEntranceDone(true),
+    });
+
+    if (introPanel) {
+      introTimeline.fromTo(
+        introPanel,
+        { opacity: 0, y: 22, scale: 0.99 },
+        {
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          duration: 0.58,
+          ease: 'power2.out',
+          clearProps: 'transform,opacity',
+        },
+      );
+    }
+
+    if (introItems.length) {
+      // Keep the existing hero reveal, but let it chase the panel in slightly.
+      introTimeline.fromTo(
+        introItems,
+        { opacity: 0, y: 20 },
+        {
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          stagger: 0.08,
+          ease: 'power2.out',
+          clearProps: 'transform',
+        },
+        introPanel ? '-=0.52' : 0,
+      );
+    }
 
     const content = reviewsContentRef.current;
     const wrapper = reviewsSectionRef.current;
@@ -3042,8 +3076,9 @@ const Home = () => {
           
             {/* Text Content Box */}
             <div 
-              className="hero-text-col contents md:z-20 md:flex md:flex-col md:justify-start md:items-center md:absolute md:-left-[130px] md:top-1/2 md:-translate-y-1/2 md:w-[604px] md:h-[318px] md:bg-white/[0.97] md:rounded-[22px] md:px-[42px] md:pt-[17px] md:pb-[47px]"
+              className="hero-text-col contents md:z-20 md:block md:absolute md:-left-[130px] md:top-1/2 md:-translate-y-1/2 md:w-[604px] md:h-[318px]"
             >
+              <div className="hero-intro-panel contents md:flex md:flex-col md:justify-start md:items-center md:w-full md:h-full md:bg-white/[0.97] md:rounded-[22px] md:px-[42px] md:pt-[17px] md:pb-[47px]">
               <div className="hero-eyebrow hero-intro-item hidden md:flex w-fit items-center justify-center md:gap-2 xl:gap-3 pl-1.5 md:pr-3 xl:pr-4 md:py-1 xl:py-1.5 rounded-full bg-white border border-slate-200/80 mb-4">
                 <div className="flex items-center bg-[#F8F9FA] rounded-full md:px-2 xl:px-2 md:py-1 xl:py-1 border border-slate-100/50">
                   <div className="flex items-center md:gap-1.5 xl:gap-2">
@@ -3099,6 +3134,7 @@ const Home = () => {
                     <ArrowRight size={13} strokeWidth={1.5} className="group-hover:translate-x-1 transition-transform duration-300" />
                   </button>
                 </div>
+              </div>
               </div>
             </div>
           
