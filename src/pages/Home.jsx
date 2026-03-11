@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, X } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { AdvancedImage } from '@cloudinary/react';
 import { cld } from '../utils/cloudinary';
 import { limitFit } from '@cloudinary/url-gen/actions/resize';
@@ -323,10 +323,12 @@ const ProgressiveCldImage = ({
     [publicId, placeholderWidth]
   );
 
-  useEffect(() => {
+  const [prevPublicId, setPrevPublicId] = useState(publicId);
+  if (prevPublicId !== publicId) {
+    setPrevPublicId(publicId);
     setHiLoaded(loadedGalleryImageIds.has(publicId));
     setHiError(false);
-  }, [publicId]);
+  }
 
   const handleHiLoad = useCallback((e) => {
     const el = e.currentTarget;
@@ -602,7 +604,7 @@ const Home = () => {
   const expandedGalleryIsClosingRef = useRef(false);
   const expandedGalleryWasVisibleRef = useRef(false);
   const expandedGalleryWasOpenRef = useRef(false);
-  const [expandedGalleryPinSize, setExpandedGalleryPinSize] = useState(null);
+  const [_expandedGalleryPinSize, setExpandedGalleryPinSize] = useState(null);
   const [expandedGalleryPerimeterProgress, setExpandedGalleryPerimeterProgress] = useState(0);
   const [expandedGalleryPinnedRowOffset, setExpandedGalleryPinnedRowOffset] = useState(0);
   const expandedGalleryRowMetricsRef = useRef({
@@ -615,6 +617,9 @@ const Home = () => {
     current: 0,
     animId: 0,
   });
+  const [mobileLightbox, setMobileLightbox] = useState(null);
+  const mobileLightboxTouchStartRef = useRef(null);
+  const mobileLightboxImage = mobileLightbox?.images?.[mobileLightbox.index] ?? null;
 
   useEffect(() => {
     expandedGalleryRowMetricsRef.current = {
@@ -858,28 +863,6 @@ const Home = () => {
     [expandedLandingGridRowCount]
   );
 
-  const expandedGalleryOverlaySize = useMemo(() => {
-    if (
-      expandedGalleryImageKey &&
-      isDesktopGallery &&
-      expandedGalleryPinSize?.width &&
-      expandedGalleryPinSize?.height
-    ) {
-      return expandedGalleryPinSize;
-    }
-
-    const fallbackWidth = Math.min(viewportWidth * 0.75, 960);
-    return {
-      width: fallbackWidth,
-      height: fallbackWidth * 0.75,
-    };
-  }, [
-    expandedGalleryImageKey,
-    expandedGalleryPinSize,
-    isDesktopGallery,
-    viewportWidth,
-  ]);
-
   const expandedGalleryStickyTop = useMemo(() => {
     if (!isDesktopGallery) return 112;
     return Math.round(clampNumber(112, viewportHeight * 0.14, 168));
@@ -888,10 +871,6 @@ const Home = () => {
     viewportHeight,
   ]);
   const useExpandedLandingPerimeter = hasExpandedGalleryImage && isDesktopGallery;
-  const expandedGalleryPerimeterImagesPerTrack = useMemo(
-    () => Math.ceil(expandedLandingPerimeterImages.length / 3),
-    [expandedLandingPerimeterImages.length]
-  );
   const expandedGalleryPerimeterMaxProgress = useMemo(
     () => {
       const total = expandedLandingPerimeterImages.length;
@@ -1259,6 +1238,39 @@ const Home = () => {
     removeOpeningClone,
   ]);
 
+  const closeMobileLightbox = useCallback(() => {
+    mobileLightboxTouchStartRef.current = null;
+    setMobileLightbox(null);
+  }, []);
+
+  const navigateMobileLightbox = useCallback((direction) => {
+    setMobileLightbox((prev) => {
+      if (!prev || prev.images.length < 2) return prev;
+
+      const nextIndex =
+        (prev.index + direction + prev.images.length) % prev.images.length;
+      return { ...prev, index: nextIndex };
+    });
+  }, []);
+
+  const openMobileLightbox = useCallback((images, index, e) => {
+    if (!Array.isArray(images) || !images.length) return;
+
+    const outer = e.currentTarget;
+    const inner =
+      outer?.querySelector?.('[data-gallery-card-inner="true"]') ?? outer;
+
+    outer.style.zIndex = '';
+    gsap.killTweensOf(inner);
+    gsap.set(inner, { scale: 1 });
+
+    mobileLightboxTouchStartRef.current = null;
+    setMobileLightbox({
+      images,
+      index: clampValue(0, index, images.length - 1),
+    });
+  }, []);
+
   const handleGalleryImageClick = useCallback((galleryKey, imageId, e) => {
     if (expandedGalleryIsClosingRef.current) return;
 
@@ -1322,6 +1334,51 @@ const Home = () => {
     isDesktopGallery,
     removeOpeningClone,
   ]);
+
+  const handleGalleryCardActivate = useCallback((
+    images,
+    galleryKey,
+    imageId,
+    index,
+    e
+  ) => {
+    if (isDesktopGallery) {
+      handleGalleryImageClick(galleryKey, imageId, e);
+      return;
+    }
+
+    openMobileLightbox(images, index, e);
+  }, [handleGalleryImageClick, isDesktopGallery, openMobileLightbox]);
+
+  const handleMobileLightboxTouchStart = useCallback((e) => {
+    if (!mobileLightbox || mobileLightbox.images.length < 2) return;
+
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    mobileLightboxTouchStartRef.current = {
+      x: touch.clientX,
+      y: touch.clientY,
+    };
+  }, [mobileLightbox]);
+
+  const handleMobileLightboxTouchEnd = useCallback((e) => {
+    if (!mobileLightbox || mobileLightbox.images.length < 2) return;
+
+    const start = mobileLightboxTouchStartRef.current;
+    mobileLightboxTouchStartRef.current = null;
+    if (!start) return;
+
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+
+    const deltaX = touch.clientX - start.x;
+    const deltaY = touch.clientY - start.y;
+
+    if (Math.abs(deltaX) < 50 || Math.abs(deltaY) > Math.abs(deltaX)) return;
+
+    navigateMobileLightbox(deltaX < 0 ? 1 : -1);
+  }, [mobileLightbox, navigateMobileLightbox]);
 
   const handleCardEnter = useCallback((e) => {
     const outer = e.currentTarget;
@@ -1448,6 +1505,104 @@ const Home = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [closeExpandedGalleryImage, expandedGalleryImageKey]);
+
+  useEffect(() => {
+    if (isDesktopGallery || !expandedGalleryImageKey) return undefined;
+
+    const id = requestAnimationFrame(() => closeExpandedGalleryImage());
+    return () => cancelAnimationFrame(id);
+  }, [closeExpandedGalleryImage, expandedGalleryImageKey, isDesktopGallery]);
+
+  useEffect(() => {
+    if (!isDesktopGallery || !mobileLightbox) return undefined;
+
+    const id = requestAnimationFrame(() => closeMobileLightbox());
+    return () => cancelAnimationFrame(id);
+  }, [closeMobileLightbox, isDesktopGallery, mobileLightbox]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+
+    const docEl = document.documentElement;
+
+    if (mobileLightbox) {
+      docEl.setAttribute('data-lightbox-open', '');
+    } else {
+      docEl.removeAttribute('data-lightbox-open');
+    }
+
+    return () => {
+      docEl.removeAttribute('data-lightbox-open');
+    };
+  }, [mobileLightbox]);
+
+  useEffect(() => {
+    if (!mobileLightbox) return undefined;
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeMobileLightbox();
+        return;
+      }
+
+      if (mobileLightbox.images.length < 2) return;
+
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        navigateMobileLightbox(1);
+      }
+
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        navigateMobileLightbox(-1);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [closeMobileLightbox, mobileLightbox, navigateMobileLightbox]);
+
+  useEffect(() => {
+    if (!mobileLightbox) return undefined;
+
+    const docEl = document.documentElement;
+    const body = document.body;
+    const savedScrollY = window.scrollY;
+    const scrollBarGap = window.innerWidth - docEl.clientWidth;
+
+    const prevDocOverflow = docEl.style.overflow;
+    const prevDocOverscrollBehavior = docEl.style.overscrollBehavior;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPosition = body.style.position;
+    const prevBodyTop = body.style.top;
+    const prevBodyWidth = body.style.width;
+    const prevBodyPaddingRight = body.style.paddingRight;
+    const prevBodyOverscrollBehavior = body.style.overscrollBehavior;
+
+    docEl.style.overflow = 'hidden';
+    docEl.style.overscrollBehavior = 'none';
+    body.style.overflow = 'hidden';
+    body.style.position = 'fixed';
+    body.style.top = `-${savedScrollY}px`;
+    body.style.width = '100%';
+    body.style.overscrollBehavior = 'none';
+    if (scrollBarGap > 0) {
+      body.style.paddingRight = `${scrollBarGap}px`;
+    }
+
+    return () => {
+      docEl.style.overflow = prevDocOverflow;
+      docEl.style.overscrollBehavior = prevDocOverscrollBehavior;
+      body.style.overflow = prevBodyOverflow;
+      body.style.position = prevBodyPosition;
+      body.style.top = prevBodyTop;
+      body.style.width = prevBodyWidth;
+      body.style.paddingRight = prevBodyPaddingRight;
+      body.style.overscrollBehavior = prevBodyOverscrollBehavior;
+      window.scrollTo(0, savedScrollY);
+    };
+  }, [mobileLightbox]);
 
   useEffect(() => {
     if (!expandedGalleryImageKey || !isDesktopGallery) return undefined;
@@ -1999,7 +2154,7 @@ const Home = () => {
     return () => {
       if (rafId) window.cancelAnimationFrame(rafId);
     };
-  }, [expandedGalleryImageKey]);
+  }, [expandedGalleryImageKey, selectedRef]);
 
   useEffect(() => () => {
     const clone = expandedGalleryClosingCloneRef.current;
@@ -2466,7 +2621,7 @@ const Home = () => {
     altLabel,
     allowExpandedLayout = true
   ) => {
-    const galleryHasExpandedImage = allowExpandedLayout && (
+    const galleryHasExpandedImage = isDesktopGallery && allowExpandedLayout && (
       galleryKey
       ? expandedGalleryImage?.galleryKey === galleryKey
       : hasExpandedGalleryImage
@@ -2633,19 +2788,34 @@ const Home = () => {
               data-gallery-featured={isExpanded ? 'true' : 'false'}
               role="button"
               tabIndex={0}
-              aria-expanded={isExpanded}
-              aria-label={`${isExpanded ? 'Collapse' : 'Expand'} ${imageAltLabel} photo ${i + 1}`}
+              aria-expanded={isDesktopGallery ? isExpanded : undefined}
+              aria-haspopup={isDesktopGallery ? undefined : 'dialog'}
+              aria-label={`${isDesktopGallery
+                ? (isExpanded ? 'Collapse' : 'Expand')
+                : 'Open'} ${imageAltLabel} photo ${i + 1}`}
               className={`home-gallery-card relative block w-full rounded-[4px] md:rounded-[8px] border-0 bg-transparent p-0 text-left transition-[filter,box-shadow] duration-500 focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 ${
                 galleryHasExpandedImage
                   ? ''
                   : 'group-hover/gallery:brightness-[0.85] hover:!brightness-100'
               } ${isExpanded ? 'z-20 cursor-pointer' : 'cursor-pointer'} ${img.className}`}
               style={cardStyle}
-              onClick={(e) => handleGalleryImageClick(imageGalleryKey, img.id, e)}
+              onClick={(e) => handleGalleryCardActivate(
+                images,
+                imageGalleryKey,
+                img.id,
+                i,
+                e
+              )}
               onKeyDown={(e) => {
                 if (e.key !== 'Enter' && e.key !== ' ') return;
                 e.preventDefault();
-                handleGalleryImageClick(imageGalleryKey, img.id, e);
+                handleGalleryCardActivate(
+                  images,
+                  imageGalleryKey,
+                  img.id,
+                  i,
+                  e
+                );
               }}
               onMouseEnter={handleCardEnter}
               onMouseLeave={handleCardLeave}
@@ -2967,7 +3137,7 @@ const Home = () => {
         ref={selectedRef}
         data-nav-dark
         className={`px-3 md:px-12 max-w-7xl mx-auto py-12 ${
-          hasExpandedGalleryImage ? '' : 'border-t border-slate-100'
+          hasExpandedGalleryImage && isDesktopGallery ? '' : 'border-t border-slate-100'
         }`}
         style={
           hasExpandedGalleryImage && isDesktopGallery
@@ -2975,26 +3145,9 @@ const Home = () => {
             : undefined
         }
       >
-        {hasExpandedGalleryImage ? (
+        {hasExpandedGalleryImage && isDesktopGallery ? (
           allLandingGalleryImages.length ? (
-            isDesktopGallery
-              ? renderExpandedLandingPerimeter()
-              : (
-                <div
-                  ref={expandedGalleryStageRef}
-                  className="relative"
-                  style={{
-                    scrollMarginTop: `${Math.max(112, expandedGalleryStickyTop)}px`,
-                  }}
-                >
-                  {renderHomeGalleryGrid(
-                    allLandingGalleryImages,
-                    null,
-                    null,
-                    'Landing Page'
-                  )}
-                </div>
-              )
+            renderExpandedLandingPerimeter()
           ) : (
             <div className="h-[40vh] md:h-[45vh]" aria-hidden="true" />
           )
@@ -3273,6 +3426,121 @@ const Home = () => {
                 )}
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {mobileLightbox && mobileLightboxImage && (
+        <div
+          className="fixed inset-0 z-50"
+          data-starling-mobile-lightbox
+          role="dialog"
+          aria-modal="true"
+          aria-label="Gallery lightbox"
+        >
+          <div
+            className={`absolute inset-0 ${
+              isMobileLandscape
+                ? 'bg-black'
+                : 'bg-black/40 backdrop-blur-sm'
+            }`}
+            onClick={closeMobileLightbox}
+          />
+
+          <div className="pointer-events-none absolute inset-0 z-20">
+            {isMobileLandscape && (
+              <button
+                type="button"
+                onClick={closeMobileLightbox}
+                className="pointer-events-auto absolute z-20 w-12 h-12 p-0 flex items-center justify-center bg-transparent text-white hover:text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]"
+                style={{
+                  top: 'calc(env(safe-area-inset-top) + 12px)',
+                  right: 'calc(env(safe-area-inset-right) + 12px)',
+                }}
+                aria-label="Close"
+              >
+                <X size={28} strokeWidth={1.75} />
+              </button>
+            )}
+
+            {mobileLightbox.images.length > 1 && isMobileLandscape && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => navigateMobileLightbox(-1)}
+                  className="pointer-events-auto absolute left-3 top-1/2 z-20 -translate-y-1/2 p-3 text-white transition-colors duration-300 hover:text-white"
+                  aria-label="Previous image"
+                >
+                  <ChevronLeft size={24} strokeWidth={0.8} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => navigateMobileLightbox(1)}
+                  className="pointer-events-auto absolute right-3 top-1/2 z-20 -translate-y-1/2 p-3 text-white transition-colors duration-300 hover:text-white"
+                  aria-label="Next image"
+                >
+                  <ChevronRight size={24} strokeWidth={0.8} />
+                </button>
+              </>
+            )}
+
+            <div
+              className={`absolute bottom-6 left-1/2 z-20 -translate-x-1/2 text-[10px] tracking-[0.3em] font-light tabular-nums ${
+                isMobileLandscape ? 'text-white/60' : 'text-slate-400'
+              }`}
+            >
+              {mobileLightbox.index + 1} - {mobileLightbox.images.length}
+            </div>
+          </div>
+
+          <div
+            className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none ${
+              isMobileLandscape ? 'p-0' : 'px-4'
+            }`}
+          >
+            <div
+              className={`pointer-events-auto relative overflow-hidden ${
+                isMobileLandscape
+                  ? 'w-full h-full shadow-none'
+                  : 'shadow-2xl shadow-slate-900/10'
+              }`}
+              onTouchStart={handleMobileLightboxTouchStart}
+              onTouchEnd={handleMobileLightboxTouchEnd}
+            >
+              {!isMobileLandscape && (
+                <button
+                  type="button"
+                  onClick={closeMobileLightbox}
+                  className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all"
+                  aria-label={`Close ${(mobileLightboxImage.altLabel ?? 'gallery image').toLowerCase()}`}
+                >
+                  <svg
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" />
+                  </svg>
+                </button>
+              )}
+
+              <div
+                className={isMobileLandscape ? 'w-full h-full' : undefined}
+                style={{ transformOrigin: 'center' }}
+              >
+                <AdvancedImage
+                  cldImg={mobileLightboxImage.cldImg}
+                  className={
+                    isMobileLandscape
+                      ? 'block w-full h-full max-w-none max-h-none object-contain'
+                      : 'block max-w-[92vw] max-h-[80vh] object-contain'
+                  }
+                  alt={`${mobileLightboxImage.altLabel ?? 'Gallery'} photo ${mobileLightbox.index + 1} of ${mobileLightbox.images.length}`}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}

@@ -60,6 +60,23 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   const reviewsRef = useRef(null);
   const timelineRef = useRef(null);
 
+  const syncFormCardInteractivity = useCallback((
+    interactive,
+    visible = interactive,
+  ) => {
+    const card = formCardRef.current;
+    if (!card) return;
+
+    card.style.pointerEvents = interactive ? 'auto' : 'none';
+    card.style.visibility = visible ? 'visible' : 'hidden';
+
+    if (interactive) {
+      card.removeAttribute('inert');
+    } else {
+      card.setAttribute('inert', '');
+    }
+  }, []);
+
   const railEngineRef = useRef({
     textBag: [],
     starsBag: [],
@@ -89,10 +106,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
           r.current.style.transform = 'none';
         }
       });
-      if (formCardRef.current) {
-        formCardRef.current.style.pointerEvents = 'auto';
-        formCardRef.current.style.visibility = 'visible';
-      }
+      syncFormCardInteractivity(true, true);
       formFieldRefs.current.forEach((el) => {
         if (el) {
           el.style.opacity = '1';
@@ -108,8 +122,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
     const fields = formFieldRefs.current.filter(Boolean);
 
     if (formCardRef.current) {
-      formCardRef.current.style.pointerEvents = 'none';
-      formCardRef.current.style.visibility = 'hidden';
+      syncFormCardInteractivity(false, false);
     }
 
     const tl = createTimeline({
@@ -154,7 +167,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
       timelineRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sectionRef is a stable ref
-  }, [isMobile]);
+  }, [isMobile, syncFormCardInteractivity]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -179,8 +192,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
             window.getComputedStyle(card).opacity ?? '0',
           );
           const isVisible = opacity > 0.2;
-          card.style.pointerEvents = isVisible ? 'auto' : 'none';
-          card.style.visibility = isVisible ? 'visible' : 'hidden';
+          syncFormCardInteractivity(isVisible && inZone, isVisible);
         }
 
         ticking = false;
@@ -192,9 +204,10 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
     return () => {
       window.removeEventListener('scroll', onScrollCheck);
       setActiveOverride(null);
+      syncFormCardInteractivity(false, false);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sectionRef is a stable ref
-  }, [setActiveOverride, isMobile]);
+  }, [setActiveOverride, isMobile, syncFormCardInteractivity]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
