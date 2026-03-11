@@ -1846,9 +1846,11 @@ const Home = () => {
       scrollRafId = 0;
 
       const rect = stageNode.getBoundingClientRect();
+      const progressStartTop =
+        expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
       const traveled = clampNumber(
         0,
-        expandedGalleryStickyTop - rect.top,
+        progressStartTop - rect.top,
         expandedGalleryPerimeterTravel
       );
       const rawProgress =
@@ -1897,6 +1899,7 @@ const Home = () => {
     expandedGalleryImageKey,
     expandedGalleryPerimeterMaxProgress,
     expandedGalleryPerimeterTravel,
+    expandedGalleryPerimeterVerticalShift,
     expandedGalleryStickyTop,
     isDesktopGallery,
     useExpandedLandingPerimeter,
