@@ -421,21 +421,32 @@ const useReveal = (shouldAnimate) => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
 
     const ctx = gsap.context(() => {
+      const reveal = () => {
+        gsap.to(node, {
+          opacity: 1,
+          y: 0,
+          duration: 0.7,
+          ease: 'power2.out',
+          clearProps: 'opacity,transform',
+        });
+      };
+
       gsap.set(node, { opacity: 0, y: 20 });
+
+      // If the section is already in view (common after layout shifts),
+      // don't leave it stuck at opacity:0 waiting for a scroll event.
+      const threshold = window.innerHeight * 0.93;
+      const rect = node.getBoundingClientRect();
+      if (rect.top < threshold && rect.bottom > 0) {
+        reveal();
+        return;
+      }
 
       ScrollTrigger.create({
         trigger: node,
         start: 'top 93%',
         once: true,
-        onEnter: () => {
-          gsap.to(node, {
-            opacity: 1,
-            y: 0,
-            duration: 0.7,
-            ease: 'power2.out',
-            clearProps: 'transform',
-          });
-        },
+        onEnter: reveal,
       });
     });
 
@@ -458,22 +469,35 @@ const useStaggerReveal = (shouldAnimate) => {
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) return;
 
     const ctx = gsap.context(() => {
+      const reveal = (batch) => {
+        gsap.to(batch, {
+          opacity: 1,
+          y: 0,
+          duration: 0.8,
+          stagger: 0.1,
+          ease: 'power2.out',
+          overwrite: true,
+          clearProps: 'opacity,transform',
+        });
+      };
+
       gsap.set(items, { opacity: 0, y: 30 });
 
       ScrollTrigger.batch(items, {
         start: 'top 93%',
-        onEnter: (batch) => {
-          gsap.to(batch, {
-            opacity: 1,
-            y: 0,
-            duration: 0.8,
-            stagger: 0.1,
-            ease: 'power2.out',
-            overwrite: true,
-            clearProps: 'transform',
-          });
-        },
+        onEnter: reveal,
+        onEnterBack: reveal,
       });
+
+      // If the grid is already on-screen (e.g. after a big layout change),
+      // ensure the cards aren't stuck hidden awaiting a scroll-trigger tick.
+      const threshold = window.innerHeight * 0.93;
+      const inView = items.filter((el) => {
+        if (!(el instanceof HTMLElement)) return false;
+        const rect = el.getBoundingClientRect();
+        return rect.top < threshold && rect.bottom > 0;
+      });
+      if (inView.length) reveal(inView);
     });
 
     return () => ctx.revert();
@@ -633,6 +657,61 @@ const Home = () => {
     snap.current = 0;
     snap.animId = 0;
   }, [expandedGalleryImageKey]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    if (!isDesktopGallery) return undefined;
+
+    // The expanded-gallery open/close causes large layout shifts (sticky stages,
+    // dynamic heights). Refresh ScrollTrigger so staggered galleries don't end
+    // up stuck at opacity:0 after a jump.
+    let raf1 = 0;
+    let raf2 = 0;
+    let timeoutId = 0;
+
+    const repairVisibleGalleryCards = () => {
+      ScrollTrigger.refresh();
+      ScrollTrigger.update();
+
+      const threshold = window.innerHeight * 0.93;
+      const nodes = Array.from(
+        document.querySelectorAll(
+          '#home-featured .home-gallery-card, #home-selected .home-gallery-card'
+        )
+      ).filter((node) => node instanceof HTMLElement);
+
+      const stuckVisible = nodes.filter((node) => {
+        const rect = node.getBoundingClientRect();
+        if (rect.bottom <= 0 || rect.top >= threshold) return false;
+        const opacity = Number.parseFloat(window.getComputedStyle(node).opacity ?? '1');
+        return Number.isFinite(opacity) && opacity < 0.12;
+      });
+
+      if (!stuckVisible.length) return;
+
+      gsap.killTweensOf(stuckVisible);
+      gsap.to(stuckVisible, {
+        opacity: 1,
+        y: 0,
+        duration: 0.35,
+        stagger: 0.03,
+        ease: 'power2.out',
+        overwrite: true,
+        clearProps: 'opacity,transform',
+      });
+    };
+
+    raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(repairVisibleGalleryCards);
+    });
+    timeoutId = window.setTimeout(repairVisibleGalleryCards, 220);
+
+    return () => {
+      if (raf1) window.cancelAnimationFrame(raf1);
+      if (raf2) window.cancelAnimationFrame(raf2);
+      if (timeoutId) window.clearTimeout(timeoutId);
+    };
+  }, [expandedGalleryImageKey, isDesktopGallery]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return undefined;
