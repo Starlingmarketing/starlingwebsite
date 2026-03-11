@@ -3,7 +3,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { AdvancedImage } from '@cloudinary/react';
 import { cld } from '../utils/cloudinary';
 import { limitFit } from '@cloudinary/url-gen/actions/resize';
-import { useRef, useState, useEffect, useCallback, useMemo } from 'react';
+import { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -85,7 +85,7 @@ const EXPANDED_GALLERY_FLOW_MAX_Y = 14;
 const EXPANDED_GALLERY_FLOW_DEAD_ZONE = 0.34;
 const EXPANDED_GALLERY_SOFT_CLOSE_DURATION = 0.82;
 const EXPANDED_GALLERY_SOFT_REVEAL_DURATION = 0.82;
-const EXPANDED_GALLERY_PREMIUM_OPEN_DURATION = 0.18;
+const EXPANDED_GALLERY_PREMIUM_OPEN_DURATION = 0.56;
 const buildExpandedGalleryDesktopRows = (images) => {
   const rows = [];
 
@@ -1379,12 +1379,10 @@ const Home = () => {
     }
 
     removeOpeningClone();
-    const isFeaturedGalleryClick = featuredRef.current?.contains(outer) ?? false;
     const shouldUsePremiumOpen =
       !hasExpandedGalleryImage &&
       isDesktopGallery &&
-      !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches &&
-      !isFeaturedGalleryClick;
+      !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
 
     const openingClone = shouldUsePremiumOpen
       ? createOpeningCloneLayer()
@@ -1408,7 +1406,6 @@ const Home = () => {
     closeExpandedGalleryImage,
     createOpeningCloneLayer,
     expandedGalleryImageKey,
-    featuredRef,
     hasExpandedGalleryImage,
     isDesktopGallery,
     removeOpeningClone,
@@ -2251,7 +2248,7 @@ const Home = () => {
     removeOpeningClone();
   }, [removeOpeningClone]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!expandedGalleryImageKey) return undefined;
 
     const stageNode = expandedGalleryStageRef.current;
@@ -2277,15 +2274,61 @@ const Home = () => {
       return undefined;
     }
 
-    // Keep the opened stage fully visible and only dissolve the snapshot overlay.
-    gsap.set(motionNode, { opacity: 1, clearProps: 'opacity' });
+    if (isDesktopGallery) {
+      const expandedCard =
+        expandedGalleryFixedCardRef.current ??
+        document.querySelector(
+          `[data-gallery-card-key="${expandedGalleryImageKey}"]`
+        );
+
+      if (expandedCard instanceof HTMLElement) {
+        const rect = expandedCard.getBoundingClientRect();
+        const centeredTop = (window.innerHeight - rect.height) / 2;
+        const nextScrollTop = Math.max(
+          0,
+          window.scrollY + rect.top - centeredTop
+        );
+
+        if (Math.abs(nextScrollTop - window.scrollY) > 1) {
+          window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+        }
+      } else {
+        const stageContentNode =
+          stageNode.querySelector('[data-gallery-stage-content="true"]') ?? stageNode;
+
+        if (stageContentNode instanceof HTMLElement) {
+          const rect = stageContentNode.getBoundingClientRect();
+          const nextScrollTop = Math.max(
+            0,
+            window.scrollY + rect.top - expandedGalleryStickyTop
+          );
+
+          if (Math.abs(nextScrollTop - window.scrollY) > 1) {
+            window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+          }
+        }
+      }
+    }
+
+    // Crossfade the expanded stage in while the captured landing layout dissolves away.
+    gsap.fromTo(
+      motionNode,
+      { opacity: 0 },
+      {
+        opacity: 1,
+        duration: EXPANDED_GALLERY_PREMIUM_OPEN_DURATION,
+        ease: 'power1.out',
+        overwrite: 'auto',
+        clearProps: 'opacity',
+      }
+    );
 
     if (openingClone instanceof HTMLElement) {
       gsap.killTweensOf(openingClone);
       gsap.to(openingClone, {
         opacity: 0,
         duration: EXPANDED_GALLERY_PREMIUM_OPEN_DURATION,
-        ease: 'power2.out',
+        ease: 'power1.out',
         overwrite: 'auto',
         onComplete: () => {
           if (expandedGalleryOpeningCloneRef.current === openingClone) {
@@ -2302,7 +2345,12 @@ const Home = () => {
         gsap.killTweensOf(openingClone);
       }
     };
-  }, [expandedGalleryImageKey, removeOpeningClone]);
+  }, [
+    expandedGalleryImageKey,
+    expandedGalleryStickyTop,
+    isDesktopGallery,
+    removeOpeningClone,
+  ]);
 
   useEffect(() => {
     if (!expandedGalleryImageKey || !isDesktopGallery) return undefined;
