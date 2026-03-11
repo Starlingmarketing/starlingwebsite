@@ -2443,96 +2443,36 @@ const Home = () => {
   useGSAP(() => {
     const prefersReducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
     const scopeEl = container.current;
-    const filterVisibleElements = (elements, allowContents = false) => elements
+    const introItems = gsap.utils
+      .toArray('.hero-intro-item', scopeEl || undefined)
       .filter((el) => el instanceof HTMLElement)
-      .filter((el) => {
-        const display = window.getComputedStyle(el).display;
-        return display !== 'none' && (allowContents || display !== 'contents');
-      });
+      .filter((el) => window.getComputedStyle(el).display !== 'none');
 
-    const heroPanel = filterVisibleElements(
-      [scopeEl?.querySelector('.hero-text-col')]
-    )[0];
-    const leadIntroItems = filterVisibleElements(
-      gsap.utils.toArray('.hero-mobile-eyebrow-row, .hero-stack-col', scopeEl || undefined),
-      true
-    );
-    const heroTextItems = filterVisibleElements(
-      gsap.utils.toArray(
-        '.hero-text-col .hero-eyebrow, .hero-text-col .hero-text-line, .hero-text-col .hero-desc, .hero-text-col .hero-link',
-        scopeEl || undefined
-      ),
-      true
-    );
-    const introTargets = [
-      ...(heroPanel ? [heroPanel] : []),
-      ...leadIntroItems,
-      ...heroTextItems,
-    ];
-
-    if (!introTargets.length) {
+    if (!introItems.length) {
       setEntranceDone(true);
       return;
     }
 
     if (prefersReducedMotion) {
-      gsap.set(introTargets, {
-        opacity: 1,
-        y: 0,
-        scale: 1,
-        clearProps: 'opacity,transform',
-      });
+      gsap.set(introItems, { opacity: 1, y: 0, clearProps: 'transform' });
       setEntranceDone(true);
       return;
     }
 
-    const introTimeline = gsap.timeline({
-      onComplete: () => setEntranceDone(true),
-    });
-    let hasIntroTween = false;
-
-    if (heroPanel) {
-      hasIntroTween = true;
-      gsap.set(heroPanel, { opacity: 0, y: 36, scale: 0.985 });
-      introTimeline.to(heroPanel, {
+    // Unified "fade up + in" intro for hero (no per-card fan-out).
+    gsap.fromTo(
+      introItems,
+      { opacity: 0, y: 20 },
+      {
         opacity: 1,
         y: 0,
-        scale: 1,
-        duration: 0.95,
-        ease: 'power3.out',
-        clearProps: 'opacity,transform',
-      }, 0);
-    }
-
-    if (leadIntroItems.length) {
-      hasIntroTween = true;
-      gsap.set(leadIntroItems, { opacity: 0, y: 24 });
-      introTimeline.to(leadIntroItems, {
-        opacity: 1,
-        y: 0,
-        duration: 0.82,
-        stagger: 0.12,
+        duration: 0.7,
+        stagger: 0.08,
         ease: 'power2.out',
-        clearProps: 'opacity,transform',
-      }, heroPanel ? 0.16 : 0);
-    }
-
-    if (heroTextItems.length) {
-      hasIntroTween = true;
-      gsap.set(heroTextItems, { opacity: 0, y: 18 });
-      introTimeline.to(heroTextItems, {
-        opacity: 1,
-        y: 0,
-        duration: 0.72,
-        stagger: 0.1,
-        ease: 'power2.out',
-        clearProps: 'opacity,transform',
-      }, heroPanel ? 0.34 : 0.12);
-    }
-
-    if (!hasIntroTween) {
-      setEntranceDone(true);
-    }
+        clearProps: 'transform',
+        onComplete: () => setEntranceDone(true),
+      },
+    );
 
     const content = reviewsContentRef.current;
     const wrapper = reviewsSectionRef.current;
