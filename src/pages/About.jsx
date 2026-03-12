@@ -245,6 +245,7 @@ const About = () => {
             <AdvancedImage
               cldImg={aboutImage}
               className="absolute inset-0 w-full h-full object-cover"
+              alt="Portrait of the Starling team photographed for the About page"
             />
             
             {/* Decorative Element */}
@@ -267,8 +268,14 @@ const About = () => {
             </p>
             <p>
               At Starling, versatility is our greatest strength. With over a decade of experience across photography,
-              videography, advertising, and marketing, we understand exactly how to adapt our medium to fit your
-              specific needs. We aren't bound by a single, rigid style or a specific location. Based in Philadelphia
+              videography, advertising, and marketing, we understand exactly how to adapt our medium to fit your{' '}
+              <Link
+                to="/booking"
+                className="text-current transition-colors duration-300 hover:text-slate-900"
+              >
+                specific needs
+              </Link>
+              . We aren't bound by a single, rigid style or a specific location. Based in Philadelphia
               but available worldwide, we go wherever the story takes us.
             </p>
             <p>

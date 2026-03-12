@@ -3,10 +3,12 @@ import { ReactLenis, useLenis } from 'lenis/react';
 import { useEffect, Suspense, lazy, useState, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import { NavOverrideContext } from './contexts/NavContext';
+import SeoRouteHead from './seo/SeoRouteHead';
 
 const Home = lazy(() => import('./pages/Home'));
 const About = lazy(() => import('./pages/About'));
 const Booking = lazy(() => import('./pages/Booking'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -133,6 +135,7 @@ function App() {
     <NavOverrideContext.Provider value={{ activeOverride, setActiveOverride, triggerGalleryTransition }}>
       <ReactLenis root options={{ lerp: 0.16, smoothWheel: true }}>
         <Router>
+          <SeoRouteHead />
           <ScrollToTop />
           <div className="min-h-screen bg-white flex flex-col">
             <Navbar />
@@ -142,6 +145,8 @@ function App() {
                   <Route path="/" element={<Home key={homeKey} />} />
                   <Route path="/about" element={<About />} />
                   <Route path="/booking" element={<Booking />} />
+                  <Route path="/404" element={<NotFound />} />
+                  <Route path="*" element={<NotFound />} />
                 </Routes>
               </Suspense>
             </main>

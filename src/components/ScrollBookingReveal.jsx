@@ -294,9 +294,19 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
     return (
       <section
         ref={sectionRef}
+        aria-labelledby="home-booking-title"
         className="relative py-16 px-4 flex items-center justify-center"
         style={{ zIndex: 20 }}
       >
+        <div className="sr-only">
+          <h2 id="home-booking-title">
+            Inquire about wedding, editorial, and lifestyle photography
+          </h2>
+          <p id="home-booking-description">
+            Share your event date, location, and project details to start your
+            booking inquiry with Starling.
+          </p>
+        </div>
         <div
           ref={formCardRef}
           className="relative z-10 w-full pointer-events-auto"
@@ -360,7 +370,12 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                 status === 'success' ? 'pointer-events-none' : 'pointer-events-auto'
               }`}
             >
-              <form onSubmit={handleSubmit} className="w-full">
+              <form
+                onSubmit={handleSubmit}
+                className="w-full"
+                aria-labelledby="home-booking-title"
+                aria-describedby="home-booking-description"
+              >
                 <div style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
                     <div
@@ -436,9 +451,19 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   return (
     <section
       ref={sectionRef}
+      aria-labelledby="home-booking-title"
       className="relative pointer-events-none h-[280vh] md:h-[350vh]"
       style={{ marginTop: '-90vh' }}
     >
+      <div className="sr-only">
+        <h2 id="home-booking-title">
+          Inquire about wedding, editorial, and lifestyle photography
+        </h2>
+        <p id="home-booking-description">
+          Share your event date, location, and project details to start your
+          booking inquiry with Starling.
+        </p>
+      </div>
       <div
         data-scroll-booking-stage="true"
         className="sticky top-0 h-screen flex items-center justify-center overflow-hidden pointer-events-none"
@@ -530,7 +555,12 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                   : 'pointer-events-auto'
               }`}
             >
-              <form onSubmit={handleSubmit} className="w-full">
+              <form
+                onSubmit={handleSubmit}
+                className="w-full"
+                aria-labelledby="home-booking-title"
+                aria-describedby="home-booking-description"
+              >
                 <div
                   style={{
                     pointerEvents: isBusy ? 'none' : 'auto',

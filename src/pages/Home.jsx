@@ -22,6 +22,14 @@ const HERO_IMAGE_IDS = [
   '3P4A1455_ctp4pj',
 ];
 
+const HERO_IMAGE_ALTS = [
+  'Editorial portrait portfolio image by Starling Photography',
+  'Wedding portrait portfolio image by Starling Photography',
+  'Lifestyle portfolio image by Starling Photography',
+  'Bride and groom portrait portfolio image by Starling Photography',
+  'Event portrait portfolio image by Starling Photography',
+];
+
 const WEDDING_1_IMAGE_IDS = [
   'Molly_Fleming_Additional_Edits_-0001_dcp3mi',
   'Molly_Fleming_Select_Edits_-023_kesq95',
@@ -31,6 +39,17 @@ const WEDDING_1_IMAGE_IDS = [
   'Molly_Fleming_Select_Edits_-016_yapfgd',
   'Molly_Fleming_Additional_Edits_-0115_rs0fgh',
   'Molly_Fleming_Additional_Edits_-0149_jbt3yz',
+];
+
+const WEDDING_1_IMAGE_ALTS = [
+  'wedding portrait in Green Lane, Pennsylvania',
+  'candid wedding moment in Green Lane, Pennsylvania',
+  'wedding detail photography in Green Lane, Pennsylvania',
+  'couple portrait from their summer wedding',
+  'celebration photography in Green Lane, Pennsylvania',
+  'wedding portfolio image',
+  'outdoor wedding portrait in Pennsylvania',
+  'summer wedding photography',
 ];
 
 const WEDDING_2_IMAGE_IDS = [
@@ -44,11 +63,29 @@ const WEDDING_2_IMAGE_IDS = [
   '0016__DSC4459-topaz-denoise-denoise_DxO_cjqihn',
 ];
 
+const WEDDING_2_IMAGE_ALTS = [
+  'wedding portrait at Glasbern',
+  'candid wedding photography at Glasbern',
+  'ceremony photography at Glasbern',
+  'Makayla and Hunter wedding detail image at Glasbern',
+  'couple portrait at Glasbern',
+  'celebration photography at Glasbern',
+  'summer wedding portrait',
+  'wedding portfolio image at Glasbern',
+];
+
 const WEDDING_3_IMAGE_IDS = [
   'Neeshay_White_Select_Edits_-008_ldxv2v',
   'Neeshay_White_Select_Edits_-003_shgp50',
   'Neeshay_White_Select_Edits_-006_yhjwc1',
   'Neeshay_White_Select_Edits_-001_lge9tl',
+];
+
+const WEDDING_3_IMAGE_ALTS = [
+  'Neeshay and James wedding portrait in Ardmore, Pennsylvania',
+  'Neeshay and James candid wedding photography in Ardmore',
+  'Neeshay and James wedding detail image in Ardmore, Pennsylvania',
+  'Neeshay and James celebration portrait in Ardmore',
 ];
 
 const ASSORTED_IMAGE_IDS = [
@@ -64,6 +101,21 @@ const ASSORTED_IMAGE_IDS = [
   '481777607_4086871861532488_3131714259942236180_n_h5cbs9',
   '482247755_4092919330927741_6702387078515023031_n_bvw40o',
   '476573711_4064025533817121_6295416143369206442_n_ewzzea',
+];
+
+const ASSORTED_IMAGE_ALTS = [
+  'Selected portfolio image from a Philadelphia portrait session',
+  'Selected portfolio image from an editorial shoot',
+  'Selected portfolio image from a wedding portrait session',
+  'Selected portfolio image photographed in Center City Philadelphia',
+  'Selected portfolio image from a lifestyle photography session',
+  'Selected portfolio image from a commercial portrait session',
+  'Selected portfolio image featuring on-location photography',
+  'Selected portfolio image from a wedding celebration',
+  'Selected portfolio image from an event portrait session',
+  'Selected portfolio image from an editorial portrait session',
+  'Selected portfolio image from a city photography session',
+  'Selected portfolio image from a lifestyle portrait session',
 ];
 
 const STACK_OFFSET_DESKTOP_X = 44;
@@ -829,10 +881,12 @@ const Home = () => {
 
   const wedding2Images = useMemo(() => {
     if (!renderFeatured && !hasExpandedGalleryImage) return [];
-    return WEDDING_2_IMAGE_IDS.map((publicId) => ({
+    return WEDDING_2_IMAGE_IDS.map((publicId, index) => ({
       id: `${publicId}-mh`,
       galleryKey: 'wedding-2',
       altLabel: 'Makayla and Hunter',
+      altText:
+        WEDDING_2_IMAGE_ALTS[index] ?? 'Makayla and Hunter wedding portfolio image',
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
@@ -842,10 +896,12 @@ const Home = () => {
 
   const wedding1Images = useMemo(() => {
     if (!renderFeatured && !hasExpandedGalleryImage) return [];
-    return WEDDING_1_IMAGE_IDS.map((publicId) => ({
+    return WEDDING_1_IMAGE_IDS.map((publicId, index) => ({
       id: publicId,
       galleryKey: 'wedding-1',
       altLabel: 'Molly and Brandon',
+      altText:
+        WEDDING_1_IMAGE_ALTS[index] ?? 'Molly and Brandon wedding portfolio image',
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
@@ -855,10 +911,12 @@ const Home = () => {
 
   const wedding3Images = useMemo(() => {
     if (!renderFeatured && !hasExpandedGalleryImage) return [];
-    return WEDDING_3_IMAGE_IDS.map((publicId) => ({
+    return WEDDING_3_IMAGE_IDS.map((publicId, index) => ({
       id: publicId,
       galleryKey: 'wedding-3',
       altLabel: 'Neeshay and James',
+      altText:
+        WEDDING_3_IMAGE_ALTS[index] ?? 'Neeshay and James wedding portfolio image',
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
@@ -872,6 +930,8 @@ const Home = () => {
       id: `as-${i + 1}`,
       galleryKey: 'selected',
       altLabel: 'Selected Work',
+      altText:
+        ASSORTED_IMAGE_ALTS[i] ?? 'Selected portfolio image by Starling Photography',
       publicId,
       cldImg: buildOptimizedImage(publicId, 1600),
       aspectRatio: 'aspect-[4/3]',
@@ -2633,6 +2693,8 @@ const Home = () => {
       `${expandedLandingSelectedImage.galleryKey}:${expandedLandingSelectedImage.id}`;
     const selectedAltLabel =
       expandedLandingSelectedImage.altLabel ?? 'Landing Page';
+    const selectedAltText =
+      expandedLandingSelectedImage.altText ?? `${selectedAltLabel} expanded photo`;
 
     return (
       <div
@@ -2666,6 +2728,8 @@ const Home = () => {
           >
             {expandedGalleryPerimeterCards.map(({ img, cardKey, pose }, i) => {
               const imageAltLabel = img.altLabel ?? 'Landing Page';
+              const imageAltText =
+                img.altText ?? `${imageAltLabel} photo ${i + 1}`;
               const cardOpacity = Number(pose.opacity.toFixed(3));
 
               return (
@@ -2704,7 +2768,7 @@ const Home = () => {
                     <ProgressiveCldImage
                       publicId={img.publicId}
                       cldImg={img.cldImg}
-                      alt={`${imageAltLabel} photo ${i + 1}`}
+                      alt={imageAltText}
                       loading="lazy"
                       decoding="async"
                       imgClassName="object-cover"
@@ -2764,7 +2828,7 @@ const Home = () => {
                 <ProgressiveCldImage
                   publicId={expandedLandingSelectedImage.publicId}
                   cldImg={expandedLandingSelectedImage.cldImg}
-                  alt={`${selectedAltLabel} expanded photo`}
+                  alt={selectedAltText}
                   loading="eager"
                   decoding="async"
                   fetchPriority="high"
@@ -2806,6 +2870,8 @@ const Home = () => {
       ? `${pinnedDesktopImage.galleryKey ?? galleryKey}:${pinnedDesktopImage.id}`
       : null;
     const pinnedDesktopAltLabel = pinnedDesktopImage?.altLabel ?? altLabel;
+    const pinnedDesktopAltText =
+      pinnedDesktopImage?.altText ?? `${pinnedDesktopAltLabel} expanded photo`;
     const pinnedDesktopReservedAreaStyle = usePinnedDesktopLayout
       ? {
           gridColumn: `${EXPANDED_GALLERY_DESKTOP_PINNED_COLUMN_START} / span ${EXPANDED_GALLERY_DESKTOP_PINNED_COLUMN_SPAN}`,
@@ -2896,7 +2962,7 @@ const Home = () => {
               <ProgressiveCldImage
                 publicId={pinnedDesktopImage.publicId}
                 cldImg={pinnedDesktopImage.cldImg}
-                alt={`${pinnedDesktopAltLabel} expanded photo`}
+                alt={pinnedDesktopAltText}
                 loading="eager"
                 decoding="async"
                 fetchPriority="high"
@@ -2908,6 +2974,7 @@ const Home = () => {
         {images.map((img, i) => {
           const imageGalleryKey = img.galleryKey ?? galleryKey;
           const imageAltLabel = img.altLabel ?? altLabel;
+          const imageAltText = img.altText ?? `${imageAltLabel} photo ${i + 1}`;
           const imageCardKey = `${imageGalleryKey}:${img.id}`;
           const isExpanded =
             galleryHasExpandedImage &&
@@ -3016,7 +3083,7 @@ const Home = () => {
                 <ProgressiveCldImage
                   publicId={img.publicId}
                   cldImg={img.cldImg}
-                  alt={`${imageAltLabel} photo ${i + 1}`}
+                  alt={imageAltText}
                   loading="lazy"
                   decoding="async"
                   imgClassName="object-cover"
@@ -3030,7 +3097,7 @@ const Home = () => {
   };
 
   return (
-    <div ref={container} className="relative w-full">
+    <div id="home-page" ref={container} className="relative w-full">
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-x-0 -top-24 z-0 h-[120vh] max-h-[1200px] hidden md:block"
@@ -3164,13 +3231,30 @@ const Home = () => {
                 </div>
               </div>
               <div className="contents md:flex md:flex-col md:flex-1 md:w-full text-left">
+                <p className="sr-only">
+                  Washington D.C. and Philadelphia wedding, editorial, and lifestyle photographer.
+                </p>
                 <h1 className="hero-intro-item order-1 md:order-none font-serif uppercase md:normal-case text-[44px] md:text-[54px] lg:text-[62px] text-[#18181B] leading-[1.15] md:leading-[1.02] tracking-normal mb-6 md:mb-5">
                   <div className="hero-text-line whitespace-nowrap">Unscripted Moments.</div>
                   <div className="hero-text-line whitespace-nowrap">Unforgettable Memories.</div>
                 </h1>
                 <div className="order-3 md:order-none w-full max-w-[386px] mx-auto md:flex md:flex-col md:flex-1">
                   <p className="hero-intro-item hero-desc text-[#6B6B76] font-light text-[13px] leading-[1.5] md:leading-[1.5] mb-8 md:mb-5">
-                    Premium photography for weddings, editorials, and lifestyle. Based in Philadelphia and NYC, traveling worldwide.
+                    Premium photography for{' '}
+                    <Link
+                      to="/booking"
+                      className="text-current transition-colors duration-300 hover:text-[#18181B]"
+                    >
+                      weddings, editorials, and lifestyle
+                    </Link>
+                    . Based in{' '}
+                    <Link
+                      to="/about"
+                      className="text-current transition-colors duration-300 hover:text-[#18181B]"
+                    >
+                      Washington D.C. and Philadelphia
+                    </Link>
+                    , traveling worldwide.
                   </p>
                   <button
                     ref={heroReachOutButtonRef}
@@ -3280,7 +3364,7 @@ const Home = () => {
                       <AdvancedImage
                         cldImg={heroImages[imgIdx]}
                         className="w-full h-full object-cover"
-                        alt={`Starling Photography ${imgIdx + 1}`}
+                        alt={HERO_IMAGE_ALTS[imgIdx] ?? `Starling Photography portfolio image ${imgIdx + 1}`}
                         loading={pos === STACK_COUNT - 1 ? 'eager' : 'lazy'}
                         decoding="async"
                         fetchPriority={pos === STACK_COUNT - 1 ? 'high' : 'auto'}
@@ -3429,6 +3513,7 @@ const Home = () => {
         style={{ marginTop: isMobileStack ? 0 : '-100vh', pointerEvents: 'none' }}
       >
         <div ref={reviewsContentRef} className="relative z-[25]">
+          <h2 className="sr-only">Client reviews and testimonials</h2>
           <ReviewsGrid showHeading={false} animate={false} />
         </div>
       </div>
@@ -3703,7 +3788,10 @@ const Home = () => {
                       ? 'block w-full h-full max-w-none max-h-none object-contain'
                       : 'block max-w-[92vw] max-h-[80vh] object-contain'
                   }
-                  alt={`${mobileLightboxImage.altLabel ?? 'Gallery'} photo ${mobileLightbox.index + 1} of ${mobileLightbox.images.length}`}
+                  alt={
+                    mobileLightboxImage.altText
+                    ?? `${mobileLightboxImage.altLabel ?? 'Gallery'} photo ${mobileLightbox.index + 1} of ${mobileLightbox.images.length}`
+                  }
                 />
               </div>
             </div>
