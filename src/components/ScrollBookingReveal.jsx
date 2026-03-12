@@ -60,6 +60,23 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   const reviewsRef = useRef(null);
   const timelineRef = useRef(null);
 
+  const syncFormCardInteractivity = useCallback((
+    interactive,
+    visible = interactive,
+  ) => {
+    const card = formCardRef.current;
+    if (!card) return;
+
+    card.style.pointerEvents = interactive ? 'auto' : 'none';
+    card.style.visibility = visible ? 'visible' : 'hidden';
+
+    if (interactive) {
+      card.removeAttribute('inert');
+    } else {
+      card.setAttribute('inert', '');
+    }
+  }, []);
+
   const railEngineRef = useRef({
     textBag: [],
     starsBag: [],
@@ -89,10 +106,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
           r.current.style.transform = 'none';
         }
       });
-      if (formCardRef.current) {
-        formCardRef.current.style.pointerEvents = 'auto';
-        formCardRef.current.style.visibility = 'visible';
-      }
+      syncFormCardInteractivity(true, true);
       formFieldRefs.current.forEach((el) => {
         if (el) {
           el.style.opacity = '1';
@@ -108,8 +122,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
     const fields = formFieldRefs.current.filter(Boolean);
 
     if (formCardRef.current) {
-      formCardRef.current.style.pointerEvents = 'none';
-      formCardRef.current.style.visibility = 'hidden';
+      syncFormCardInteractivity(false, false);
     }
 
     const tl = createTimeline({
@@ -154,7 +167,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
       timelineRef.current = null;
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sectionRef is a stable ref
-  }, [isMobile]);
+  }, [isMobile, syncFormCardInteractivity]);
 
   useEffect(() => {
     if (isMobile) return;
@@ -179,8 +192,7 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
             window.getComputedStyle(card).opacity ?? '0',
           );
           const isVisible = opacity > 0.2;
-          card.style.pointerEvents = isVisible ? 'auto' : 'none';
-          card.style.visibility = isVisible ? 'visible' : 'hidden';
+          syncFormCardInteractivity(isVisible && inZone, isVisible);
         }
 
         ticking = false;
@@ -192,9 +204,10 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
     return () => {
       window.removeEventListener('scroll', onScrollCheck);
       setActiveOverride(null);
+      syncFormCardInteractivity(false, false);
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps -- sectionRef is a stable ref
-  }, [setActiveOverride, isMobile]);
+  }, [setActiveOverride, isMobile, syncFormCardInteractivity]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -281,9 +294,19 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
     return (
       <section
         ref={sectionRef}
+        aria-labelledby="home-booking-title"
         className="relative py-16 px-4 flex items-center justify-center"
         style={{ zIndex: 20 }}
       >
+        <div className="sr-only">
+          <h2 id="home-booking-title">
+            Inquire about wedding, editorial, and lifestyle photography
+          </h2>
+          <p id="home-booking-description">
+            Share your event date, location, and project details to start your
+            booking inquiry with Starling.
+          </p>
+        </div>
         <div
           ref={formCardRef}
           className="relative z-10 w-full pointer-events-auto"
@@ -347,7 +370,12 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                 status === 'success' ? 'pointer-events-none' : 'pointer-events-auto'
               }`}
             >
-              <form onSubmit={handleSubmit} className="w-full">
+              <form
+                onSubmit={handleSubmit}
+                className="w-full"
+                aria-labelledby="home-booking-title"
+                aria-describedby="home-booking-description"
+              >
                 <div style={{ pointerEvents: isBusy ? 'none' : 'auto' }}>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 gap-y-6">
                     <div
@@ -423,9 +451,19 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
   return (
     <section
       ref={sectionRef}
+      aria-labelledby="home-booking-title"
       className="relative pointer-events-none h-[280vh] md:h-[350vh]"
       style={{ marginTop: '-90vh' }}
     >
+      <div className="sr-only">
+        <h2 id="home-booking-title">
+          Inquire about wedding, editorial, and lifestyle photography
+        </h2>
+        <p id="home-booking-description">
+          Share your event date, location, and project details to start your
+          booking inquiry with Starling.
+        </p>
+      </div>
       <div
         data-scroll-booking-stage="true"
         className="sticky top-0 h-screen flex items-center justify-center overflow-hidden pointer-events-none"
@@ -517,7 +555,12 @@ const ScrollBookingReveal = ({ sectionRef: externalSectionRef } = {}) => {
                   : 'pointer-events-auto'
               }`}
             >
-              <form onSubmit={handleSubmit} className="w-full">
+              <form
+                onSubmit={handleSubmit}
+                className="w-full"
+                aria-labelledby="home-booking-title"
+                aria-describedby="home-booking-description"
+              >
                 <div
                   style={{
                     pointerEvents: isBusy ? 'none' : 'auto',

@@ -1255,6 +1255,15 @@ const Booking = () => {
 
       <div className="relative z-10">
         <div className="px-6 md:px-12 max-w-7xl mx-auto lg:grid lg:grid-cols-1">
+          <div className="sr-only">
+            <h1 id="booking-page-title">
+              Book Starling Photography for weddings, editorials, and lifestyle sessions
+            </h1>
+            <p id="booking-page-description">
+              Tell us about your wedding, portrait, editorial, or commercial project in
+              Washington D.C., Philadelphia, or anywhere worldwide.
+            </p>
+          </div>
           {showCinematicGrid ? (
             <div ref={gridWrapRef} className="lg:col-start-1 lg:row-start-1">
               <CinematicReviewGrid engineRef={railEngineRef} initialReviews={initialGridReviews} />
@@ -1319,7 +1328,12 @@ const Booking = () => {
                     : 'pointer-events-auto'
                 }`}
               >
-                <form onSubmit={handleSubmit} className="w-full">
+                <form
+                  onSubmit={handleSubmit}
+                  className="w-full"
+                  aria-labelledby="booking-page-title"
+                  aria-describedby="booking-page-description"
+                >
                 <div
                   style={{
                     pointerEvents: (status === 'sending' || status === 'success') ? 'none' : 'auto',
