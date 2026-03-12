@@ -1332,6 +1332,7 @@ const Home = () => {
     }
 
     removeClosingClone();
+    removeOpeningClone();
     closingClone.style.position = 'fixed';
     closingClone.style.left = `${stageRect.left}px`;
     closingClone.style.top = `${stageRect.top}px`;
@@ -1349,6 +1350,7 @@ const Home = () => {
 
     captureGalleryCardRects();
     expandedGallerySourceRectRef.current = null;
+    expandedGalleryPremiumOpenKeyRef.current = null;
     setExpandedGalleryPerimeterProgress(0);
     setExpandedGalleryPinnedRowOffset(0);
     setExpandedGalleryImage(null);
@@ -2403,6 +2405,10 @@ const Home = () => {
       gsap.killTweensOf(motionNode);
       if (openingClone instanceof HTMLElement) {
         gsap.killTweensOf(openingClone);
+        if (expandedGalleryOpeningCloneRef.current === openingClone) {
+          expandedGalleryOpeningCloneRef.current = null;
+        }
+        openingClone.remove();
       }
     };
   }, [
