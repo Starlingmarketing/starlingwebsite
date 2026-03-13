@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import { ReactLenis, useLenis } from 'lenis/react';
 import { useEffect, Suspense, lazy, useState, useCallback } from 'react';
 import Navbar from './components/Navbar';
+import RouteScrollProgressBar from './components/RouteScrollProgressBar';
 import { NavOverrideContext } from './contexts/NavContext';
 import SeoRouteHead from './seo/SeoRouteHead';
 
@@ -137,6 +138,7 @@ function App() {
         <Router>
           <SeoRouteHead />
           <ScrollToTop />
+          <RouteScrollProgressBar />
           <div className="min-h-screen bg-white flex flex-col">
             <Navbar />
             <main className="flex-grow pt-24">

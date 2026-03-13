@@ -1873,8 +1873,10 @@ const Home = () => {
 
     const snap = expandedGalleryPerimeterSnapRef.current;
     let scrollRafId = 0;
+    let settleTimeoutId = 0;
     let hasSettledInitialProgress = false;
     const LERP_SPEED = 0.18;
+    const SNAP_SETTLE_DELAY = 140;
 
     const tick = () => {
       const diff = snap.target - snap.current;
@@ -1901,6 +1903,39 @@ const Home = () => {
       }
     };
 
+    const setImmediateProgress = (nextProgress) => {
+      if (snap.animId) {
+        window.cancelAnimationFrame(snap.animId);
+        snap.animId = 0;
+      }
+      snap.current = nextProgress;
+      snap.target = nextProgress;
+      setExpandedGalleryPerimeterProgress((prev) =>
+        Math.abs(prev - nextProgress) < 0.001 ? prev : nextProgress
+      );
+    };
+
+    const queueSnapToNearest = (rawProgress) => {
+      if (settleTimeoutId) window.clearTimeout(settleTimeoutId);
+      settleTimeoutId = window.setTimeout(() => {
+        const snapped = clampNumber(
+          0,
+          Math.round(rawProgress),
+          expandedGalleryPerimeterMaxProgress
+        );
+        if (Math.abs(snapped - snap.current) < 0.001) {
+          snap.current = snapped;
+          snap.target = snapped;
+          setExpandedGalleryPerimeterProgress((prev) =>
+            Math.abs(prev - snapped) < 0.001 ? prev : snapped
+          );
+          return;
+        }
+        snap.target = snapped;
+        ensureAnimating();
+      }, SNAP_SETTLE_DELAY);
+    };
+
     const updatePerimeterProgress = () => {
       scrollRafId = 0;
 
@@ -1916,26 +1951,26 @@ const Home = () => {
         (traveled / expandedGalleryPerimeterTravel) *
         expandedGalleryPerimeterMaxProgress;
 
-      const snapped = clampNumber(
+      const clampedProgress = clampNumber(
         0,
-        Math.round(rawProgress),
+        rawProgress,
         expandedGalleryPerimeterMaxProgress
       );
 
       if (!hasSettledInitialProgress) {
         hasSettledInitialProgress = true;
-        snap.target = snapped;
-        snap.current = snapped;
-        setExpandedGalleryPerimeterProgress((prev) =>
-          Math.abs(prev - snapped) < 0.001 ? prev : snapped
+        setImmediateProgress(
+          clampNumber(
+            0,
+            Math.round(clampedProgress),
+            expandedGalleryPerimeterMaxProgress
+          )
         );
         return;
       }
 
-      if (Math.abs(snapped - snap.target) > 0.001) {
-        snap.target = snapped;
-        ensureAnimating();
-      }
+      setImmediateProgress(clampedProgress);
+      queueSnapToNearest(clampedProgress);
     };
 
     const queueUpdate = () => {
@@ -1951,6 +1986,7 @@ const Home = () => {
       window.removeEventListener('scroll', queueUpdate);
       window.removeEventListener('resize', queueUpdate);
       if (scrollRafId) window.cancelAnimationFrame(scrollRafId);
+      if (settleTimeoutId) window.clearTimeout(settleTimeoutId);
       if (snap.animId) window.cancelAnimationFrame(snap.animId);
       snap.animId = 0;
     };
