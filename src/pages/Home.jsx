@@ -138,6 +138,15 @@ const EXPANDED_GALLERY_FLOW_DEAD_ZONE = 0.34;
 const EXPANDED_GALLERY_SOFT_CLOSE_DURATION = 0.82;
 const EXPANDED_GALLERY_SOFT_REVEAL_DURATION = 0.82;
 const EXPANDED_GALLERY_PREMIUM_OPEN_DURATION = 0.56;
+const EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION = 0.68;
+const EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION = 0.62;
+const EXPANDED_GALLERY_PERIMETER_PROGRESS_INIT_DELAY_MS = Math.round(
+  (Math.max(
+    EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
+    EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION
+  ) + 0.08) * 1000
+);
+const EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER = 0.018;
 const buildExpandedGalleryDesktopRows = (images) => {
   const rows = [];
 
@@ -309,6 +318,22 @@ const resolveTrackPose = (track, position) => {
     slots[toIndex],
     position - fromIndex
   );
+};
+const resolveCapturedGalleryRect = (rects, cardKey) => {
+  if (!cardKey) return null;
+  return rects.get(cardKey) ?? rects.get(cardKey.replace(/:btm$/, '')) ?? null;
+};
+const isRectNearViewport = (rect, padding = 160) => (
+  (rect.left + rect.width) >= -padding &&
+  rect.left <= window.innerWidth + padding &&
+  (rect.top + rect.height) >= -padding &&
+  rect.top <= window.innerHeight + padding
+);
+const getPerimeterEntryOffset = (edge) => {
+  if (edge === 'left') return { x: -18, y: 0 };
+  if (edge === 'right') return { x: 18, y: 0 };
+  if (edge === 'top') return { x: 0, y: -14 };
+  return { x: 0, y: 14 };
 };
 
 const useMediaQuery = (query) => {
@@ -938,6 +963,58 @@ const Home = () => {
       className: isMobileLandscape ? 'md:col-span-3 lg:col-span-3' : 'md:col-span-6 lg:col-span-3',
     }));
   }, [renderSelected, hasExpandedGalleryImage, isMobileLandscape]);
+  const expandedGalleryCatalogImages = useMemo(() => {
+    const className = isMobileLandscape
+      ? 'md:col-span-3 lg:col-span-3'
+      : 'md:col-span-6 lg:col-span-3';
+
+    return [
+      ...ASSORTED_IMAGE_IDS.map((publicId, index) => ({
+        id: `as-${index + 1}`,
+        galleryKey: 'selected',
+        altLabel: 'Selected Work',
+        altText:
+          ASSORTED_IMAGE_ALTS[index] ?? 'Selected portfolio image by Starling Photography',
+        publicId,
+        cldImg: buildOptimizedImage(publicId, 1600),
+        aspectRatio: 'aspect-[4/3]',
+        className,
+      })),
+      ...WEDDING_2_IMAGE_IDS.map((publicId, index) => ({
+        id: `${publicId}-mh`,
+        galleryKey: 'wedding-2',
+        altLabel: 'Makayla and Hunter',
+        altText:
+          WEDDING_2_IMAGE_ALTS[index] ?? 'Makayla and Hunter wedding portfolio image',
+        publicId,
+        cldImg: buildOptimizedImage(publicId, 1600),
+        aspectRatio: 'aspect-[4/3]',
+        className,
+      })),
+      ...WEDDING_1_IMAGE_IDS.map((publicId, index) => ({
+        id: publicId,
+        galleryKey: 'wedding-1',
+        altLabel: 'Molly and Brandon',
+        altText:
+          WEDDING_1_IMAGE_ALTS[index] ?? 'Molly and Brandon wedding portfolio image',
+        publicId,
+        cldImg: buildOptimizedImage(publicId, 1600),
+        aspectRatio: 'aspect-[4/3]',
+        className,
+      })),
+      ...WEDDING_3_IMAGE_IDS.map((publicId, index) => ({
+        id: publicId,
+        galleryKey: 'wedding-3',
+        altLabel: 'Neeshay and James',
+        altText:
+          WEDDING_3_IMAGE_ALTS[index] ?? 'Neeshay and James wedding portfolio image',
+        publicId,
+        cldImg: buildOptimizedImage(publicId, 1600),
+        aspectRatio: 'aspect-[4/3]',
+        className,
+      })),
+    ];
+  }, [isMobileLandscape]);
 
   const allLandingGalleryImages = useMemo(
     () => [
@@ -952,34 +1029,34 @@ const Home = () => {
   const expandedLandingFlowImages = useMemo(() => {
     if (!hasExpandedGalleryImage) return [];
 
-    return allLandingGalleryImages.filter((img) => !(
+    return expandedGalleryCatalogImages.filter((img) => !(
       expandedGalleryImage?.galleryKey === img.galleryKey &&
       expandedGalleryImage?.imageId === img.id
     ));
-  }, [allLandingGalleryImages, expandedGalleryImage, hasExpandedGalleryImage]);
+  }, [expandedGalleryCatalogImages, expandedGalleryImage, hasExpandedGalleryImage]);
   const expandedLandingSelectedImage = useMemo(() => {
     if (!hasExpandedGalleryImage) return null;
 
-    return allLandingGalleryImages.find((img) => (
+    return expandedGalleryCatalogImages.find((img) => (
       expandedGalleryImage?.galleryKey === img.galleryKey &&
       expandedGalleryImage?.imageId === img.id
     )) ?? null;
-  }, [allLandingGalleryImages, expandedGalleryImage, hasExpandedGalleryImage]);
+  }, [expandedGalleryCatalogImages, expandedGalleryImage, hasExpandedGalleryImage]);
   const expandedLandingPerimeterImages = useMemo(() => {
     if (!expandedLandingSelectedImage) return expandedLandingFlowImages;
 
-    const selectedIndex = allLandingGalleryImages.findIndex((img) => (
+    const selectedIndex = expandedGalleryCatalogImages.findIndex((img) => (
       img.galleryKey === expandedLandingSelectedImage.galleryKey &&
       img.id === expandedLandingSelectedImage.id
     ));
     if (selectedIndex < 0) return expandedLandingFlowImages;
 
     return [
-      ...allLandingGalleryImages.slice(selectedIndex + 1),
-      ...allLandingGalleryImages.slice(0, selectedIndex),
+      ...expandedGalleryCatalogImages.slice(selectedIndex + 1),
+      ...expandedGalleryCatalogImages.slice(0, selectedIndex),
     ];
   }, [
-    allLandingGalleryImages,
+    expandedGalleryCatalogImages,
     expandedLandingFlowImages,
     expandedLandingSelectedImage,
   ]);
@@ -1874,7 +1951,10 @@ const Home = () => {
     const snap = expandedGalleryPerimeterSnapRef.current;
     let scrollRafId = 0;
     let settleTimeoutId = 0;
-    let hasSettledInitialProgress = false;
+    let initialTrackingTimeoutId = 0;
+    let trackingStarted = false;
+    let hasBaselineTravel = false;
+    let baselineTravel = 0;
     const LERP_SPEED = 0.18;
     const SNAP_SETTLE_DELAY = 140;
 
@@ -1936,19 +2016,36 @@ const Home = () => {
       }, SNAP_SETTLE_DELAY);
     };
 
-    const updatePerimeterProgress = () => {
-      scrollRafId = 0;
-
+    const resolveTravelDistance = () => {
       const rect = stageNode.getBoundingClientRect();
       const progressStartTop =
         expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
-      const traveled = clampNumber(
+      return clampNumber(
         0,
         progressStartTop - rect.top,
         expandedGalleryPerimeterTravel
       );
+    };
+
+    const updatePerimeterProgress = () => {
+      scrollRafId = 0;
+
+      const traveled = resolveTravelDistance();
+      if (!hasBaselineTravel) {
+        baselineTravel = traveled;
+        hasBaselineTravel = true;
+      }
+      const remainingTravel = Math.max(
+        expandedGalleryPerimeterTravel - baselineTravel,
+        1
+      );
+      const adjustedTravel = clampNumber(
+        0,
+        traveled - baselineTravel,
+        remainingTravel
+      );
       const rawProgress =
-        (traveled / expandedGalleryPerimeterTravel) *
+        (adjustedTravel / remainingTravel) *
         expandedGalleryPerimeterMaxProgress;
 
       const clampedProgress = clampNumber(
@@ -1956,18 +2053,6 @@ const Home = () => {
         rawProgress,
         expandedGalleryPerimeterMaxProgress
       );
-
-      if (!hasSettledInitialProgress) {
-        hasSettledInitialProgress = true;
-        setImmediateProgress(
-          clampNumber(
-            0,
-            Math.round(clampedProgress),
-            expandedGalleryPerimeterMaxProgress
-          )
-        );
-        return;
-      }
 
       setImmediateProgress(clampedProgress);
       queueSnapToNearest(clampedProgress);
@@ -1978,13 +2063,28 @@ const Home = () => {
       scrollRafId = window.requestAnimationFrame(updatePerimeterProgress);
     };
 
-    window.addEventListener('scroll', queueUpdate, { passive: true });
-    window.addEventListener('resize', queueUpdate, { passive: true });
-    queueUpdate();
+    const startTracking = () => {
+      if (trackingStarted) return;
+      trackingStarted = true;
+      baselineTravel = resolveTravelDistance();
+      hasBaselineTravel = true;
+      window.addEventListener('scroll', queueUpdate, { passive: true });
+      window.addEventListener('resize', queueUpdate, { passive: true });
+    };
+
+    // Hold the perimeter at its entry state long enough for the open animation to
+    // land before scroll progress starts swapping in later track positions.
+    initialTrackingTimeoutId = window.setTimeout(
+      startTracking,
+      EXPANDED_GALLERY_PERIMETER_PROGRESS_INIT_DELAY_MS
+    );
 
     return () => {
-      window.removeEventListener('scroll', queueUpdate);
-      window.removeEventListener('resize', queueUpdate);
+      if (trackingStarted) {
+        window.removeEventListener('scroll', queueUpdate);
+        window.removeEventListener('resize', queueUpdate);
+      }
+      if (initialTrackingTimeoutId) window.clearTimeout(initialTrackingTimeoutId);
       if (scrollRafId) window.cancelAnimationFrame(scrollRafId);
       if (settleTimeoutId) window.clearTimeout(settleTimeoutId);
       if (snap.animId) window.cancelAnimationFrame(snap.animId);
@@ -2206,10 +2306,6 @@ const Home = () => {
     const previousRects = expandedGalleryRectsRef.current;
     if (!previousRects.size) return undefined;
     if (typeof window === 'undefined') return undefined;
-    if (useExpandedLandingPerimeter) {
-      expandedGalleryRectsRef.current = new Map();
-      return undefined;
-    }
     if (expandedGallerySoftCloseRef.current) {
       expandedGalleryRectsRef.current = new Map();
       return undefined;
@@ -2222,6 +2318,115 @@ const Home = () => {
 
     let rafId = 0;
     rafId = window.requestAnimationFrame(() => {
+      if (useExpandedLandingPerimeter) {
+        const stageNode = expandedGalleryStageRef.current;
+        if (!stageNode) {
+          expandedGalleryRectsRef.current = new Map();
+          return;
+        }
+
+        const pinnedRect = expandedGalleryFixedCardRef.current?.getBoundingClientRect?.();
+        const pinnedCenterX = pinnedRect?.width
+          ? pinnedRect.left + (pinnedRect.width / 2)
+          : window.innerWidth / 2;
+        const pinnedCenterY = pinnedRect?.height
+          ? pinnedRect.top + (pinnedRect.height / 2)
+          : window.innerHeight / 2;
+        const perimeterCards = Array.from(
+          stageNode.querySelectorAll('[data-gallery-flow-card-key]')
+        )
+          .filter((node) => node instanceof HTMLElement)
+          .map((node) => {
+            const rect = node.getBoundingClientRect();
+            const inner =
+              node.querySelector('[data-gallery-card-inner="true"]') ?? node;
+
+            if (!(inner instanceof HTMLElement) || !rect.width || !rect.height) {
+              return null;
+            }
+
+            const centerX = rect.left + (rect.width / 2);
+            const centerY = rect.top + (rect.height / 2);
+            return {
+              rect,
+              inner,
+              cardKey: node.dataset.galleryFlowCardKey ?? '',
+              edge: node.dataset.galleryEdge ?? 'bottom',
+              distance: Math.hypot(centerX - pinnedCenterX, centerY - pinnedCenterY),
+            };
+          })
+          .filter(Boolean)
+          .sort((a, b) => a.distance - b.distance);
+
+        perimeterCards.forEach(({ rect, inner, cardKey, edge }, index) => {
+          const prevRect = resolveCapturedGalleryRect(previousRects, cardKey);
+          const delay = Math.min(
+            index * EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER,
+            0.12
+          );
+
+          gsap.killTweensOf(inner);
+
+          if (prevRect && isRectNearViewport(prevRect)) {
+            const deltaX = prevRect.left - rect.left;
+            const deltaY = prevRect.top - rect.top;
+            const scaleX = prevRect.width / rect.width;
+            const scaleY = prevRect.height / rect.height;
+
+            gsap.fromTo(
+              inner,
+              {
+                x: deltaX,
+                y: deltaY,
+                scaleX,
+                scaleY,
+                opacity: 0.92,
+                transformOrigin: 'top left',
+              },
+              {
+                x: 0,
+                y: 0,
+                scaleX: 1,
+                scaleY: 1,
+                opacity: 1,
+                duration: EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION,
+                delay,
+                ease: 'power3.out',
+                overwrite: 'auto',
+                clearProps: 'transform,opacity',
+              }
+            );
+            return;
+          }
+
+          const fallbackOffset = getPerimeterEntryOffset(edge);
+          gsap.fromTo(
+            inner,
+            {
+              x: fallbackOffset.x,
+              y: fallbackOffset.y,
+              scale: 0.985,
+              opacity: 0,
+              transformOrigin: 'center center',
+            },
+            {
+              x: 0,
+              y: 0,
+              scale: 1,
+              opacity: 1,
+              duration: EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION * 0.88,
+              delay,
+              ease: 'power2.out',
+              overwrite: 'auto',
+              clearProps: 'transform,opacity',
+            }
+          );
+        });
+
+        expandedGalleryRectsRef.current = new Map();
+        return;
+      }
+
       document.querySelectorAll('[data-gallery-flow-card-key]').forEach((node) => {
         if (!(node instanceof HTMLElement)) return;
 
@@ -2408,10 +2613,12 @@ const Home = () => {
       }
     }
 
+    const stageOpacityFrom = useExpandedLandingPerimeter ? 0.16 : 0;
+
     // Crossfade the expanded stage in while the captured landing layout dissolves away.
     gsap.fromTo(
       motionNode,
-      { opacity: 0 },
+      { opacity: stageOpacityFrom },
       {
         opacity: 1,
         duration: EXPANDED_GALLERY_PREMIUM_OPEN_DURATION,
@@ -2452,15 +2659,17 @@ const Home = () => {
     expandedGalleryStickyTop,
     isDesktopGallery,
     removeOpeningClone,
+    useExpandedLandingPerimeter,
   ]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!expandedGalleryImageKey || !isDesktopGallery) return undefined;
 
     const outerNode = expandedGalleryFixedCardRef.current;
     if (!outerNode) return undefined;
     const motionNode =
       outerNode.querySelector('[data-gallery-card-inner="true"]') ?? outerNode;
+    const sourceRect = expandedGallerySourceRectRef.current;
 
     gsap.killTweensOf(motionNode);
 
@@ -2477,8 +2686,65 @@ const Home = () => {
       return undefined;
     }
 
+    if (useExpandedLandingPerimeter) {
+      const finalRect = outerNode.getBoundingClientRect();
+      expandedGallerySourceRectRef.current = null;
+
+      if (
+        sourceRect?.width &&
+        sourceRect?.height &&
+        finalRect.width &&
+        finalRect.height
+      ) {
+        const sourceCenterX = sourceRect.left + (sourceRect.width / 2);
+        const sourceCenterY = sourceRect.top + (sourceRect.height / 2);
+        const finalCenterX = finalRect.left + (finalRect.width / 2);
+        const finalCenterY = finalRect.top + (finalRect.height / 2);
+
+        gsap.fromTo(
+          motionNode,
+          {
+            x: sourceCenterX - finalCenterX,
+            y: sourceCenterY - finalCenterY,
+            scaleX: sourceRect.width / finalRect.width,
+            scaleY: sourceRect.height / finalRect.height,
+            opacity: 0.9,
+            transformOrigin: 'center center',
+          },
+          {
+            x: 0,
+            y: 0,
+            scaleX: 1,
+            scaleY: 1,
+            opacity: 1,
+            duration: EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
+            ease: 'power3.out',
+            overwrite: 'auto',
+            clearProps: 'transform,opacity',
+          }
+        );
+      } else {
+        gsap.fromTo(
+          motionNode,
+          { opacity: 0, y: 8, scale: 0.988 },
+          {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            duration: EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
+            ease: 'power3.out',
+            overwrite: 'auto',
+            clearProps: 'transform,opacity',
+          }
+        );
+      }
+
+      return () => {
+        gsap.killTweensOf(motionNode);
+      };
+    }
+
     expandedGallerySourceRectRef.current = null;
-    if (useExpandedLandingPerimeter) return undefined;
 
     gsap.fromTo(
       motionNode,
@@ -2493,6 +2759,9 @@ const Home = () => {
         clearProps: 'transform,opacity',
       }
     );
+    return () => {
+      gsap.killTweensOf(motionNode);
+    };
   }, [expandedGalleryImageKey, isDesktopGallery, useExpandedLandingPerimeter]);
 
   useEffect(() => {
@@ -2779,6 +3048,7 @@ const Home = () => {
                   key={cardKey}
                   data-gallery-card-key={cardKey}
                   data-gallery-flow-card-key={cardKey}
+                  data-gallery-edge={pose.edge}
                   data-gallery-featured="false"
                   role="button"
                   tabIndex={cardOpacity < 0.2 ? -1 : 0}
@@ -2896,6 +3166,8 @@ const Home = () => {
       ? expandedGalleryImage?.galleryKey === galleryKey
       : hasExpandedGalleryImage
     );
+    const suppressPerimeterSourceGallery =
+      useExpandedLandingPerimeter && !allowExpandedLayout;
     const usePinnedDesktopLayout = galleryHasExpandedImage && isDesktopGallery && !galleryKey;
     const pinnedDesktopImage = usePinnedDesktopLayout
       ? (
@@ -3056,13 +3328,26 @@ const Home = () => {
           return (
             <div
               key={imageCardKey}
-              data-gallery-card-key={imageCardKey}
-              data-gallery-flow-card-key={imageCardKey}
+              data-gallery-card-key={
+                suppressPerimeterSourceGallery ? undefined : imageCardKey
+              }
+              data-gallery-flow-card-key={
+                suppressPerimeterSourceGallery ? undefined : imageCardKey
+              }
               data-gallery-featured={isExpanded ? 'true' : 'false'}
-              role="button"
-              tabIndex={0}
-              aria-expanded={isDesktopGallery ? isExpanded : undefined}
-              aria-haspopup={isDesktopGallery ? undefined : 'dialog'}
+              role={suppressPerimeterSourceGallery ? undefined : 'button'}
+              tabIndex={suppressPerimeterSourceGallery ? -1 : 0}
+              aria-hidden={suppressPerimeterSourceGallery ? true : undefined}
+              aria-expanded={
+                suppressPerimeterSourceGallery
+                  ? undefined
+                  : (isDesktopGallery ? isExpanded : undefined)
+              }
+              aria-haspopup={
+                suppressPerimeterSourceGallery
+                  ? undefined
+                  : (isDesktopGallery ? undefined : 'dialog')
+              }
               aria-label={`${isDesktopGallery
                 ? (isExpanded ? 'Collapse' : 'Expand')
                 : 'Open'} ${imageAltLabel} photo ${i + 1}`}
@@ -3072,26 +3357,30 @@ const Home = () => {
                   : 'group-hover/gallery:brightness-[0.85] hover:!brightness-100'
               } ${isExpanded ? 'z-20 cursor-pointer' : 'cursor-pointer'} ${img.className}`}
               style={cardStyle}
-              onClick={(e) => handleGalleryCardActivate(
-                images,
-                imageGalleryKey,
-                img.id,
-                i,
-                e
-              )}
-              onKeyDown={(e) => {
-                if (e.key !== 'Enter' && e.key !== ' ') return;
-                e.preventDefault();
-                handleGalleryCardActivate(
+              onClick={suppressPerimeterSourceGallery
+                ? undefined
+                : ((e) => handleGalleryCardActivate(
                   images,
                   imageGalleryKey,
                   img.id,
                   i,
                   e
-                );
-              }}
-              onMouseEnter={handleCardEnter}
-              onMouseLeave={handleCardLeave}
+                ))}
+              onKeyDown={suppressPerimeterSourceGallery
+                ? undefined
+                : ((e) => {
+                  if (e.key !== 'Enter' && e.key !== ' ') return;
+                  e.preventDefault();
+                  handleGalleryCardActivate(
+                    images,
+                    imageGalleryKey,
+                    img.id,
+                    i,
+                    e
+                  );
+                })}
+              onMouseEnter={suppressPerimeterSourceGallery ? undefined : handleCardEnter}
+              onMouseLeave={suppressPerimeterSourceGallery ? undefined : handleCardLeave}
             >
               <div
                 data-gallery-card-inner="true"
@@ -3438,7 +3727,7 @@ const Home = () => {
         }
       >
         {hasExpandedGalleryImage && isDesktopGallery ? (
-          allLandingGalleryImages.length ? (
+          expandedGalleryCatalogImages.length ? (
             renderExpandedLandingPerimeter()
           ) : (
             <div className="h-[40vh] md:h-[45vh]" aria-hidden="true" />
@@ -3466,6 +3755,7 @@ const Home = () => {
         ref={featuredRef}
         data-nav-dark
         className="px-3 md:px-12 max-w-7xl mx-auto py-12 min-h-[50vh]"
+        style={useExpandedLandingPerimeter ? { visibility: 'hidden' } : undefined}
       >
         <div className="flex justify-between items-end mb-8">
           {/* <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2> */}
