@@ -429,7 +429,7 @@ const ProgressiveCldImage = ({
   return (
     <>
       <div
-        className={`absolute inset-0 transition-opacity duration-500 ease-out motion-reduce:transition-none ${
+        className={`absolute inset-0 ${
           showHi ? 'opacity-0' : 'opacity-100'
         }`}
         aria-hidden="true"
@@ -444,7 +444,7 @@ const ProgressiveCldImage = ({
       </div>
 
       <div
-        className={`absolute inset-0 transition-opacity duration-500 ease-out motion-reduce:transition-none ${
+        className={`absolute inset-0 ${
           showHi ? 'opacity-100' : 'opacity-0'
         }`}
       >
@@ -1016,16 +1016,6 @@ const Home = () => {
     ];
   }, [isMobileLandscape]);
 
-  const allLandingGalleryImages = useMemo(
-    () => [
-      ...assortedImages,
-      ...wedding2Images,
-      ...wedding1Images,
-      ...wedding3Images,
-    ],
-    [assortedImages, wedding2Images, wedding1Images, wedding3Images]
-  );
-
   const expandedLandingFlowImages = useMemo(() => {
     if (!hasExpandedGalleryImage) return [];
 
@@ -1527,8 +1517,7 @@ const Home = () => {
       ? createOpeningCloneLayer()
       : null;
 
-    expandedGalleryPremiumOpenKeyRef.current =
-      openingClone instanceof HTMLElement ? nextImageKey : null;
+    expandedGalleryPremiumOpenKeyRef.current = null;
 
     if (openingClone instanceof HTMLElement) {
       expandedGalleryOpeningCloneRef.current = openingClone;
@@ -1953,7 +1942,6 @@ const Home = () => {
     let settleTimeoutId = 0;
     let initialTrackingTimeoutId = 0;
     let trackingStarted = false;
-    let hasBaselineTravel = false;
     let baselineTravel = 0;
     const LERP_SPEED = 0.18;
     const SNAP_SETTLE_DELAY = 140;
@@ -2031,10 +2019,6 @@ const Home = () => {
       scrollRafId = 0;
 
       const traveled = resolveTravelDistance();
-      if (!hasBaselineTravel) {
-        baselineTravel = traveled;
-        hasBaselineTravel = true;
-      }
       const remainingTravel = Math.max(
         expandedGalleryPerimeterTravel - baselineTravel,
         1
@@ -2066,10 +2050,9 @@ const Home = () => {
     const startTracking = () => {
       if (trackingStarted) return;
       trackingStarted = true;
-      baselineTravel = resolveTravelDistance();
-      hasBaselineTravel = true;
       window.addEventListener('scroll', queueUpdate, { passive: true });
       window.addEventListener('resize', queueUpdate, { passive: true });
+      queueUpdate();
     };
 
     // Hold the perimeter at its entry state long enough for the open animation to
@@ -2708,7 +2691,6 @@ const Home = () => {
             y: sourceCenterY - finalCenterY,
             scaleX: sourceRect.width / finalRect.width,
             scaleY: sourceRect.height / finalRect.height,
-            opacity: 0.9,
             transformOrigin: 'center center',
           },
           {
@@ -2716,25 +2698,23 @@ const Home = () => {
             y: 0,
             scaleX: 1,
             scaleY: 1,
-            opacity: 1,
             duration: EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
             ease: 'power3.out',
             overwrite: 'auto',
-            clearProps: 'transform,opacity',
+            clearProps: 'transform',
           }
         );
       } else {
         gsap.fromTo(
           motionNode,
-          { opacity: 0, y: 8, scale: 0.988 },
+          { y: 8, scale: 0.988 },
           {
-            opacity: 1,
             y: 0,
             scale: 1,
             duration: EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
             ease: 'power3.out',
             overwrite: 'auto',
-            clearProps: 'transform,opacity',
+            clearProps: 'transform',
           }
         );
       }
@@ -2748,15 +2728,14 @@ const Home = () => {
 
     gsap.fromTo(
       motionNode,
-      { opacity: 0, y: 10, scale: 0.985 },
+      { y: 10, scale: 0.985 },
       {
-        opacity: 1,
         y: 0,
         scale: 1,
         duration: 0.36,
         ease: 'power2.out',
         overwrite: 'auto',
-        clearProps: 'transform,opacity',
+        clearProps: 'transform',
       }
     );
     return () => {
