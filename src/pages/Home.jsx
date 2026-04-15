@@ -2050,6 +2050,9 @@ const Home = () => {
     const startTracking = () => {
       if (trackingStarted) return;
       trackingStarted = true;
+      // Treat the fully opened layout as progress zero so the perimeter
+      // doesn't do a post-open correction once tracking starts.
+      baselineTravel = resolveTravelDistance();
       window.addEventListener('scroll', queueUpdate, { passive: true });
       window.addEventListener('resize', queueUpdate, { passive: true });
       queueUpdate();
