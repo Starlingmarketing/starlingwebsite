@@ -254,7 +254,22 @@ const interpolatePerimeterPose = (fromPose, toPose, progress) => {
     }
   }
 
-  const opacityT = perimeterSnapEase(clampValue(0, clampedProgress * 1.3, 1));
+  let opacity = interpolateValue(fromPose.opacity, toPose.opacity, eased);
+  if (fromPose.opacity !== toPose.opacity) {
+    // Compress the opacity ramp near the arrival/departure so fading cards
+    // don't linger at positions that overlap with their neighboring slot.
+    if (fromPose.opacity < toPose.opacity) {
+      // Fading in: stay invisible until the last 25% of travel.
+      opacity = clampedProgress < 0.75
+        ? 0
+        : perimeterSnapEase((clampedProgress - 0.75) / 0.25);
+    } else {
+      // Fading out: drop to 0 within the first 25% of travel.
+      opacity = clampedProgress > 0.25
+        ? 0
+        : 1 - perimeterSnapEase(clampedProgress / 0.25);
+    }
+  }
 
   return {
     x,
@@ -263,7 +278,7 @@ const interpolatePerimeterPose = (fromPose, toPose, progress) => {
     width: interpolateValue(fromPose.width, toPose.width, eased),
     rotate: interpolateValue(fromPose.rotate, toPose.rotate, eased),
     scale: interpolateValue(fromPose.scale, toPose.scale, eased),
-    opacity: interpolateValue(fromPose.opacity, toPose.opacity, opacityT),
+    opacity,
   };
 };
 const EXPANDED_GALLERY_PERIMETER_TRACK_SLOT_COUNT = 5;
@@ -1059,6 +1074,17 @@ const Home = () => {
       : 'md:col-span-6 lg:col-span-3';
 
     return [
+      ...HERO_IMAGE_IDS.map((publicId, index) => ({
+        id: `hero-${index + 1}`,
+        galleryKey: 'hero',
+        altLabel: 'Landing Page',
+        altText:
+          HERO_IMAGE_ALTS[index] ?? 'Landing page portfolio image by Starling Photography',
+        publicId,
+        cldImg: buildOptimizedImage(publicId, 1600),
+        aspectRatio: 'aspect-[3/2]',
+        className,
+      })),
       ...ASSORTED_IMAGE_IDS.map((publicId, index) => ({
         id: `as-${index + 1}`,
         galleryKey: 'selected',
@@ -2163,6 +2189,7 @@ const Home = () => {
 
   const closeExpandedGalleryImage = useCallback((options = {}) => {
     const { reason = 'explicit' } = options;
+
     if (!expandedGalleryImageKey || expandedGalleryIsClosingRef.current) return;
 
     if (expandedGalleryScrollMorphRef.current.active) {
@@ -2318,19 +2345,23 @@ const Home = () => {
   }, []);
 
   const handleGalleryImageClick = useCallback((galleryKey, imageId, e) => {
+    const nextImageKey = `${galleryKey}:${imageId}`;
+    const outer = e.currentTarget;
+    const inner = outer?.querySelector?.('[data-gallery-card-inner="true"]') ?? outer;
+    const rect = inner?.getBoundingClientRect?.();
+
     if (expandedGalleryIsClosingRef.current) {
       finalizeExpandedGalleryClose();
     }
 
-    const nextImageKey = `${galleryKey}:${imageId}`;
+    if (expandedGalleryScrollMorphRef.current.active) {
+      cleanupExpandedGalleryScrollMorph({ close: true });
+    }
+
     if (expandedGalleryImageKey === nextImageKey) {
       closeExpandedGalleryImage();
       return;
     }
-
-    const outer = e.currentTarget;
-    const inner = outer?.querySelector?.('[data-gallery-card-inner="true"]') ?? outer;
-    const rect = inner?.getBoundingClientRect?.();
 
     outer.style.zIndex = '';
     gsap.killTweensOf(inner);
@@ -2382,6 +2413,7 @@ const Home = () => {
     setExpandedGalleryImage({ galleryKey, imageId });
   }, [
     captureGalleryCardRects,
+    cleanupExpandedGalleryScrollMorph,
     closeExpandedGalleryImage,
     createOpeningCloneLayer,
     expandedGalleryImageKey,
