@@ -4,6 +4,7 @@ import { AdvancedImage } from '@cloudinary/react';
 import { cld } from '../utils/cloudinary';
 import { limitFit } from '@cloudinary/url-gen/actions/resize';
 import { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+import { animate } from 'animejs';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -140,6 +141,13 @@ const EXPANDED_GALLERY_SOFT_REVEAL_DURATION = 0.82;
 const EXPANDED_GALLERY_PREMIUM_OPEN_DURATION = 0.56;
 const EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION = 0.68;
 const EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION = 0.62;
+const EXPANDED_GALLERY_SCROLL_CLOSE_ARM_DELAY_MS = Math.round(
+  (Math.max(
+    EXPANDED_GALLERY_PREMIUM_OPEN_DURATION,
+    EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
+    EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION
+  ) + 0.12) * 1000
+);
 const EXPANDED_GALLERY_PERIMETER_PROGRESS_INIT_DELAY_MS = Math.round(
   (Math.max(
     EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
@@ -323,12 +331,74 @@ const resolveCapturedGalleryRect = (rects, cardKey) => {
   if (!cardKey) return null;
   return rects.get(cardKey) ?? rects.get(cardKey.replace(/:btm$/, '')) ?? null;
 };
+const captureDocumentRect = (rect) => {
+  if (!rect?.width || !rect?.height || typeof window === 'undefined') return null;
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+    docLeft: rect.left + window.scrollX,
+    docTop: rect.top + window.scrollY,
+  };
+};
+const projectDocumentRectToViewport = (rect) => {
+  if (!rect) return null;
+  if (typeof window === 'undefined') return rect;
+
+  const hasDocPosition = Number.isFinite(rect.docLeft) && Number.isFinite(rect.docTop);
+  return {
+    left: hasDocPosition ? rect.docLeft - window.scrollX : rect.left,
+    top: hasDocPosition ? rect.docTop - window.scrollY : rect.top,
+    width: rect.width,
+    height: rect.height,
+    docLeft: hasDocPosition ? rect.docLeft : rect.left + window.scrollX,
+    docTop: hasDocPosition ? rect.docTop : rect.top + window.scrollY,
+  };
+};
+const setFixedRect = (node, rect) => {
+  if (!(node instanceof HTMLElement) || !rect) return;
+  node.style.left = `${rect.left}px`;
+  node.style.top = `${rect.top}px`;
+  node.style.width = `${rect.width}px`;
+  node.style.height = `${rect.height}px`;
+};
+const interpolateRect = (fromRect, toRect, progress) => ({
+  left: interpolateValue(fromRect.left, toRect.left, progress),
+  top: interpolateValue(fromRect.top, toRect.top, progress),
+  width: interpolateValue(fromRect.width, toRect.width, progress),
+  height: interpolateValue(fromRect.height, toRect.height, progress),
+});
+const normalizeRangeProgress = (value, start, end) => {
+  if (end <= start) return value >= end ? 1 : 0;
+  return clampValue(0, (value - start) / (end - start), 1);
+};
 const isRectNearViewport = (rect, padding = 160) => (
   (rect.left + rect.width) >= -padding &&
   rect.left <= window.innerWidth + padding &&
   (rect.top + rect.height) >= -padding &&
   rect.top <= window.innerHeight + padding
 );
+const shouldAnimateGalleryReturnToTarget = (fromRect, toRect) => {
+  if (!fromRect || !toRect || typeof window === 'undefined') return false;
+  if (!isRectNearViewport(fromRect, 120) || !isRectNearViewport(toRect, 180)) {
+    return false;
+  }
+
+  const fromCenterX = fromRect.left + (fromRect.width / 2);
+  const fromCenterY = fromRect.top + (fromRect.height / 2);
+  const toCenterX = toRect.left + (toRect.width / 2);
+  const toCenterY = toRect.top + (toRect.height / 2);
+  const maxDistance = Math.max(
+    320,
+    Math.min(
+      620,
+      Math.max(window.innerWidth * 0.42, window.innerHeight * 0.48)
+    )
+  );
+
+  return Math.hypot(toCenterX - fromCenterX, toCenterY - fromCenterY) <= maxDistance;
+};
 const getPerimeterEntryOffset = (edge) => {
   if (edge === 'left') return { x: -18, y: 0 };
   if (edge === 'right') return { x: 18, y: 0 };
@@ -697,17 +767,38 @@ const Home = () => {
   const expandedGalleryStageRef = useRef(null);
   const expandedGalleryFixedCardRef = useRef(null);
   const expandedGallerySourceRectRef = useRef(null);
+  const expandedGallerySourceInnerRef = useRef(null);
+  const expandedGallerySourceScrollRef = useRef({ x: 0, y: 0 });
   const expandedGalleryRectsRef = useRef(new Map());
   const expandedGalleryClosingCloneRef = useRef(null);
+  const expandedGalleryCloseMetaRef = useRef(null);
   const expandedGalleryOpeningCloneRef = useRef(null);
   const expandedGalleryPremiumOpenKeyRef = useRef(null);
+  const expandedGalleryScrollCloseArmUntilRef = useRef(0);
   const expandedGallerySoftCloseRef = useRef(false);
   const expandedGalleryIsClosingRef = useRef(false);
+  const expandedGalleryScrollMorphRef = useRef({
+    active: false,
+    progress: 0,
+    distance: 0,
+    heroStartTop: 0,
+    heroEndTop: 0,
+    animation: null,
+    layer: null,
+    stageContentNode: null,
+    heroItem: null,
+    flowItems: [],
+    previewItems: [],
+    suppressedRowIndex: null,
+    heroRestoreStyles: [],
+    stageRestoreStyles: [],
+  });
   const expandedGalleryWasVisibleRef = useRef(false);
   const expandedGalleryWasOpenRef = useRef(false);
   const [_expandedGalleryPinSize, setExpandedGalleryPinSize] = useState(null);
   const [expandedGalleryPerimeterProgress, setExpandedGalleryPerimeterProgress] = useState(0);
   const [expandedGalleryPinnedRowOffset, setExpandedGalleryPinnedRowOffset] = useState(0);
+  const [expandedGalleryScrollMorphActive, setExpandedGalleryScrollMorphActive] = useState(false);
   const expandedGalleryRowMetricsRef = useRef({
     basePinnedRowTopFromStage: 0,
     rowStep: 0,
@@ -718,6 +809,7 @@ const Home = () => {
     current: 0,
     animId: 0,
   });
+  const expandedGalleryPerimeterPostMorphRef = useRef(false);
   const [mobileLightbox, setMobileLightbox] = useState(null);
   const mobileLightboxTouchStartRef = useRef(null);
   const mobileLightboxImage = mobileLightbox?.images?.[mobileLightbox.index] ?? null;
@@ -818,14 +910,12 @@ const Home = () => {
     return () => ro.disconnect();
   }, []);
 
-  const clampNumber = (min, value, max) => Math.min(max, Math.max(min, value));
-
   const stackOffsetX = useMemo(() => {
     const width = stackWidth ?? (isMobileStack ? 360 : 900);
     const ratio = isMobileStack ? 0.07 : 0.07;
     const min = isMobileStack ? 10 : 16;
     const max = isMobileStack ? STACK_OFFSET_MOBILE_X : STACK_OFFSET_DESKTOP_X;
-    return Math.round(clampNumber(min, width * ratio, max));
+    return Math.round(clampValue(min, width * ratio, max));
   }, [stackWidth, isMobileStack]);
 
   const stackOffsetY = useMemo(() => {
@@ -833,7 +923,7 @@ const Home = () => {
     const ratio = isMobileStack ? 0.045 : 0.05;
     const min = isMobileStack ? 7 : 10;
     const max = isMobileStack ? STACK_OFFSET_MOBILE_Y : STACK_OFFSET_DESKTOP_Y;
-    return Math.round(clampNumber(min, width * ratio, max));
+    return Math.round(clampValue(min, width * ratio, max));
   }, [stackWidth, isMobileStack]);
 
   const stackWrapperTranslateX = useMemo(() => {
@@ -1071,7 +1161,7 @@ const Home = () => {
 
   const expandedGalleryStickyTop = useMemo(() => {
     if (!isDesktopGallery) return 112;
-    return Math.round(clampNumber(112, viewportHeight * 0.14, 168));
+    return Math.round(clampValue(112, viewportHeight * 0.14, 168));
   }, [
     isDesktopGallery,
     viewportHeight,
@@ -1101,12 +1191,12 @@ const Home = () => {
     [expandedLandingPerimeterImages.length]
   );
   const expandedGalleryPerimeterStepDistance = useMemo(
-    () => Math.round(clampNumber(112, viewportHeight * 0.15, 172)),
+    () => Math.round(clampValue(112, viewportHeight * 0.15, 172)),
     [viewportHeight]
   );
   const expandedGalleryPerimeterStageHeight = useMemo(
     () => Math.round(
-      clampNumber(900, viewportHeight * 0.86, 1040)
+      clampValue(900, viewportHeight * 0.86, 1040)
     ),
     [viewportHeight]
   );
@@ -1136,6 +1226,10 @@ const Home = () => {
       expandedGalleryPerimeterMaxProgress,
       expandedGalleryPerimeterStepDistance,
     ]
+  );
+  const expandedGalleryScrollMorphDistance = useMemo(
+    () => Math.round(clampValue(420, viewportHeight * 0.52, 620)),
+    [viewportHeight]
   );
   const expandedGalleryPerimeterOuterHeight = useMemo(
     () => (
@@ -1245,9 +1339,10 @@ const Home = () => {
   }, [heroImages.length]);
 
   useEffect(() => {
+    if (expandedGalleryScrollMorphActive) return undefined;
     stackIntervalRef.current = setInterval(advanceStack, 12000);
     return () => clearInterval(stackIntervalRef.current);
-  }, [advanceStack]);
+  }, [advanceStack, expandedGalleryScrollMorphActive]);
 
   useEffect(() => {
     if (departingIdx === null) return;
@@ -1282,17 +1377,37 @@ const Home = () => {
       const cardKey = node.dataset.galleryFlowCardKey;
       if (!cardKey) return;
 
-      const rect = node.getBoundingClientRect();
-      nextRects.set(cardKey, {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-      });
+      const rect = captureDocumentRect(node.getBoundingClientRect());
+      if (!rect) return;
+      nextRects.set(cardKey, rect);
     });
 
     expandedGalleryRectsRef.current = nextRects;
   }, []);
+
+  const removeClosingClone = useCallback(() => {
+    const clone = expandedGalleryClosingCloneRef.current;
+    if (!(clone instanceof HTMLElement)) return;
+
+    const animatedNodes = Array.from(
+      clone.querySelectorAll(
+        '[data-gallery-card-inner="true"], [data-gallery-flow-card-key], [data-gallery-pinned="true"], button'
+      )
+    );
+
+    if (animatedNodes.length) {
+      gsap.killTweensOf(animatedNodes);
+    }
+    gsap.killTweensOf(clone);
+    clone.remove();
+    expandedGalleryClosingCloneRef.current = null;
+  }, []);
+
+  const finalizeExpandedGalleryClose = useCallback(() => {
+    expandedGalleryCloseMetaRef.current = null;
+    expandedGalleryIsClosingRef.current = false;
+    removeClosingClone();
+  }, [removeClosingClone]);
 
   const removeOpeningClone = useCallback(() => {
     const clone = expandedGalleryOpeningCloneRef.current;
@@ -1301,6 +1416,18 @@ const Home = () => {
     gsap.killTweensOf(clone);
     clone.remove();
     expandedGalleryOpeningCloneRef.current = null;
+  }, []);
+
+  const makeGalleryCloneNonInteractive = useCallback((node) => {
+    if (!(node instanceof HTMLElement)) return;
+
+    node.style.pointerEvents = 'none';
+    node.setAttribute('aria-hidden', 'true');
+    node.inert = true;
+
+    node.querySelectorAll('*').forEach((child) => {
+      child.style.pointerEvents = 'none';
+    });
   }, []);
 
   const createOpeningCloneLayer = useCallback(() => {
@@ -1332,46 +1459,727 @@ const Home = () => {
         clone.style.margin = '0';
         clone.style.pointerEvents = 'none';
         clone.style.transform = 'none';
+        makeGalleryCloneNonInteractive(clone);
 
         layer.appendChild(clone);
       });
 
     if (!layer.childElementCount) return null;
 
+    makeGalleryCloneNonInteractive(layer);
     document.body.appendChild(layer);
     return layer;
-  }, [featuredRef, selectedRef]);
+  }, [featuredRef, makeGalleryCloneNonInteractive, selectedRef]);
 
-  const closeExpandedGalleryImage = useCallback(() => {
+  const captureInlineStyles = useCallback((nodes, keys) => (
+    nodes
+      .filter((node) => node instanceof HTMLElement)
+      .map((node) => ({
+        node,
+        styles: keys.reduce((acc, key) => ({
+          ...acc,
+          [key]: node.style[key] ?? '',
+        }), {}),
+      }))
+  ), []);
+
+  const restoreInlineStyles = useCallback((records = []) => {
+    records.forEach(({ node, styles }) => {
+      if (!(node instanceof HTMLElement) || !styles) return;
+      Object.entries(styles).forEach(([key, value]) => {
+        node.style[key] = value;
+      });
+    });
+  }, []);
+
+  const commitExpandedGalleryCloseState = useCallback(() => {
+    expandedGallerySourceRectRef.current = null;
+    expandedGallerySourceInnerRef.current = null;
+    expandedGalleryPremiumOpenKeyRef.current = null;
+    expandedGalleryScrollCloseArmUntilRef.current = 0;
+    removeOpeningClone();
+    setExpandedGalleryPerimeterProgress(0);
+    setExpandedGalleryPinnedRowOffset(0);
+    setExpandedGalleryImage(null);
+  }, [removeOpeningClone]);
+
+  const renderExpandedGalleryScrollMorph = useCallback((nextProgress) => {
+    const morph = expandedGalleryScrollMorphRef.current;
+    if (!morph.active || !(morph.stageContentNode instanceof HTMLElement)) return;
+
+    const progress = clampValue(0, nextProgress, 1);
+    morph.progress = progress;
+
+    const stackNode = stackRef.current;
+    if (stackNode instanceof HTMLElement) {
+      const stackReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.08, 0.72));
+      const wrapperOpacity = interpolateValue(0.24, 1, stackReveal);
+      const wrapperBlur = interpolateValue(7, 0, stackReveal);
+      stackNode.style.opacity = `${wrapperOpacity.toFixed(3)}`;
+      stackNode.style.filter = `blur(${wrapperBlur.toFixed(2)}px)`;
+      stackNode.style.willChange = 'opacity,filter';
+
+      stackNode.querySelectorAll('[data-hero-stack-bg-card="true"]').forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        const baseOpacity = Number.parseFloat(node.dataset.heroStackBaseOpacity ?? '0');
+        const localProgress = perimeterSnapEase(normalizeRangeProgress(progress, 0.12, 0.62));
+        node.style.opacity = `${(baseOpacity * localProgress).toFixed(3)}`;
+        node.style.willChange = 'opacity';
+      });
+
+      stackNode.querySelectorAll('[data-hero-stack-card="true"]').forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        const position = Number.parseInt(node.dataset.heroStackCardPosition ?? '0', 10);
+        const isFrontCard = position === STACK_COUNT - 1;
+        const fadeStart = isFrontCard ? 0.50 : 0.16 + position * 0.06;
+        const fadeEnd = isFrontCard ? 0.84 : 0.74;
+        const localProgress = perimeterSnapEase(normalizeRangeProgress(progress, fadeStart, fadeEnd));
+        const baseOpacity = isFrontCard ? 0 : Math.min(0.45 + position * 0.16, 0.85);
+        node.style.opacity = `${interpolateValue(baseOpacity, 1, localProgress).toFixed(3)}`;
+        node.style.willChange = 'opacity';
+      });
+
+      const departingNode = stackNode.querySelector('[data-hero-stack-departing="true"]');
+      if (departingNode instanceof HTMLElement) {
+        departingNode.style.opacity = `${interpolateValue(
+          0,
+          Number.parseFloat(departingNode.dataset.heroStackBaseOpacity ?? '1'),
+          perimeterSnapEase(normalizeRangeProgress(progress, 0.30, 0.76))
+        ).toFixed(3)}`;
+        departingNode.style.willChange = 'opacity';
+      }
+    }
+
+    if (morph.heroItem?.node instanceof HTMLElement) {
+      const heroTargetNode =
+        stackRef.current?.querySelector?.(
+          `[data-hero-stack-card-position="${STACK_COUNT - 1}"]`
+        ) ?? stackRef.current;
+      const heroTargetRect = heroTargetNode?.getBoundingClientRect?.();
+      const heroMorphProgress = perimeterSnapEase(normalizeRangeProgress(progress, 0.02, 0.90));
+      if (
+        morph.heroItem.fromRect?.width &&
+        morph.heroItem.fromRect?.height &&
+        heroTargetRect?.width &&
+        heroTargetRect?.height
+      ) {
+        setFixedRect(
+          morph.heroItem.node,
+          interpolateRect(morph.heroItem.fromRect, heroTargetRect, heroMorphProgress)
+        );
+        const heroFadeProgress = perimeterSnapEase(normalizeRangeProgress(progress, 0.64, 0.86));
+        morph.heroItem.node.style.opacity = `${interpolateValue(1, 0, heroFadeProgress).toFixed(3)}`;
+        morph.heroItem.node.style.filter = `blur(${interpolateValue(0, 1.4, heroFadeProgress).toFixed(2)}px)`;
+        morph.heroItem.node.style.willChange = 'left,top,width,height,opacity,filter';
+      }
+    }
+
+    morph.flowItems.forEach(({ node, fromRect, cardKey, edge, targetRow }, index) => {
+      if (!(node instanceof HTMLElement) || !fromRect?.width || !fromRect?.height) return;
+
+      if (
+        typeof morph.suppressedRowIndex === 'number' &&
+        targetRow === morph.suppressedRowIndex
+      ) {
+        node.style.opacity = '0';
+        node.style.filter = 'blur(2px)';
+        node.style.willChange = 'opacity,filter';
+        return;
+      }
+
+      const targetRect = projectDocumentRectToViewport(
+        resolveCapturedGalleryRect(expandedGalleryRectsRef.current, cardKey)
+      );
+
+      node.style.willChange = 'left,top,width,height,opacity,filter';
+
+      if (targetRect?.width && targetRect?.height) {
+        const nearViewport = isRectNearViewport(targetRect, window.innerHeight * 0.4);
+
+        if (nearViewport) {
+          const yProgress = perimeterSnapEase(
+            normalizeRangeProgress(progress, 0.06, 0.26)
+          );
+          const sizeProgress = perimeterSnapEase(
+            normalizeRangeProgress(progress, 0.08, 0.32)
+          );
+          const xProgress = perimeterSnapEase(
+            normalizeRangeProgress(progress, 0.14, 0.42)
+          );
+          setFixedRect(node, {
+            left: interpolateValue(fromRect.left, targetRect.left, xProgress),
+            top: interpolateValue(fromRect.top, targetRect.top, yProgress),
+            width: interpolateValue(fromRect.width, targetRect.width, sizeProgress),
+            height: interpolateValue(fromRect.height, targetRect.height, sizeProgress),
+          });
+
+          const fadeProgress = perimeterSnapEase(
+            normalizeRangeProgress(progress, 0.50, 0.84)
+          );
+          node.style.opacity = `${interpolateValue(1, 0.08, fadeProgress).toFixed(3)}`;
+          node.style.filter = `blur(${interpolateValue(0, 1.2, fadeProgress).toFixed(2)}px)`;
+        } else {
+          const travelProgress = perimeterSnapEase(
+            normalizeRangeProgress(progress, 0.05, 0.70)
+          );
+          setFixedRect(node, interpolateRect(fromRect, targetRect, travelProgress));
+
+          const fadeProgress = perimeterSnapEase(
+            normalizeRangeProgress(progress, 0.12, 0.45)
+          );
+          node.style.opacity = `${interpolateValue(1, 0, fadeProgress).toFixed(3)}`;
+          node.style.filter = `blur(${interpolateValue(0, 2.2, fadeProgress).toFixed(2)}px)`;
+        }
+        return;
+      }
+
+      const staggerOffset = Math.min(index * EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER, 0.16);
+      const localProgress = perimeterSnapEase(
+        normalizeRangeProgress(progress, 0.03 + staggerOffset, 0.86)
+      );
+      const exitOffset = getPerimeterEntryOffset(edge);
+      const fallbackRect = {
+        left: interpolateValue(
+          fromRect.left,
+          fromRect.left + (exitOffset.x * 132),
+          localProgress
+        ),
+        top: interpolateValue(
+          fromRect.top,
+          fromRect.top + Math.max(window.innerHeight * 0.42, 220) + (index * 14) + (exitOffset.y * 44),
+          localProgress
+        ),
+        width: interpolateValue(fromRect.width, fromRect.width * 0.54, localProgress),
+        height: interpolateValue(fromRect.height, fromRect.height * 0.54, localProgress),
+      };
+      setFixedRect(node, fallbackRect);
+      node.style.opacity = `${interpolateValue(1, 0, localProgress).toFixed(3)}`;
+      node.style.filter = `blur(${interpolateValue(0, 2.2, localProgress).toFixed(2)}px)`;
+    });
+
+    morph.previewItems.forEach(({ node, cardKey }) => {
+      if (!(node instanceof HTMLElement)) return;
+
+      const targetRect = projectDocumentRectToViewport(
+        resolveCapturedGalleryRect(expandedGalleryRectsRef.current, cardKey)
+      );
+      if (!(targetRect?.width && targetRect?.height)) {
+        node.style.opacity = '0';
+        return;
+      }
+
+      setFixedRect(node, targetRect);
+      const previewFadeProgress = perimeterSnapEase(
+        normalizeRangeProgress(progress, 0.50, 0.84)
+      );
+      node.style.opacity = `${interpolateValue(1, 0.08, previewFadeProgress).toFixed(3)}`;
+      node.style.filter = `blur(${interpolateValue(0, 1.2, previewFadeProgress).toFixed(2)}px)`;
+      node.style.willChange = 'left,top,width,height,opacity,filter';
+    });
+  }, []);
+
+  const cleanupExpandedGalleryScrollMorph = useCallback((options = {}) => {
+    const {
+      close = false,
+      restoreStage = !close,
+    } = options;
+    const morph = expandedGalleryScrollMorphRef.current;
+    if (!morph.active) return;
+
+    morph.animation?.cancel?.();
+
+    restoreInlineStyles(morph.heroRestoreStyles);
+    if (restoreStage) {
+      restoreInlineStyles(morph.stageRestoreStyles);
+    } else if (typeof window !== 'undefined' && morph.stageRestoreStyles.length) {
+      window.requestAnimationFrame(() => restoreInlineStyles(morph.stageRestoreStyles));
+    }
+
+    const layerToRemove = morph.layer;
+    if (layerToRemove instanceof HTMLElement) {
+      layerToRemove.style.transition = 'opacity 180ms ease-out';
+      layerToRemove.style.opacity = '0';
+      const removeTimer = setTimeout(() => {
+        layerToRemove.remove();
+      }, 200);
+      layerToRemove._removeTimer = removeTimer;
+    }
+
+    expandedGalleryScrollMorphRef.current = {
+      active: false,
+      progress: 0,
+      distance: 0,
+      heroStartTop: 0,
+      heroEndTop: 0,
+      animation: null,
+      layer: null,
+      stageContentNode: null,
+      heroItem: null,
+      flowItems: [],
+      previewItems: [],
+      suppressedRowIndex: null,
+      heroRestoreStyles: [],
+      stageRestoreStyles: [],
+    };
+    setExpandedGalleryScrollMorphActive(false);
+    expandedGalleryPerimeterPostMorphRef.current = true;
+  }, [restoreInlineStyles]);
+
+  const startExpandedGalleryScrollMorph = useCallback(() => {
+    if (
+      expandedGalleryScrollMorphRef.current.active ||
+      !expandedGalleryImageKey ||
+      !isDesktopGallery ||
+      !useExpandedLandingPerimeter ||
+      typeof document === 'undefined' ||
+      window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
+    ) {
+      return expandedGalleryScrollMorphRef.current.active;
+    }
+
+    const stageNode = expandedGalleryStageRef.current;
+    const stageContentNode =
+      stageNode?.querySelector?.('[data-gallery-stage-content="true"]') ?? stageNode;
+    const pinnedNode = expandedGalleryFixedCardRef.current;
+    const pinnedInner =
+      pinnedNode?.querySelector?.('[data-gallery-card-inner="true"]') ?? pinnedNode;
+    const stackNode = stackRef.current;
+    const heroTargetNode =
+      stackNode?.querySelector?.(`[data-hero-stack-card-position="${STACK_COUNT - 1}"]`) ??
+      stackNode;
+    if (
+      !(stageContentNode instanceof HTMLElement) ||
+      !(pinnedNode instanceof HTMLElement) ||
+      !(pinnedInner instanceof HTMLElement) ||
+      !(stackNode instanceof HTMLElement) ||
+      !(heroTargetNode instanceof HTMLElement)
+    ) {
+      return false;
+    }
+
+    const heroTargetRect = heroTargetNode.getBoundingClientRect();
+    const heroEndTop = Math.round(
+      clampValue(
+        108,
+        Math.max(expandedGalleryStickyTop - 6, viewportHeight * 0.132),
+        152
+      )
+    );
+    const morphDistance = Math.round(clampValue(
+      expandedGalleryScrollMorphDistance,
+      Math.max(
+        Math.abs(Math.min(heroTargetRect.top, 0)) + (heroTargetRect.height * 0.68),
+        viewportHeight * 0.58
+      ),
+      Math.max(expandedGalleryScrollMorphDistance, viewportHeight * 0.9)
+    ));
+
+    removeClosingClone();
+    removeOpeningClone();
+
+    const nextRects = new Map();
+
+    let morphGridLeft = 0;
+    let morphColsPerRow = 4;
+    let morphGap = 32;
+    let morphCardWidth = 0;
+    let morphCardHeight = 0;
+    let morphGridTop = 0;
+    let morphGridIndex = 0;
+    let morphGridWidth = 0;
+    let heroGuideBottom = null;
+
+    const selectedSection = selectedRef.current;
+    if (selectedSection instanceof HTMLElement) {
+      const sectionRect = selectedSection.getBoundingClientRect();
+      const sectionStyle = window.getComputedStyle(selectedSection);
+      const padLeft = parseFloat(sectionStyle.paddingLeft) || 0;
+      const padRight = parseFloat(sectionStyle.paddingRight) || 0;
+
+      morphGridLeft = sectionRect.left + padLeft;
+      const gridWidth = sectionRect.width - padLeft - padRight;
+      morphGridWidth = gridWidth;
+
+      const isLg = window.innerWidth >= 1024;
+      morphColsPerRow = isLg ? 4 : 2;
+      morphGap = window.innerWidth >= 768 ? 32 : 8;
+
+      morphCardWidth = (gridWidth - (morphColsPerRow - 1) * morphGap) / morphColsPerRow;
+      morphCardHeight = morphCardWidth * 0.75;
+
+      const heroGuide =
+        stackRef.current?.querySelector?.(
+          `[data-hero-stack-card-position="${STACK_COUNT - 1}"]`
+        ) ?? stackRef.current;
+      const rawHeroGuideBottom = heroGuide?.getBoundingClientRect?.()?.bottom;
+      heroGuideBottom = Number.isFinite(rawHeroGuideBottom) ? rawHeroGuideBottom : null;
+      morphGridTop = Math.round(
+        clampValue(
+          360,
+          heroGuideBottom !== null ? heroGuideBottom + 24 : viewportHeight * 0.44,
+          viewportHeight * 0.50
+        )
+      );
+
+      ASSORTED_IMAGE_IDS.forEach((_, i) => {
+        const cardKey = `selected:as-${i + 1}`;
+        const col = i % morphColsPerRow;
+        const row = Math.floor(i / morphColsPerRow);
+        nextRects.set(cardKey, {
+          left: morphGridLeft + col * (morphCardWidth + morphGap),
+          top: morphGridTop + row * (morphCardHeight + morphGap),
+          width: morphCardWidth,
+          height: morphCardHeight,
+        });
+      });
+
+      morphGridIndex = ASSORTED_IMAGE_IDS.length;
+    }
+
+    if (morphCardWidth > 0) {
+      document.querySelectorAll('[data-gallery-flow-card-key]').forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        if (stageNode?.contains(node)) return;
+        const cardKey = node.dataset.galleryFlowCardKey;
+        if (!cardKey || nextRects.has(cardKey)) return;
+
+        const col = morphGridIndex % morphColsPerRow;
+        const row = Math.floor(morphGridIndex / morphColsPerRow);
+        nextRects.set(cardKey, {
+          left: morphGridLeft + col * (morphCardWidth + morphGap),
+          top: morphGridTop + row * (morphCardHeight + morphGap),
+          width: morphCardWidth,
+          height: morphCardHeight,
+        });
+        morphGridIndex++;
+      });
+    }
+    const morphRowStep = morphCardHeight + morphGap;
+    const targetKeysByRow = new Map();
+    const targetRowByCardKey = new Map();
+    if (morphRowStep > 0) {
+      Array.from(nextRects.entries())
+        .map(([cardKey, rect]) => ({
+          cardKey,
+          rect,
+          targetRow: Math.round((rect.top - morphGridTop) / morphRowStep),
+        }))
+        .sort((a, b) => (
+          a.targetRow === b.targetRow
+            ? a.rect.left - b.rect.left
+            : a.targetRow - b.targetRow
+        ))
+        .forEach(({ cardKey, rect, targetRow }) => {
+          targetRowByCardKey.set(cardKey, targetRow);
+          const rowKeys = targetKeysByRow.get(targetRow) ?? [];
+          rowKeys.push(cardKey);
+          targetKeysByRow.set(targetRow, rowKeys);
+        });
+    }
+    const previewRowIndex = targetKeysByRow.has(1)
+      ? 1
+      : Array.from(targetKeysByRow.keys())
+          .filter((targetRow) => targetRow > 0)
+          .sort((a, b) => a - b)[0] ?? 0;
+    const suppressedRowIndex = previewRowIndex > 0 ? previewRowIndex - 1 : null;
+    const previewRowTargetKeys = targetKeysByRow.get(previewRowIndex) ?? [];
+
+    expandedGalleryRectsRef.current = nextRects;
+
+    const layer = document.createElement('div');
+    layer.style.position = 'fixed';
+    layer.style.inset = '0';
+    layer.style.pointerEvents = 'none';
+    layer.style.zIndex = '46';
+    layer.style.overflow = 'visible';
+    layer.style.willChange = 'opacity';
+
+    const createMorphCardClone = (sourceNode, sourceRect, zIndex) => {
+      if (!(sourceNode instanceof HTMLElement) || !sourceRect?.width || !sourceRect?.height) {
+        return null;
+      }
+
+      const overlay = document.createElement('div');
+      const sourceStyles = window.getComputedStyle(sourceNode);
+      overlay.style.position = 'fixed';
+      overlay.style.margin = '0';
+      overlay.style.pointerEvents = 'none';
+      overlay.style.overflow = 'hidden';
+      overlay.style.zIndex = String(zIndex);
+      overlay.style.borderRadius = sourceStyles.borderRadius;
+      overlay.style.boxShadow = sourceStyles.boxShadow;
+      overlay.style.background = sourceStyles.backgroundColor;
+      overlay.style.willChange = 'left,top,width,height,opacity,filter';
+      setFixedRect(overlay, sourceRect);
+
+      const clone = sourceNode.cloneNode(true);
+      if (!(clone instanceof HTMLElement)) return null;
+
+      clone.querySelectorAll('button').forEach((button) => button.remove());
+      clone.style.width = '100%';
+      clone.style.height = '100%';
+      clone.style.transform = 'none';
+      clone.style.opacity = '1';
+      clone.style.pointerEvents = 'none';
+      clone.querySelectorAll('*').forEach((child) => {
+        if (!(child instanceof HTMLElement)) return;
+        child.style.transition = 'none';
+        child.style.animation = 'none';
+        child.style.pointerEvents = 'none';
+      });
+
+      overlay.appendChild(clone);
+      makeGalleryCloneNonInteractive(overlay);
+      return overlay;
+    };
+
+    const heroFromRect = captureDocumentRect(pinnedNode.getBoundingClientRect());
+    const heroOverlayNode = createMorphCardClone(pinnedInner, heroFromRect, 48);
+    if (!(heroOverlayNode instanceof HTMLElement)) return false;
+
+    const pinnedRect = pinnedNode.getBoundingClientRect();
+    const pinnedCenterX = pinnedRect.left + (pinnedRect.width / 2);
+    const pinnedCenterY = pinnedRect.top + (pinnedRect.height / 2);
+
+    const seenCanonicalFlowKeys = new Set();
+    const renderedDomFlowCardNodes = Array.from(
+      stageNode.querySelectorAll('[data-gallery-flow-card-key]')
+    )
+      .filter((node) => node instanceof HTMLElement);
+    const flowItems = renderedDomFlowCardNodes
+      .map((node) => {
+        const inner = node.querySelector('[data-gallery-card-inner="true"]') ?? node;
+        const fromRect = captureDocumentRect(node.getBoundingClientRect());
+        if (!(inner instanceof HTMLElement) || !fromRect) return null;
+
+        const rawCardKey = node.dataset.galleryFlowCardKey ?? '';
+        const canonicalCardKey = rawCardKey.replace(/:btm$/, '');
+        if (!canonicalCardKey || seenCanonicalFlowKeys.has(canonicalCardKey)) return null;
+        seenCanonicalFlowKeys.add(canonicalCardKey);
+        const targetRow = targetRowByCardKey.get(canonicalCardKey) ?? null;
+
+        const centerX = fromRect.left + (fromRect.width / 2);
+        const centerY = fromRect.top + (fromRect.height / 2);
+        const overlayNode = createMorphCardClone(inner, fromRect, 47);
+        if (!(overlayNode instanceof HTMLElement)) return null;
+        if (targetRow === suppressedRowIndex) {
+          overlayNode.style.opacity = '0';
+        }
+
+        return {
+          node: overlayNode,
+          fromRect,
+          cardKey: canonicalCardKey,
+          edge: node.dataset.galleryEdge ?? 'bottom',
+          targetRow,
+          distance: Math.hypot(centerX - pinnedCenterX, centerY - pinnedCenterY),
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.distance - b.distance)
+      .map(({ node, fromRect, cardKey, edge, targetRow }) => ({
+        node,
+        fromRect,
+        cardKey,
+        edge,
+        targetRow,
+      }));
+    const previewRowLiveKeys = [];
+    flowItems.forEach(({ cardKey, targetRow }) => {
+      if (targetRow === previewRowIndex) {
+        previewRowLiveKeys.push(cardKey);
+      }
+    });
+    const previewCatalogByKey = new Map(
+      expandedGalleryCatalogImages.map((img) => [`${img.galleryKey}:${img.id}`, img])
+    );
+    const previewRowPreviewKeys = previewRowTargetKeys.filter(
+      (cardKey) => !previewRowLiveKeys.includes(cardKey)
+    );
+    const previewItems = previewRowPreviewKeys
+      .map((cardKey) => {
+        const previewImage = previewCatalogByKey.get(cardKey);
+        const targetRect = projectDocumentRectToViewport(
+          resolveCapturedGalleryRect(nextRects, cardKey)
+        );
+        const imageUrl = previewImage?.cldImg?.toURL?.();
+        if (!previewImage || !imageUrl || !(targetRect?.width && targetRect?.height)) {
+          return null;
+        }
+
+        const previewNode = document.createElement('div');
+        previewNode.dataset.galleryMorphPreviewKey = cardKey;
+        previewNode.style.position = 'fixed';
+        previewNode.style.margin = '0';
+        previewNode.style.pointerEvents = 'none';
+        previewNode.style.overflow = 'hidden';
+        previewNode.style.zIndex = '46';
+        previewNode.style.borderRadius = '8px';
+        previewNode.style.background = 'rgba(226, 232, 240, 0.2)';
+        previewNode.style.boxShadow = '0 16px 32px rgba(148, 163, 184, 0.18)';
+        previewNode.style.opacity = '0';
+        previewNode.style.filter = 'blur(3px)';
+        previewNode.style.willChange = 'left,top,width,height,opacity,filter';
+        setFixedRect(previewNode, targetRect);
+
+        const previewImageNode = document.createElement('img');
+        previewImageNode.src = imageUrl;
+        previewImageNode.alt =
+          previewImage.altText ?? `${previewImage.altLabel ?? 'Selected Work'} preview`;
+        previewImageNode.loading = 'eager';
+        previewImageNode.decoding = 'async';
+        previewImageNode.draggable = false;
+        previewImageNode.style.width = '100%';
+        previewImageNode.style.height = '100%';
+        previewImageNode.style.display = 'block';
+        previewImageNode.style.objectFit = 'cover';
+        previewImageNode.style.pointerEvents = 'none';
+        previewNode.appendChild(previewImageNode);
+        makeGalleryCloneNonInteractive(previewNode);
+
+        return {
+          node: previewNode,
+          cardKey,
+        };
+      })
+      .filter(Boolean);
+
+    previewItems.forEach(({ node }) => {
+      layer.appendChild(node);
+    });
+    flowItems.forEach(({ node }) => {
+      layer.appendChild(node);
+    });
+    layer.appendChild(heroOverlayNode);
+    makeGalleryCloneNonInteractive(layer);
+    document.body.appendChild(layer);
+
+    const stageRestoreStyles = captureInlineStyles(
+      [stageContentNode],
+      ['opacity', 'pointerEvents', 'willChange']
+    );
+    const heroRestoreStyles = captureInlineStyles(
+      [
+        stackNode,
+        ...stackNode.querySelectorAll('[data-hero-stack-bg-card="true"]'),
+        ...stackNode.querySelectorAll('[data-hero-stack-card="true"]'),
+        ...stackNode.querySelectorAll('[data-hero-stack-departing="true"]'),
+      ],
+      ['opacity', 'filter', 'willChange']
+    );
+
+    stageContentNode.style.opacity = '0';
+    stageContentNode.style.pointerEvents = 'none';
+    stageContentNode.style.willChange = 'opacity';
+
+    const morphProgress = { value: 0 };
+    expandedGalleryScrollMorphRef.current = {
+      active: true,
+      progress: 0,
+      distance: morphDistance,
+      heroStartTop: heroTargetRect.top,
+      heroEndTop,
+      animation: null,
+      layer,
+      stageContentNode,
+      heroItem: {
+        node: heroOverlayNode,
+        fromRect: heroFromRect,
+      },
+      flowItems,
+      previewItems,
+      suppressedRowIndex,
+      heroRestoreStyles,
+      stageRestoreStyles,
+    };
+
+    const animation = animate(morphProgress, {
+      value: 1,
+      autoplay: false,
+      duration: 1000,
+      ease: 'linear',
+      onUpdate: () => {
+        renderExpandedGalleryScrollMorph(morphProgress.value);
+      },
+    });
+
+    expandedGalleryScrollMorphRef.current.animation = animation;
+    setExpandedGalleryScrollMorphActive(true);
+    animation.seek(0);
+    renderExpandedGalleryScrollMorph(0);
+    return true;
+  }, [
+    captureInlineStyles,
+    expandedGalleryImageKey,
+    expandedGalleryScrollMorphDistance,
+    expandedGalleryCatalogImages,
+    expandedGalleryStickyTop,
+    isDesktopGallery,
+    makeGalleryCloneNonInteractive,
+    removeClosingClone,
+    removeOpeningClone,
+    renderExpandedGalleryScrollMorph,
+    useExpandedLandingPerimeter,
+    viewportHeight,
+  ]);
+
+  const syncExpandedGalleryScrollMorphProgress = useCallback((nextProgress) => {
+    const clamped = clampValue(0, nextProgress, 1);
+    if (!expandedGalleryScrollMorphRef.current.active) {
+      if (!startExpandedGalleryScrollMorph()) return false;
+    }
+
+    const morph = expandedGalleryScrollMorphRef.current;
+    const animation = morph.animation;
+    if (!animation) {
+      renderExpandedGalleryScrollMorph(clamped);
+      morph.progress = clamped;
+      return true;
+    }
+
+    const duration = Number.isFinite(animation.duration) && animation.duration > 0
+      ? animation.duration
+      : 1000;
+    animation.seek(duration * clamped);
+    morph.progress = clamped;
+    return true;
+  }, [renderExpandedGalleryScrollMorph, startExpandedGalleryScrollMorph]);
+
+  const finalizeExpandedGalleryScrollMorphClose = useCallback(() => {
+    if (!expandedGalleryScrollMorphRef.current.active) return;
+
+    expandedGalleryIsClosingRef.current = true;
+    expandedGalleryCloseMetaRef.current = null;
+    expandedGallerySoftCloseRef.current = false;
+    expandedGalleryRectsRef.current = new Map();
+    cleanupExpandedGalleryScrollMorph({ close: true });
+    commitExpandedGalleryCloseState();
+    finalizeExpandedGalleryClose();
+  }, [
+    cleanupExpandedGalleryScrollMorph,
+    commitExpandedGalleryCloseState,
+    finalizeExpandedGalleryClose,
+  ]);
+
+  const closeExpandedGalleryImage = useCallback((options = {}) => {
+    const { reason = 'explicit' } = options;
     if (!expandedGalleryImageKey || expandedGalleryIsClosingRef.current) return;
 
-    const finishClose = () => {
-      expandedGalleryIsClosingRef.current = false;
-      expandedGallerySourceRectRef.current = null;
-      expandedGalleryPremiumOpenKeyRef.current = null;
-      removeOpeningClone();
-      setExpandedGalleryPerimeterProgress(0);
-      setExpandedGalleryPinnedRowOffset(0);
-      setExpandedGalleryImage(null);
-    };
-
-    const removeClosingClone = () => {
-      const clone = expandedGalleryClosingCloneRef.current;
-      if (!(clone instanceof HTMLElement)) return;
-
-      gsap.killTweensOf(clone);
-      clone.remove();
-      expandedGalleryClosingCloneRef.current = null;
-    };
+    if (expandedGalleryScrollMorphRef.current.active) {
+      finalizeExpandedGalleryScrollMorphClose();
+      return;
+    }
 
     if (
       !isDesktopGallery ||
       window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches
     ) {
       removeClosingClone();
+      expandedGalleryCloseMetaRef.current = null;
       expandedGallerySoftCloseRef.current = false;
       captureGalleryCardRects();
-      finishClose();
+      commitExpandedGalleryCloseState();
+      expandedGalleryIsClosingRef.current = false;
       return;
     }
 
@@ -1384,8 +2192,10 @@ const Home = () => {
 
     if (!(stageContentNode instanceof HTMLElement)) {
       removeClosingClone();
+      expandedGalleryCloseMetaRef.current = null;
       expandedGallerySoftCloseRef.current = false;
-      finishClose();
+      commitExpandedGalleryCloseState();
+      expandedGalleryIsClosingRef.current = false;
       return;
     }
 
@@ -1393,8 +2203,10 @@ const Home = () => {
     const closingClone = stageContentNode.cloneNode(true);
     if (!(closingClone instanceof HTMLElement)) {
       removeClosingClone();
+      expandedGalleryCloseMetaRef.current = null;
       expandedGallerySoftCloseRef.current = false;
-      finishClose();
+      commitExpandedGalleryCloseState();
+      expandedGalleryIsClosingRef.current = false;
       return;
     }
 
@@ -1409,23 +2221,33 @@ const Home = () => {
     closingClone.style.pointerEvents = 'none';
     closingClone.style.zIndex = '45';
     closingClone.style.willChange = 'opacity,transform';
+    makeGalleryCloneNonInteractive(closingClone);
     document.body.appendChild(closingClone);
     expandedGalleryClosingCloneRef.current = closingClone;
 
-    expandedGallerySoftCloseRef.current = true;
     expandedGalleryIsClosingRef.current = true;
-
-    captureGalleryCardRects();
-    expandedGallerySourceRectRef.current = null;
-    expandedGalleryPremiumOpenKeyRef.current = null;
-    setExpandedGalleryPerimeterProgress(0);
-    setExpandedGalleryPinnedRowOffset(0);
-    setExpandedGalleryImage(null);
+    const shouldUsePerimeterClose =
+      useExpandedLandingPerimeter && reason === 'explicit';
+    expandedGalleryCloseMetaRef.current = {
+      mode: shouldUsePerimeterClose ? 'landing-perimeter' : 'soft',
+      selectedCardKey: expandedGalleryImageKey,
+    };
 
     gsap.killTweensOf(stageContentNode);
     if (pinnedInner instanceof HTMLElement) {
       gsap.killTweensOf(pinnedInner);
     }
+
+    if (shouldUsePerimeterClose) {
+      expandedGalleryRectsRef.current = new Map();
+      expandedGallerySoftCloseRef.current = false;
+      commitExpandedGalleryCloseState();
+      return;
+    }
+
+    captureGalleryCardRects();
+    expandedGallerySoftCloseRef.current = true;
+    commitExpandedGalleryCloseState();
 
     gsap.to(closingClone, {
       opacity: 0,
@@ -1434,17 +2256,33 @@ const Home = () => {
       duration: EXPANDED_GALLERY_SOFT_CLOSE_DURATION,
       ease: 'power2.out',
       overwrite: 'auto',
-      onComplete: () => {
-        removeClosingClone();
-        expandedGalleryIsClosingRef.current = false;
-      },
+      onComplete: finalizeExpandedGalleryClose,
     });
   }, [
     captureGalleryCardRects,
     expandedGalleryImageKey,
+    finalizeExpandedGalleryScrollMorphClose,
+    finalizeExpandedGalleryClose,
     isDesktopGallery,
+    makeGalleryCloneNonInteractive,
+    removeClosingClone,
     removeOpeningClone,
+    commitExpandedGalleryCloseState,
+    useExpandedLandingPerimeter,
   ]);
+
+  useEffect(() => {
+    if (expandedGalleryImageKey && isDesktopGallery) return undefined;
+    if (!expandedGalleryScrollMorphRef.current.active) return undefined;
+    const rafId = window.requestAnimationFrame(() => {
+      cleanupExpandedGalleryScrollMorph();
+    });
+    return () => window.cancelAnimationFrame(rafId);
+  }, [cleanupExpandedGalleryScrollMorph, expandedGalleryImageKey, isDesktopGallery]);
+
+  useEffect(() => () => {
+    cleanupExpandedGalleryScrollMorph();
+  }, [cleanupExpandedGalleryScrollMorph]);
 
   const closeMobileLightbox = useCallback(() => {
     mobileLightboxTouchStartRef.current = null;
@@ -1480,7 +2318,9 @@ const Home = () => {
   }, []);
 
   const handleGalleryImageClick = useCallback((galleryKey, imageId, e) => {
-    if (expandedGalleryIsClosingRef.current) return;
+    if (expandedGalleryIsClosingRef.current) {
+      finalizeExpandedGalleryClose();
+    }
 
     const nextImageKey = `${galleryKey}:${imageId}`;
     if (expandedGalleryImageKey === nextImageKey) {
@@ -1507,6 +2347,12 @@ const Home = () => {
       expandedGallerySourceRectRef.current = null;
     }
 
+    expandedGallerySourceInnerRef.current = inner;
+    expandedGallerySourceScrollRef.current = {
+      x: typeof window !== 'undefined' ? window.scrollX : 0,
+      y: typeof window !== 'undefined' ? window.scrollY : 0,
+    };
+
     removeOpeningClone();
     const shouldUsePremiumOpen =
       !hasExpandedGalleryImage &&
@@ -1517,7 +2363,9 @@ const Home = () => {
       ? createOpeningCloneLayer()
       : null;
 
-    expandedGalleryPremiumOpenKeyRef.current = null;
+    expandedGalleryPremiumOpenKeyRef.current = shouldUsePremiumOpen
+      ? nextImageKey
+      : null;
 
     if (openingClone instanceof HTMLElement) {
       expandedGalleryOpeningCloneRef.current = openingClone;
@@ -1526,6 +2374,9 @@ const Home = () => {
     captureGalleryCardRects();
     setExpandedGalleryPerimeterProgress(0);
     setExpandedGalleryPinnedRowOffset(0);
+    expandedGalleryWasVisibleRef.current = true;
+    expandedGalleryScrollCloseArmUntilRef.current =
+      Date.now() + EXPANDED_GALLERY_SCROLL_CLOSE_ARM_DELAY_MS;
     expandedGallerySoftCloseRef.current = false;
     expandedGalleryIsClosingRef.current = false;
     setExpandedGalleryImage({ galleryKey, imageId });
@@ -1534,6 +2385,7 @@ const Home = () => {
     closeExpandedGalleryImage,
     createOpeningCloneLayer,
     expandedGalleryImageKey,
+    finalizeExpandedGalleryClose,
     hasExpandedGalleryImage,
     isDesktopGallery,
     removeOpeningClone,
@@ -1623,7 +2475,23 @@ const Home = () => {
     });
   }, []);
 
-  useEffect(() => {
+  const getExpandedGalleryOpenScrollBias = useCallback((shouldApply = true) => {
+    if (!shouldApply || typeof window === 'undefined') return 0;
+
+    const sourceRect = expandedGallerySourceRectRef.current;
+    if (!sourceRect) return 0;
+
+    const sourceCenterY = sourceRect.top + (sourceRect.height / 2);
+    const threshold = window.innerHeight * 0.34;
+    if (!Number.isFinite(sourceCenterY) || sourceCenterY >= threshold) return 0;
+
+    const maxBias = Math.round(clampValue(28, window.innerHeight * 0.08, 72));
+    const biasProgress = 1 - normalizeRangeProgress(sourceCenterY, 0, threshold);
+
+    return Math.round(interpolateValue(0, maxBias, biasProgress));
+  }, []);
+
+  useLayoutEffect(() => {
     if (!expandedGalleryImageKey) {
       expandedGalleryWasOpenRef.current = false;
       return undefined;
@@ -1635,6 +2503,8 @@ const Home = () => {
     expandedGalleryWasOpenRef.current = true;
 
     const scrollExpandedTargetIntoView = () => {
+      const openingScrollBias = getExpandedGalleryOpenScrollBias(!wasOpen);
+
       const expandedCard =
         expandedGalleryFixedCardRef.current ??
         document.querySelector(
@@ -1646,7 +2516,7 @@ const Home = () => {
         const centeredTop = (window.innerHeight - rect.height) / 2;
         const nextScrollTop = Math.max(
           0,
-          window.scrollY + rect.top - centeredTop
+          window.scrollY + rect.top - centeredTop + openingScrollBias
         );
 
         if (Math.abs(nextScrollTop - window.scrollY) > 1) {
@@ -1656,6 +2526,27 @@ const Home = () => {
           });
         }
         return;
+      }
+
+      if (useExpandedLandingPerimeter && isDesktopGallery) {
+        const stageNode = expandedGalleryStageRef.current;
+        if (stageNode instanceof HTMLElement) {
+          const rect = stageNode.getBoundingClientRect();
+          const progressStartTop =
+            expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
+          const nextScrollTop = Math.max(
+            0,
+            window.scrollY + rect.top - progressStartTop + openingScrollBias
+          );
+
+          if (Math.abs(nextScrollTop - window.scrollY) > 1) {
+            window.scrollTo({
+              top: nextScrollTop,
+              behavior: wasOpen ? 'smooth' : 'auto',
+            });
+          }
+          return;
+        }
       }
 
       if (isDesktopGallery) {
@@ -1669,7 +2560,8 @@ const Home = () => {
             0,
             window.scrollY +
               rect.top -
-              expandedGalleryStickyTop
+              expandedGalleryStickyTop +
+              openingScrollBias
           );
 
           window.scrollTo({
@@ -1681,12 +2573,13 @@ const Home = () => {
       }
 
       expandedCard?.scrollIntoView({
-        behavior: 'smooth',
+        behavior: wasOpen ? 'smooth' : 'auto',
         block: 'center',
         inline: 'center',
       });
     };
 
+    scrollExpandedTargetIntoView();
     outerRaf = window.requestAnimationFrame(() => {
       innerRaf = window.requestAnimationFrame(scrollExpandedTargetIntoView);
     });
@@ -1695,7 +2588,15 @@ const Home = () => {
       if (outerRaf) window.cancelAnimationFrame(outerRaf);
       if (innerRaf) window.cancelAnimationFrame(innerRaf);
     };
-  }, [expandedGalleryImageKey, expandedGalleryStickyTop, isDesktopGallery, selectedRef]);
+  }, [
+    expandedGalleryImageKey,
+    expandedGalleryPerimeterVerticalShift,
+    expandedGalleryStickyTop,
+    getExpandedGalleryOpenScrollBias,
+    isDesktopGallery,
+    selectedRef,
+    useExpandedLandingPerimeter,
+  ]);
 
   useEffect(() => {
     if (!expandedGalleryImageKey) return undefined;
@@ -1847,9 +2748,12 @@ const Home = () => {
     }
 
     let rafId = 0;
+    let armTimeoutId = 0;
     let lastScrollY = window.scrollY;
     let hasReachedTopAnchor = false;
     let isClosingStage = false;
+    let isScrollCloseArmed = false;
+    let hadUpwardScrollBeforeArm = false;
     const checkStageVisibility = () => {
       rafId = 0;
       if (isClosingStage) return;
@@ -1862,21 +2766,77 @@ const Home = () => {
       const currentScrollY = window.scrollY;
       const isScrollingUp = currentScrollY < lastScrollY;
       const isScrollingDown = currentScrollY > lastScrollY;
-      const scrollCloseDistance = clampNumber(
+      const scrollCloseDistance = clampValue(
         96,
         window.innerHeight * 0.18,
         180
       );
       const topOverscroll = rect.top - expandedGalleryStickyTop;
 
-      lastScrollY = currentScrollY;
-
-      if (rect.top <= expandedGalleryStickyTop + 2) {
-        hasReachedTopAnchor = true;
+      if (!isScrollCloseArmed && isScrollingUp) {
+        hadUpwardScrollBeforeArm = true;
       }
 
       if (isVisible) {
         expandedGalleryWasVisibleRef.current = true;
+      }
+
+      if (
+        rect.top <= expandedGalleryStickyTop + 2 ||
+        (
+          expandedGalleryWasVisibleRef.current &&
+          topOverscroll > 0 &&
+          (isScrollingUp || hadUpwardScrollBeforeArm)
+        )
+      ) {
+        hasReachedTopAnchor = true;
+      }
+
+      lastScrollY = currentScrollY;
+
+      if (!isScrollCloseArmed) return;
+
+      if (isVisible) {
+        if (
+          useExpandedLandingPerimeter &&
+          hasReachedTopAnchor &&
+          topOverscroll > 0
+        ) {
+          if (!expandedGalleryScrollMorphRef.current.active) {
+            startExpandedGalleryScrollMorph();
+          }
+          const morphState = expandedGalleryScrollMorphRef.current;
+          const heroTargetNode =
+            stackRef.current?.querySelector?.(
+              `[data-hero-stack-card-position="${STACK_COUNT - 1}"]`
+            ) ?? stackRef.current;
+          const heroTargetTop = heroTargetNode?.getBoundingClientRect?.().top;
+          const morphProgress = Number.isFinite(heroTargetTop)
+            ? normalizeRangeProgress(
+              heroTargetTop,
+              morphState.heroStartTop,
+              morphState.heroEndTop
+            )
+            : clampValue(
+              0,
+              topOverscroll / (morphState.distance || expandedGalleryScrollMorphDistance),
+              1
+            );
+          const didSyncMorph = syncExpandedGalleryScrollMorphProgress(morphProgress);
+
+          if (didSyncMorph) {
+            if (morphProgress >= 0.94 || currentScrollY <= 4) {
+              isClosingStage = true;
+              finalizeExpandedGalleryScrollMorphClose();
+            }
+            return;
+          }
+        }
+
+        if (expandedGalleryScrollMorphRef.current.active) {
+          syncExpandedGalleryScrollMorphProgress(0);
+          cleanupExpandedGalleryScrollMorph();
+        }
 
         if (
           hasReachedTopAnchor &&
@@ -1884,7 +2844,7 @@ const Home = () => {
           topOverscroll >= scrollCloseDistance
         ) {
           isClosingStage = true;
-          closeExpandedGalleryImage();
+          closeExpandedGalleryImage({ reason: 'scroll' });
         }
 
         if (
@@ -1892,16 +2852,21 @@ const Home = () => {
           rect.bottom <= window.innerHeight + 2
         ) {
           isClosingStage = true;
-          closeExpandedGalleryImage();
+          closeExpandedGalleryImage({ reason: 'scroll' });
         }
 
         return;
       }
 
+      if (expandedGalleryScrollMorphRef.current.active) {
+        syncExpandedGalleryScrollMorphProgress(0);
+        cleanupExpandedGalleryScrollMorph();
+      }
+
       if (!expandedGalleryWasVisibleRef.current) return;
 
       isClosingStage = true;
-      closeExpandedGalleryImage();
+      closeExpandedGalleryImage({ reason: 'scroll' });
     };
 
     const queueCheck = () => {
@@ -1909,25 +2874,61 @@ const Home = () => {
       rafId = window.requestAnimationFrame(checkStageVisibility);
     };
 
+    const armScrollClose = () => {
+      if (isClosingStage) return;
+
+      if (!hadUpwardScrollBeforeArm && window.scrollY < lastScrollY) {
+        hadUpwardScrollBeforeArm = true;
+      }
+
+      if (window.scrollY <= 4) {
+        hasReachedTopAnchor = true;
+      }
+
+      isScrollCloseArmed = true;
+      lastScrollY = window.scrollY;
+      queueCheck();
+    };
+
     window.addEventListener('scroll', queueCheck, { passive: true });
     window.addEventListener('resize', queueCheck, { passive: true });
-    queueCheck();
+    const armDelay = Math.max(
+      0,
+      expandedGalleryScrollCloseArmUntilRef.current - Date.now()
+    );
+    if (armDelay > 0) {
+      armTimeoutId = window.setTimeout(armScrollClose, armDelay);
+    } else {
+      armScrollClose();
+    }
 
     return () => {
       window.removeEventListener('scroll', queueCheck);
       window.removeEventListener('resize', queueCheck);
+      if (armTimeoutId) window.clearTimeout(armTimeoutId);
       if (rafId) window.cancelAnimationFrame(rafId);
     };
   }, [
+    cleanupExpandedGalleryScrollMorph,
     closeExpandedGalleryImage,
     expandedGalleryImageKey,
+    expandedGalleryScrollMorphDistance,
     expandedGalleryStickyTop,
+    finalizeExpandedGalleryScrollMorphClose,
     isDesktopGallery,
     selectedRef,
+    startExpandedGalleryScrollMorph,
+    syncExpandedGalleryScrollMorphProgress,
+    useExpandedLandingPerimeter,
   ]);
 
   useEffect(() => {
-    if (!expandedGalleryImageKey || !isDesktopGallery || !useExpandedLandingPerimeter) {
+    if (
+      !expandedGalleryImageKey ||
+      !isDesktopGallery ||
+      !useExpandedLandingPerimeter ||
+      expandedGalleryScrollMorphActive
+    ) {
       return undefined;
     }
     if (!expandedGalleryPerimeterMaxProgress) {
@@ -1986,7 +2987,7 @@ const Home = () => {
     const queueSnapToNearest = (rawProgress) => {
       if (settleTimeoutId) window.clearTimeout(settleTimeoutId);
       settleTimeoutId = window.setTimeout(() => {
-        const snapped = clampNumber(
+        const snapped = clampValue(
           0,
           Math.round(rawProgress),
           expandedGalleryPerimeterMaxProgress
@@ -2008,7 +3009,7 @@ const Home = () => {
       const rect = stageNode.getBoundingClientRect();
       const progressStartTop =
         expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
-      return clampNumber(
+      return clampValue(
         0,
         progressStartTop - rect.top,
         expandedGalleryPerimeterTravel
@@ -2023,7 +3024,7 @@ const Home = () => {
         expandedGalleryPerimeterTravel - baselineTravel,
         1
       );
-      const adjustedTravel = clampNumber(
+      const adjustedTravel = clampValue(
         0,
         traveled - baselineTravel,
         remainingTravel
@@ -2032,7 +3033,7 @@ const Home = () => {
         (adjustedTravel / remainingTravel) *
         expandedGalleryPerimeterMaxProgress;
 
-      const clampedProgress = clampNumber(
+      const clampedProgress = clampValue(
         0,
         rawProgress,
         expandedGalleryPerimeterMaxProgress
@@ -2047,23 +3048,26 @@ const Home = () => {
       scrollRafId = window.requestAnimationFrame(updatePerimeterProgress);
     };
 
-    const startTracking = () => {
+    const isPostMorph = expandedGalleryPerimeterPostMorphRef.current;
+    expandedGalleryPerimeterPostMorphRef.current = false;
+
+    const startTracking = (skipBaseline) => {
       if (trackingStarted) return;
       trackingStarted = true;
-      // Treat the fully opened layout as progress zero so the perimeter
-      // doesn't do a post-open correction once tracking starts.
-      baselineTravel = resolveTravelDistance();
+      baselineTravel = skipBaseline ? 0 : resolveTravelDistance();
       window.addEventListener('scroll', queueUpdate, { passive: true });
       window.addEventListener('resize', queueUpdate, { passive: true });
       queueUpdate();
     };
 
-    // Hold the perimeter at its entry state long enough for the open animation to
-    // land before scroll progress starts swapping in later track positions.
-    initialTrackingTimeoutId = window.setTimeout(
-      startTracking,
-      EXPANDED_GALLERY_PERIMETER_PROGRESS_INIT_DELAY_MS
-    );
+    if (isPostMorph) {
+      startTracking(true);
+    } else {
+      initialTrackingTimeoutId = window.setTimeout(
+        () => startTracking(false),
+        EXPANDED_GALLERY_PERIMETER_PROGRESS_INIT_DELAY_MS
+      );
+    }
 
     return () => {
       if (trackingStarted) {
@@ -2082,6 +3086,7 @@ const Home = () => {
     expandedGalleryPerimeterTravel,
     expandedGalleryPerimeterVerticalShift,
     expandedGalleryStickyTop,
+    expandedGalleryScrollMorphActive,
     isDesktopGallery,
     useExpandedLandingPerimeter,
   ]);
@@ -2160,7 +3165,7 @@ const Home = () => {
         0,
         expandedGalleryStickyTop - basePinnedRowTop
       );
-      const nextPinnedRowOffset = clampNumber(
+      const nextPinnedRowOffset = clampValue(
         0,
         Math.floor((exposedPinnedSpace / rowMetrics.rowStep) + 0.001),
         expandedGalleryMaxPinnedRowOffset
@@ -2345,7 +3350,9 @@ const Home = () => {
           .sort((a, b) => a.distance - b.distance);
 
         perimeterCards.forEach(({ rect, inner, cardKey, edge }, index) => {
-          const prevRect = resolveCapturedGalleryRect(previousRects, cardKey);
+          const prevRect = projectDocumentRectToViewport(
+            resolveCapturedGalleryRect(previousRects, cardKey)
+          );
           const delay = Math.min(
             index * EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER,
             0.12
@@ -2420,7 +3427,7 @@ const Home = () => {
         if (!cardKey) return;
 
         const nextRect = node.getBoundingClientRect();
-        const prevRect = previousRects.get(cardKey);
+        const prevRect = projectDocumentRectToViewport(previousRects.get(cardKey));
 
         if (!prevRect) {
           gsap.fromTo(
@@ -2524,14 +3531,190 @@ const Home = () => {
     };
   }, [expandedGalleryImageKey, selectedRef]);
 
-  useEffect(() => () => {
-    const clone = expandedGalleryClosingCloneRef.current;
-    if (!(clone instanceof HTMLElement)) return;
+  useEffect(() => {
+    if (expandedGalleryImageKey) {
+      return undefined;
+    }
 
-    gsap.killTweensOf(clone);
-    clone.remove();
-    expandedGalleryClosingCloneRef.current = null;
-  }, []);
+    const closeMeta = expandedGalleryCloseMetaRef.current;
+    const closingClone = expandedGalleryClosingCloneRef.current;
+    if (
+      closeMeta?.mode !== 'landing-perimeter' ||
+      !(closingClone instanceof HTMLElement)
+    ) {
+      return undefined;
+    }
+    if (typeof window === 'undefined') {
+      finalizeExpandedGalleryClose();
+      return undefined;
+    }
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      finalizeExpandedGalleryClose();
+      return undefined;
+    }
+
+    let rafId = 0;
+    let cleanupTimeoutId = 0;
+    rafId = window.requestAnimationFrame(() => {
+      const targetNodesByKey = new Map();
+      document.querySelectorAll('[data-gallery-card-key]').forEach((node) => {
+        if (!(node instanceof HTMLElement)) return;
+        if (closingClone.contains(node)) return;
+        const cardKey = node.dataset.galleryCardKey;
+        if (!cardKey || targetNodesByKey.has(cardKey)) return;
+        targetNodesByKey.set(cardKey, node);
+      });
+
+      const heroCloneNode = closingClone.querySelector('[data-gallery-pinned="true"]');
+      const heroCloneRect = heroCloneNode instanceof HTMLElement
+        ? heroCloneNode.getBoundingClientRect()
+        : null;
+      const heroCenterX = heroCloneRect?.width
+        ? heroCloneRect.left + (heroCloneRect.width / 2)
+        : window.innerWidth / 2;
+      const heroCenterY = heroCloneRect?.height
+        ? heroCloneRect.top + (heroCloneRect.height / 2)
+        : window.innerHeight / 2;
+      const usedTargetKeys = new Set();
+
+      // Only fly cards back to a real destination when that destination is still
+      // local to the viewport; otherwise they do a short local exit.
+      const cloneFlowCards = Array.from(
+        closingClone.querySelectorAll('[data-gallery-flow-card-key]')
+      )
+        .filter((node) => node instanceof HTMLElement)
+        .map((node) => {
+          const rect = node.getBoundingClientRect();
+          const centerX = rect.left + (rect.width / 2);
+          const centerY = rect.top + (rect.height / 2);
+          return {
+            node,
+            rect,
+            distance: Math.hypot(centerX - heroCenterX, centerY - heroCenterY),
+          };
+        })
+        .sort((a, b) => a.distance - b.distance);
+
+      cloneFlowCards.forEach(({ node, rect }, index) => {
+        const inner = node.querySelector('[data-gallery-card-inner="true"]') ?? node;
+        if (!(inner instanceof HTMLElement)) return;
+
+        const rawCardKey = node.dataset.galleryFlowCardKey ?? '';
+        const canonicalCardKey = rawCardKey.replace(/:btm$/, '');
+        const targetNode =
+          rawCardKey === canonicalCardKey && !usedTargetKeys.has(canonicalCardKey)
+            ? targetNodesByKey.get(canonicalCardKey)
+            : null;
+        const targetRect = targetNode?.getBoundingClientRect?.();
+        const delay = Math.min(index * EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER, 0.12);
+
+        gsap.killTweensOf(inner);
+
+        if (
+          targetRect?.width &&
+          targetRect?.height &&
+          shouldAnimateGalleryReturnToTarget(rect, targetRect)
+        ) {
+          usedTargetKeys.add(canonicalCardKey);
+          gsap.to(inner, {
+            x: targetRect.left - rect.left,
+            y: targetRect.top - rect.top,
+            scaleX: targetRect.width / rect.width,
+            scaleY: targetRect.height / rect.height,
+            opacity: 0,
+            transformOrigin: 'top left',
+            duration: EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION,
+            delay,
+            ease: 'power3.inOut',
+            overwrite: 'auto',
+          });
+          return;
+        }
+
+        const exitOffset = getPerimeterEntryOffset(node.dataset.galleryEdge ?? 'bottom');
+        gsap.to(inner, {
+          x: exitOffset.x,
+          y: exitOffset.y,
+          scale: 0.985,
+          opacity: 0,
+          duration: EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION * 0.72,
+          delay,
+          ease: 'power2.in',
+          overwrite: 'auto',
+        });
+      });
+
+      if (heroCloneNode instanceof HTMLElement) {
+        const heroInner =
+          heroCloneNode.querySelector('[data-gallery-card-inner="true"]') ?? heroCloneNode;
+        const clonedCloseButton = heroCloneNode.querySelector('button');
+        const targetNode = targetNodesByKey.get(closeMeta.selectedCardKey);
+        const targetRect = targetNode?.getBoundingClientRect?.();
+
+        if (clonedCloseButton instanceof HTMLElement) {
+          gsap.killTweensOf(clonedCloseButton);
+          gsap.to(clonedCloseButton, {
+            opacity: 0,
+            duration: 0.16,
+            ease: 'power1.out',
+            overwrite: 'auto',
+          });
+        }
+
+        if (heroInner instanceof HTMLElement && heroCloneRect?.width && heroCloneRect?.height) {
+          gsap.killTweensOf(heroInner);
+
+          if (
+            targetRect?.width &&
+            targetRect?.height &&
+            shouldAnimateGalleryReturnToTarget(heroCloneRect, targetRect)
+          ) {
+            gsap.to(heroInner, {
+              x: targetRect.left - heroCloneRect.left,
+              y: targetRect.top - heroCloneRect.top,
+              scaleX: targetRect.width / heroCloneRect.width,
+              scaleY: targetRect.height / heroCloneRect.height,
+              opacity: 0,
+              transformOrigin: 'center center',
+              duration: EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
+              ease: 'power3.inOut',
+              overwrite: 'auto',
+            });
+          } else {
+            gsap.to(heroInner, {
+              y: 12,
+              scale: 0.986,
+              opacity: 0,
+              duration: EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION * 0.74,
+              ease: 'power2.in',
+              overwrite: 'auto',
+            });
+          }
+        }
+      }
+
+      const flowDuration = EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION + Math.min(
+        cloneFlowCards.length * EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER,
+        0.12
+      );
+      const heroDuration = EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION;
+      const cleanupDelayMs = Math.round((Math.max(flowDuration, heroDuration) + 0.1) * 1000);
+      cleanupTimeoutId = window.setTimeout(
+        finalizeExpandedGalleryClose,
+        cleanupDelayMs
+      );
+    });
+
+    return () => {
+      if (rafId) window.cancelAnimationFrame(rafId);
+      if (cleanupTimeoutId) window.clearTimeout(cleanupTimeoutId);
+    };
+  }, [expandedGalleryImageKey, finalizeExpandedGalleryClose]);
+
+  useEffect(() => () => {
+    expandedGalleryCloseMetaRef.current = null;
+    removeClosingClone();
+  }, [removeClosingClone]);
 
   useEffect(() => () => {
     removeOpeningClone();
@@ -2564,6 +3747,8 @@ const Home = () => {
     }
 
     if (isDesktopGallery) {
+      const openingScrollBias =
+        getExpandedGalleryOpenScrollBias(!expandedGalleryWasOpenRef.current);
       const expandedCard =
         expandedGalleryFixedCardRef.current ??
         document.querySelector(
@@ -2575,7 +3760,7 @@ const Home = () => {
         const centeredTop = (window.innerHeight - rect.height) / 2;
         const nextScrollTop = Math.max(
           0,
-          window.scrollY + rect.top - centeredTop
+          window.scrollY + rect.top - centeredTop + openingScrollBias
         );
 
         if (Math.abs(nextScrollTop - window.scrollY) > 1) {
@@ -2589,7 +3774,7 @@ const Home = () => {
           const rect = stageContentNode.getBoundingClientRect();
           const nextScrollTop = Math.max(
             0,
-            window.scrollY + rect.top - expandedGalleryStickyTop
+            window.scrollY + rect.top - expandedGalleryStickyTop + openingScrollBias
           );
 
           if (Math.abs(nextScrollTop - window.scrollY) > 1) {
@@ -2643,6 +3828,7 @@ const Home = () => {
   }, [
     expandedGalleryImageKey,
     expandedGalleryStickyTop,
+    getExpandedGalleryOpenScrollBias,
     isDesktopGallery,
     removeOpeningClone,
     useExpandedLandingPerimeter,
@@ -2669,21 +3855,54 @@ const Home = () => {
         opacity: 1,
       });
       expandedGallerySourceRectRef.current = null;
+      expandedGallerySourceInnerRef.current = null;
       return undefined;
     }
 
     if (useExpandedLandingPerimeter) {
       const finalRect = outerNode.getBoundingClientRect();
+      const rawSaved = sourceRect;
+      const scrollAtCapture = expandedGallerySourceScrollRef.current;
+      const liveInner = expandedGallerySourceInnerRef.current;
+
+      let effectiveSourceRect = null;
+      if (liveInner && liveInner.isConnected) {
+        const live = liveInner.getBoundingClientRect();
+        if (live.width && live.height) {
+          effectiveSourceRect = {
+            left: live.left,
+            top: live.top,
+            width: live.width,
+            height: live.height,
+          };
+        }
+      }
+
+      if (
+        !effectiveSourceRect &&
+        rawSaved?.width &&
+        rawSaved?.height &&
+        typeof window !== 'undefined'
+      ) {
+        effectiveSourceRect = {
+          left: rawSaved.left + scrollAtCapture.x - window.scrollX,
+          top: rawSaved.top + scrollAtCapture.y - window.scrollY,
+          width: rawSaved.width,
+          height: rawSaved.height,
+        };
+      }
+
+      expandedGallerySourceInnerRef.current = null;
       expandedGallerySourceRectRef.current = null;
 
       if (
-        sourceRect?.width &&
-        sourceRect?.height &&
+        effectiveSourceRect?.width &&
+        effectiveSourceRect?.height &&
         finalRect.width &&
         finalRect.height
       ) {
-        const sourceCenterX = sourceRect.left + (sourceRect.width / 2);
-        const sourceCenterY = sourceRect.top + (sourceRect.height / 2);
+        const sourceCenterX = effectiveSourceRect.left + (effectiveSourceRect.width / 2);
+        const sourceCenterY = effectiveSourceRect.top + (effectiveSourceRect.height / 2);
         const finalCenterX = finalRect.left + (finalRect.width / 2);
         const finalCenterY = finalRect.top + (finalRect.height / 2);
 
@@ -2692,8 +3911,8 @@ const Home = () => {
           {
             x: sourceCenterX - finalCenterX,
             y: sourceCenterY - finalCenterY,
-            scaleX: sourceRect.width / finalRect.width,
-            scaleY: sourceRect.height / finalRect.height,
+            scaleX: effectiveSourceRect.width / finalRect.width,
+            scaleY: effectiveSourceRect.height / finalRect.height,
             transformOrigin: 'center center',
           },
           {
@@ -2779,13 +3998,13 @@ const Home = () => {
         const rect = node.getBoundingClientRect();
         const cardCenterX = rect.left + rect.width / 2;
         const cardCenterY = rect.top + rect.height / 2;
-        const normalizedX = clampNumber(
+        const normalizedX = clampValue(
           -1,
           (cardCenterX - pinnedCenterX) / maxHorizontalDistance,
           1
         );
         const normalizedY = (cardCenterY - pinnedCenterY) / maxVerticalDistance;
-        const outsideBandProgress = clampNumber(
+        const outsideBandProgress = clampValue(
           0,
           (Math.abs(normalizedY) - EXPANDED_GALLERY_FLOW_DEAD_ZONE) /
             (1 - EXPANDED_GALLERY_FLOW_DEAD_ZONE),
@@ -3313,9 +4532,7 @@ const Home = () => {
               data-gallery-card-key={
                 suppressPerimeterSourceGallery ? undefined : imageCardKey
               }
-              data-gallery-flow-card-key={
-                suppressPerimeterSourceGallery ? undefined : imageCardKey
-              }
+              data-gallery-flow-card-key={imageCardKey}
               data-gallery-featured={isExpanded ? 'true' : 'false'}
               role={suppressPerimeterSourceGallery ? undefined : 'button'}
               tabIndex={suppressPerimeterSourceGallery ? -1 : 0}
@@ -3587,12 +4804,13 @@ const Home = () => {
             <div className="hero-stack-col hero-intro-item w-full order-2 mb-2 md:mb-0 md:ml-auto md:mr-[-72px] md:w-[900px] flex items-center justify-end relative group md:py-16">
               <div
                 className="hero-stack-wrapper relative w-full md:w-[900px]"
-              ref={stackRef}
-              style={{
-                aspectRatio: '637 / 426',
-                transform: isMobileStack ? undefined : `translateX(${stackWrapperTranslateX}px)`,
-              }}
-            >
+                ref={stackRef}
+                data-hero-stack-wrapper="true"
+                style={{
+                  aspectRatio: '637 / 426',
+                  transform: isMobileStack ? undefined : `translateX(${stackWrapperTranslateX}px)`,
+                }}
+              >
               {!isMobileStack && (() => {
                 const backIdx = visibleSet[0];
                 const bgCards = [
@@ -3603,6 +4821,8 @@ const Home = () => {
                   <div
                     key={`bg-${i}`}
                     className="absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
+                    data-hero-stack-bg-card="true"
+                    data-hero-stack-base-opacity={card.opacity}
                     style={{
                       width: `calc(100% - ${(STACK_COUNT - 1) * stackOffsetX}px)`,
                       aspectRatio: '3 / 2',
@@ -3626,6 +4846,8 @@ const Home = () => {
                 <div
                   key={`dep-${departingIdx}`}
                   className="absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
+                  data-hero-stack-departing="true"
+                  data-hero-stack-base-opacity="1"
                   style={{
                     width: `calc(100% - ${(STACK_COUNT - 1) * stackOffsetX}px)`,
                     aspectRatio: '3 / 2',
@@ -3647,6 +4869,8 @@ const Home = () => {
                 <div
                   key={imgIdx}
                   className="hero-stack-card absolute left-0 bottom-0 overflow-hidden rounded-[8px]"
+                  data-hero-stack-card="true"
+                  data-hero-stack-card-position={pos}
                   style={{
                     width: `calc(100% - ${(STACK_COUNT - 1) * stackOffsetX}px)`,
                     aspectRatio: '3 / 2',
@@ -3737,7 +4961,13 @@ const Home = () => {
         ref={featuredRef}
         data-nav-dark
         className="px-3 md:px-12 max-w-7xl mx-auto py-12 min-h-[50vh]"
-        style={useExpandedLandingPerimeter ? { visibility: 'hidden' } : undefined}
+        style={
+          useExpandedLandingPerimeter
+            ? {
+                visibility: 'hidden',
+              }
+            : undefined
+        }
       >
         <div className="flex justify-between items-end mb-8">
           {/* <h2 className="text-2xl font-light tracking-wide text-slate-900">Recent Stories</h2> */}
