@@ -2603,6 +2603,16 @@ const Home = () => {
     if (!(closeButton instanceof HTMLElement)) return;
 
     const closeRect = closeButton.getBoundingClientRect();
+    const stageNode = expandedGalleryStageRef.current;
+    const stageContentNode =
+      stageNode?.querySelector?.('[data-gallery-stage-content="true"]') ?? stageNode;
+    if (
+      stageContentNode instanceof HTMLElement &&
+      !expandedGalleryScrollMorphRef.current.active &&
+      window.getComputedStyle(stageContentNode).pointerEvents === 'none'
+    ) {
+      stageContentNode.style.pointerEvents = 'auto';
+    }
     if (
       !Number.isFinite(closeRect.top) ||
       closeRect.top >= EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP
@@ -2925,12 +2935,15 @@ const Home = () => {
       if (!isScrollCloseArmed) return;
 
       if (isVisible) {
-        if (
+        const isPerimeterMorphRegion =
           useExpandedLandingPerimeter &&
           hasReachedTopAnchor &&
-          perimeterTopOverscroll > -2
-        ) {
-          if (!expandedGalleryScrollMorphRef.current.active) {
+          perimeterTopOverscroll > -2;
+        const morphIsActive = expandedGalleryScrollMorphRef.current.active;
+        const hasMorphScrollIntent = isScrollingUp || hadUpwardScrollBeforeArm;
+
+        if (isPerimeterMorphRegion && (morphIsActive || hasMorphScrollIntent)) {
+          if (!morphIsActive) {
             startExpandedGalleryScrollMorph();
           }
           const morphState = expandedGalleryScrollMorphRef.current;
@@ -4448,23 +4461,13 @@ const Home = () => {
               data-gallery-card-key={selectedCardKey}
               data-gallery-featured="true"
               data-gallery-pinned="true"
-              role="button"
-              tabIndex={0}
-              aria-expanded="true"
-              aria-label={`Collapse ${selectedAltLabel}`}
-              className="home-gallery-card absolute z-30 block rounded-[8px] border-0 bg-transparent p-0 text-left cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+              className="home-gallery-card absolute z-30 block rounded-[8px] border-0 bg-transparent p-0 text-left cursor-default"
               style={{
                 left: '50%',
                 top: '50%',
                 width: `min(${EXPANDED_GALLERY_PERIMETER_HERO_WIDTH}%, 55rem)`,
                 transform: 'translate(-50%, -50%)',
                 scrollMarginTop: `${Math.max(112, expandedGalleryStickyTop)}px`,
-              }}
-              onClick={closeExpandedGalleryImage}
-              onKeyDown={(e) => {
-                if (e.key !== 'Enter' && e.key !== ' ') return;
-                e.preventDefault();
-                closeExpandedGalleryImage();
               }}
             >
               <div
@@ -4477,7 +4480,7 @@ const Home = () => {
                     e.stopPropagation();
                     closeExpandedGalleryImage();
                   }}
-                  className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all"
+                  className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all cursor-pointer"
                   aria-label={`Close ${selectedAltLabel}`}
                 >
                   <svg
@@ -4584,23 +4587,13 @@ const Home = () => {
             data-gallery-card-key={pinnedDesktopCardKey}
             data-gallery-featured="true"
             data-gallery-pinned="true"
-            role="button"
-            tabIndex={0}
-            aria-expanded="true"
-            aria-label={`Collapse ${pinnedDesktopAltLabel}`}
-            className="home-gallery-card relative z-30 block w-full rounded-[4px] md:rounded-[8px] border-0 bg-transparent p-0 text-left cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+            className="home-gallery-card relative z-30 block w-full rounded-[4px] md:rounded-[8px] border-0 bg-transparent p-0 text-left cursor-default"
             style={{
               ...pinnedDesktopReservedAreaStyle,
               position: 'sticky',
               top: `${expandedGalleryStickyTop}px`,
               alignSelf: 'start',
               scrollMarginTop: `${Math.max(112, expandedGalleryStickyTop)}px`,
-            }}
-            onClick={closeExpandedGalleryImage}
-            onKeyDown={(e) => {
-              if (e.key !== 'Enter' && e.key !== ' ') return;
-              e.preventDefault();
-              closeExpandedGalleryImage();
             }}
           >
             <div
@@ -4613,7 +4606,7 @@ const Home = () => {
                   e.stopPropagation();
                   closeExpandedGalleryImage();
                 }}
-                className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all"
+                className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all cursor-pointer"
                 aria-label={`Close ${pinnedDesktopAltLabel}`}
               >
                 <svg
@@ -4647,6 +4640,7 @@ const Home = () => {
             galleryHasExpandedImage &&
             expandedGalleryImage?.galleryKey === imageGalleryKey &&
             expandedGalleryImage.imageId === img.id;
+          const disableExpandedCardToggle = isDesktopGallery && isExpanded;
           const isPinnedExpanded = isExpanded && usePinnedDesktopLayout;
 
           if (isPinnedExpanded) return null;
@@ -4686,29 +4680,39 @@ const Home = () => {
               }
               data-gallery-flow-card-key={imageCardKey}
               data-gallery-featured={isExpanded ? 'true' : 'false'}
-              role={suppressPerimeterSourceGallery ? undefined : 'button'}
-              tabIndex={suppressPerimeterSourceGallery ? -1 : 0}
+              role={
+                suppressPerimeterSourceGallery || disableExpandedCardToggle
+                  ? undefined
+                  : 'button'
+              }
+              tabIndex={
+                suppressPerimeterSourceGallery || disableExpandedCardToggle
+                  ? -1
+                  : 0
+              }
               aria-hidden={suppressPerimeterSourceGallery ? true : undefined}
               aria-expanded={
-                suppressPerimeterSourceGallery
+                suppressPerimeterSourceGallery || disableExpandedCardToggle
                   ? undefined
                   : (isDesktopGallery ? isExpanded : undefined)
               }
               aria-haspopup={
-                suppressPerimeterSourceGallery
+                suppressPerimeterSourceGallery || disableExpandedCardToggle
                   ? undefined
                   : (isDesktopGallery ? undefined : 'dialog')
               }
-              aria-label={`${isDesktopGallery
-                ? (isExpanded ? 'Collapse' : 'Expand')
-                : 'Open'} ${imageAltLabel} photo ${i + 1}`}
+              aria-label={
+                suppressPerimeterSourceGallery || disableExpandedCardToggle
+                  ? undefined
+                  : `${isDesktopGallery ? 'Expand' : 'Open'} ${imageAltLabel} photo ${i + 1}`
+              }
               className={`home-gallery-card relative block w-full rounded-[4px] md:rounded-[8px] border-0 bg-transparent p-0 text-left transition-[filter,box-shadow] duration-500 focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300 ${
                 galleryHasExpandedImage
                   ? ''
                   : 'group-hover/gallery:brightness-[0.85] hover:!brightness-100'
-              } ${isExpanded ? 'z-20 cursor-pointer' : 'cursor-pointer'} ${img.className}`}
+              } ${isExpanded ? 'z-20 cursor-default' : 'cursor-pointer'} ${img.className}`}
               style={cardStyle}
-              onClick={suppressPerimeterSourceGallery
+              onClick={suppressPerimeterSourceGallery || disableExpandedCardToggle
                 ? undefined
                 : ((e) => handleGalleryCardActivate(
                   images,
@@ -4717,7 +4721,7 @@ const Home = () => {
                   i,
                   e
                 ))}
-              onKeyDown={suppressPerimeterSourceGallery
+              onKeyDown={suppressPerimeterSourceGallery || disableExpandedCardToggle
                 ? undefined
                 : ((e) => {
                   if (e.key !== 'Enter' && e.key !== ' ') return;
@@ -4748,7 +4752,7 @@ const Home = () => {
                       e.stopPropagation();
                       closeExpandedGalleryImage();
                     }}
-                    className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all"
+                    className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all cursor-pointer"
                     aria-label={`Close ${imageAltLabel} photo ${i + 1}`}
                   >
                     <svg
@@ -5399,7 +5403,7 @@ const Home = () => {
               <button
                 type="button"
                 onClick={closeMobileLightbox}
-                className="pointer-events-auto absolute z-20 w-12 h-12 p-0 flex items-center justify-center bg-transparent text-white hover:text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)]"
+                className="pointer-events-auto absolute z-20 w-12 h-12 p-0 flex items-center justify-center bg-transparent text-white hover:text-white drop-shadow-[0_2px_10px_rgba(0,0,0,0.7)] cursor-pointer"
                 style={{
                   top: 'calc(env(safe-area-inset-top) + 12px)',
                   right: 'calc(env(safe-area-inset-right) + 12px)',
@@ -5458,7 +5462,7 @@ const Home = () => {
                 <button
                   type="button"
                   onClick={closeMobileLightbox}
-                  className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all"
+                  className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all cursor-pointer"
                   aria-label={`Close ${(mobileLightboxImage.altLabel ?? 'gallery image').toLowerCase()}`}
                 >
                   <svg
