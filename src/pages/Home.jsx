@@ -2511,23 +2511,6 @@ const Home = () => {
           `[data-gallery-card-key="${expandedGalleryImageKey}"]`
         );
 
-      if (isDesktopGallery && expandedCard instanceof HTMLElement) {
-        const rect = expandedCard.getBoundingClientRect();
-        const centeredTop = (window.innerHeight - rect.height) / 2;
-        const nextScrollTop = Math.max(
-          0,
-          window.scrollY + rect.top - centeredTop + openingScrollBias
-        );
-
-        if (Math.abs(nextScrollTop - window.scrollY) > 1) {
-          window.scrollTo({
-            top: nextScrollTop,
-            behavior: wasOpen ? 'smooth' : 'auto',
-          });
-        }
-        return;
-      }
-
       if (useExpandedLandingPerimeter && isDesktopGallery) {
         const stageNode = expandedGalleryStageRef.current;
         if (stageNode instanceof HTMLElement) {
@@ -2539,7 +2522,8 @@ const Home = () => {
             window.scrollY + rect.top - progressStartTop + openingScrollBias
           );
 
-          if (Math.abs(nextScrollTop - window.scrollY) > 1) {
+          const willScroll = Math.abs(nextScrollTop - window.scrollY) > 1;
+          if (willScroll) {
             window.scrollTo({
               top: nextScrollTop,
               behavior: wasOpen ? 'smooth' : 'auto',
@@ -2547,6 +2531,24 @@ const Home = () => {
           }
           return;
         }
+      }
+
+      if (isDesktopGallery && expandedCard instanceof HTMLElement) {
+        const rect = expandedCard.getBoundingClientRect();
+        const centeredTop = (window.innerHeight - rect.height) / 2;
+        const nextScrollTop = Math.max(
+          0,
+          window.scrollY + rect.top - centeredTop + openingScrollBias
+        );
+
+        const willScroll = Math.abs(nextScrollTop - window.scrollY) > 1;
+        if (willScroll) {
+          window.scrollTo({
+            top: nextScrollTop,
+            behavior: wasOpen ? 'smooth' : 'auto',
+          });
+        }
+        return;
       }
 
       if (isDesktopGallery) {
@@ -2864,7 +2866,6 @@ const Home = () => {
       }
 
       if (!expandedGalleryWasVisibleRef.current) return;
-
       isClosingStage = true;
       closeExpandedGalleryImage({ reason: 'scroll' });
     };
@@ -3054,7 +3055,8 @@ const Home = () => {
     const startTracking = (skipBaseline) => {
       if (trackingStarted) return;
       trackingStarted = true;
-      baselineTravel = skipBaseline ? 0 : resolveTravelDistance();
+      const currentTravel = resolveTravelDistance();
+      baselineTravel = skipBaseline ? 0 : currentTravel;
       window.addEventListener('scroll', queueUpdate, { passive: true });
       window.addEventListener('resize', queueUpdate, { passive: true });
       queueUpdate();
