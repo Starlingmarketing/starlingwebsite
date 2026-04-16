@@ -155,6 +155,7 @@ const EXPANDED_GALLERY_PERIMETER_PROGRESS_INIT_DELAY_MS = Math.round(
   ) + 0.08) * 1000
 );
 const EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER = 0.018;
+const EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP = 12;
 const buildExpandedGalleryDesktopRows = (images) => {
   const rows = [];
 
@@ -394,6 +395,33 @@ const isRectNearViewport = (rect, padding = 160) => (
   (rect.top + rect.height) >= -padding &&
   rect.top <= window.innerHeight + padding
 );
+const resolveScrollTopToRevealRect = (
+  rect,
+  {
+    topInset = 0,
+    bottomInset = 24,
+    topBias = 0,
+  } = {}
+) => {
+  if (!rect || typeof window === 'undefined') return null;
+
+  const safeTop = Math.min(
+    window.innerHeight - 1,
+    Math.max(16, topInset)
+  );
+  const safeBottom = Math.max(safeTop + 1, window.innerHeight - bottomInset);
+  const safeHeight = safeBottom - safeTop;
+
+  if (rect.height >= safeHeight || rect.top < safeTop) {
+    return Math.max(0, window.scrollY + rect.top - safeTop + topBias);
+  }
+
+  if (rect.bottom > safeBottom) {
+    return Math.max(0, window.scrollY + rect.bottom - safeBottom);
+  }
+
+  return null;
+};
 const shouldAnimateGalleryReturnToTarget = (fromRect, toRect) => {
   if (!fromRect || !toRect || typeof window === 'undefined') return false;
   if (!isRectNearViewport(fromRect, 120) || !isRectNearViewport(toRect, 180)) {
@@ -825,6 +853,7 @@ const Home = () => {
     animId: 0,
   });
   const expandedGalleryPerimeterPostMorphRef = useRef(false);
+  const expandedGalleryPerimeterFreshOpenRef = useRef(false);
   const [mobileLightbox, setMobileLightbox] = useState(null);
   const mobileLightboxTouchStartRef = useRef(null);
   const mobileLightboxImage = mobileLightbox?.images?.[mobileLightbox.index] ?? null;
@@ -1620,7 +1649,7 @@ const Home = () => {
       node.style.willChange = 'left,top,width,height,opacity,filter';
 
       if (targetRect?.width && targetRect?.height) {
-        const nearViewport = isRectNearViewport(targetRect, window.innerHeight * 0.4);
+        const nearViewport = useExpandedLandingPerimeter || isRectNearViewport(targetRect, window.innerHeight * 0.4);
 
         if (nearViewport) {
           const yProgress = perimeterSnapEase(
@@ -1645,16 +1674,22 @@ const Home = () => {
           node.style.opacity = `${interpolateValue(1, 0.08, fadeProgress).toFixed(3)}`;
           node.style.filter = `blur(${interpolateValue(0, 1.2, fadeProgress).toFixed(2)}px)`;
         } else {
+          const exitOffset = getPerimeterEntryOffset(edge);
           const travelProgress = perimeterSnapEase(
             normalizeRangeProgress(progress, 0.05, 0.70)
           );
-          setFixedRect(node, interpolateRect(fromRect, targetRect, travelProgress));
+          setFixedRect(node, {
+            left: interpolateValue(fromRect.left, fromRect.left + exitOffset.x * 4, travelProgress),
+            top: interpolateValue(fromRect.top, fromRect.top + exitOffset.y * 4, travelProgress),
+            width: interpolateValue(fromRect.width, fromRect.width * 0.985, travelProgress),
+            height: interpolateValue(fromRect.height, fromRect.height * 0.985, travelProgress),
+          });
 
           const fadeProgress = perimeterSnapEase(
             normalizeRangeProgress(progress, 0.12, 0.45)
           );
           node.style.opacity = `${interpolateValue(1, 0, fadeProgress).toFixed(3)}`;
-          node.style.filter = `blur(${interpolateValue(0, 2.2, fadeProgress).toFixed(2)}px)`;
+          node.style.filter = `blur(${interpolateValue(0, 1.2, fadeProgress).toFixed(2)}px)`;
         }
         return;
       }
@@ -1665,22 +1700,14 @@ const Home = () => {
       );
       const exitOffset = getPerimeterEntryOffset(edge);
       const fallbackRect = {
-        left: interpolateValue(
-          fromRect.left,
-          fromRect.left + (exitOffset.x * 132),
-          localProgress
-        ),
-        top: interpolateValue(
-          fromRect.top,
-          fromRect.top + Math.max(window.innerHeight * 0.42, 220) + (index * 14) + (exitOffset.y * 44),
-          localProgress
-        ),
-        width: interpolateValue(fromRect.width, fromRect.width * 0.54, localProgress),
-        height: interpolateValue(fromRect.height, fromRect.height * 0.54, localProgress),
+        left: interpolateValue(fromRect.left, fromRect.left + exitOffset.x * 4, localProgress),
+        top: interpolateValue(fromRect.top, fromRect.top + exitOffset.y * 4, localProgress),
+        width: interpolateValue(fromRect.width, fromRect.width * 0.985, localProgress),
+        height: interpolateValue(fromRect.height, fromRect.height * 0.985, localProgress),
       };
       setFixedRect(node, fallbackRect);
       node.style.opacity = `${interpolateValue(1, 0, localProgress).toFixed(3)}`;
-      node.style.filter = `blur(${interpolateValue(0, 2.2, localProgress).toFixed(2)}px)`;
+      node.style.filter = `blur(${interpolateValue(0, 1.2, localProgress).toFixed(2)}px)`;
     });
 
     morph.previewItems.forEach(({ node, cardKey }) => {
@@ -1702,7 +1729,7 @@ const Home = () => {
       node.style.filter = `blur(${interpolateValue(0, 1.2, previewFadeProgress).toFixed(2)}px)`;
       node.style.willChange = 'left,top,width,height,opacity,filter';
     });
-  }, []);
+  }, [useExpandedLandingPerimeter]);
 
   const cleanupExpandedGalleryScrollMorph = useCallback((options = {}) => {
     const {
@@ -1812,7 +1839,6 @@ const Home = () => {
     let morphCardHeight = 0;
     let morphGridTop = 0;
     let morphGridIndex = 0;
-    let morphGridWidth = 0;
     let heroGuideBottom = null;
 
     const selectedSection = selectedRef.current;
@@ -1824,7 +1850,6 @@ const Home = () => {
 
       morphGridLeft = sectionRect.left + padLeft;
       const gridWidth = sectionRect.width - padLeft - padRight;
-      morphGridWidth = gridWidth;
 
       const isLg = window.innerWidth >= 1024;
       morphColsPerRow = isLg ? 4 : 2;
@@ -1895,7 +1920,7 @@ const Home = () => {
             ? a.rect.left - b.rect.left
             : a.targetRow - b.targetRow
         ))
-        .forEach(({ cardKey, rect, targetRow }) => {
+        .forEach(({ cardKey, targetRow }) => {
           targetRowByCardKey.set(cardKey, targetRow);
           const rowKeys = targetKeysByRow.get(targetRow) ?? [];
           rowKeys.push(cardKey);
@@ -1941,7 +1966,7 @@ const Home = () => {
       const clone = sourceNode.cloneNode(true);
       if (!(clone instanceof HTMLElement)) return null;
 
-      clone.querySelectorAll('button').forEach((button) => button.remove());
+      // clone.querySelectorAll('button').forEach((button) => button.remove());
       clone.style.width = '100%';
       clone.style.height = '100%';
       clone.style.transform = 'none';
@@ -2010,6 +2035,23 @@ const Home = () => {
         edge,
         targetRow,
       }));
+    if (useExpandedLandingPerimeter) {
+      const sortedKeys = [...previewRowTargetKeys];
+      const targetIndices = sortedKeys.length === 5 ? [0, 1, 3, 4] : sortedKeys.map((_, i) => i);
+      flowItems.sort((a, b) => {
+        if (Math.abs(a.fromRect.left - b.fromRect.left) > 20) {
+          return a.fromRect.left - b.fromRect.left;
+        }
+        return a.fromRect.top - b.fromRect.top;
+      }).forEach((item, index) => {
+        const slotIndex = targetIndices[index] ?? index;
+        if (sortedKeys[slotIndex]) {
+          item.cardKey = sortedKeys[slotIndex];
+          item.targetRow = previewRowIndex;
+        }
+      });
+    }
+
     const previewRowLiveKeys = [];
     flowItems.forEach(({ cardKey, targetRow }) => {
       if (targetRow === previewRowIndex) {
@@ -2145,6 +2187,7 @@ const Home = () => {
     removeClosingClone,
     removeOpeningClone,
     renderExpandedGalleryScrollMorph,
+    selectedRef,
     useExpandedLandingPerimeter,
     viewportHeight,
   ]);
@@ -2410,6 +2453,7 @@ const Home = () => {
       Date.now() + EXPANDED_GALLERY_SCROLL_CLOSE_ARM_DELAY_MS;
     expandedGallerySoftCloseRef.current = false;
     expandedGalleryIsClosingRef.current = false;
+    expandedGalleryPerimeterFreshOpenRef.current = isDesktopGallery;
     setExpandedGalleryImage({ galleryKey, imageId });
   }, [
     captureGalleryCardRects,
@@ -2523,19 +2567,86 @@ const Home = () => {
     return Math.round(interpolateValue(0, maxBias, biasProgress));
   }, []);
 
+  const resolveExpandedLandingPerimeterStartScrollTop = useCallback(() => {
+    if (typeof window === 'undefined') return null;
+
+    const stageNode = expandedGalleryStageRef.current;
+    if (!(stageNode instanceof HTMLElement)) return null;
+
+    const rect = stageNode.getBoundingClientRect();
+    const targetTop = expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
+    if (!Number.isFinite(rect.top) || !Number.isFinite(targetTop)) return null;
+
+    return Math.max(0, window.scrollY + rect.top - targetTop);
+  }, [
+    expandedGalleryPerimeterVerticalShift,
+    expandedGalleryStickyTop,
+  ]);
+  const alignExpandedLandingPerimeterForOpen = useCallback(() => {
+    if (typeof window === 'undefined') return;
+
+    const nextScrollTop = resolveExpandedLandingPerimeterStartScrollTop();
+    if (
+      Number.isFinite(nextScrollTop) &&
+      Math.abs(nextScrollTop - window.scrollY) > 1
+    ) {
+      window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+    }
+
+    const expandedCard =
+      expandedGalleryFixedCardRef.current ??
+      document.querySelector(
+        `[data-gallery-card-key="${expandedGalleryImageKey}"]`
+      );
+    const closeButton = expandedCard?.querySelector?.('button');
+
+    if (!(closeButton instanceof HTMLElement)) return;
+
+    const closeRect = closeButton.getBoundingClientRect();
+    if (
+      !Number.isFinite(closeRect.top) ||
+      closeRect.top >= EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP
+    ) {
+      return;
+    }
+
+    const correctedScrollTop = Math.max(
+      0,
+      window.scrollY +
+        closeRect.top -
+        EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP
+    );
+    if (Math.abs(correctedScrollTop - window.scrollY) > 1) {
+      window.scrollTo({ top: correctedScrollTop, behavior: 'auto' });
+    }
+  }, [
+    expandedGalleryImageKey,
+    resolveExpandedLandingPerimeterStartScrollTop,
+  ]);
+
   useLayoutEffect(() => {
     if (!expandedGalleryImageKey) {
       expandedGalleryWasOpenRef.current = false;
       return undefined;
     }
 
-    let outerRaf = 0;
-    let innerRaf = 0;
     const wasOpen = expandedGalleryWasOpenRef.current;
     expandedGalleryWasOpenRef.current = true;
 
     const scrollExpandedTargetIntoView = () => {
-      const openingScrollBias = getExpandedGalleryOpenScrollBias(!wasOpen);
+      const shouldAlignPerimeterStart =
+        isDesktopGallery &&
+        useExpandedLandingPerimeter &&
+        expandedGalleryPerimeterFreshOpenRef.current;
+
+      if (shouldAlignPerimeterStart) {
+        alignExpandedLandingPerimeterForOpen();
+        return;
+      }
+
+      const openingScrollBias = wasOpen
+        ? 0
+        : getExpandedGalleryOpenScrollBias(true);
 
       const expandedCard =
         expandedGalleryFixedCardRef.current ??
@@ -2543,37 +2654,16 @@ const Home = () => {
           `[data-gallery-card-key="${expandedGalleryImageKey}"]`
         );
 
-      if (useExpandedLandingPerimeter && isDesktopGallery) {
-        const stageNode = expandedGalleryStageRef.current;
-        if (stageNode instanceof HTMLElement) {
-          const rect = stageNode.getBoundingClientRect();
-          const progressStartTop =
-            expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
-          const nextScrollTop = Math.max(
-            0,
-            window.scrollY + rect.top - progressStartTop + openingScrollBias
-          );
-
-          const willScroll = Math.abs(nextScrollTop - window.scrollY) > 1;
-          if (willScroll) {
-            window.scrollTo({
-              top: nextScrollTop,
-              behavior: wasOpen ? 'smooth' : 'auto',
-            });
-          }
-          return;
-        }
-      }
-
       if (isDesktopGallery && expandedCard instanceof HTMLElement) {
         const rect = expandedCard.getBoundingClientRect();
-        const centeredTop = (window.innerHeight - rect.height) / 2;
-        const nextScrollTop = Math.max(
-          0,
-          window.scrollY + rect.top - centeredTop + openingScrollBias
-        );
+        const nextScrollTop = resolveScrollTopToRevealRect(rect, {
+          topInset: expandedGalleryStickyTop,
+          topBias: openingScrollBias,
+        });
 
-        const willScroll = Math.abs(nextScrollTop - window.scrollY) > 1;
+        const willScroll =
+          Number.isFinite(nextScrollTop) &&
+          Math.abs(nextScrollTop - window.scrollY) > 1;
         if (willScroll) {
           window.scrollTo({
             top: nextScrollTop,
@@ -2590,18 +2680,20 @@ const Home = () => {
 
         if (stageContentNode instanceof HTMLElement) {
           const rect = stageContentNode.getBoundingClientRect();
-          const nextScrollTop = Math.max(
-            0,
-            window.scrollY +
-              rect.top -
-              expandedGalleryStickyTop +
-              openingScrollBias
-          );
-
-          window.scrollTo({
-            top: nextScrollTop,
-            behavior: wasOpen ? 'smooth' : 'auto',
+          const nextScrollTop = resolveScrollTopToRevealRect(rect, {
+            topInset: expandedGalleryStickyTop,
+            topBias: openingScrollBias,
           });
+
+          if (
+            Number.isFinite(nextScrollTop) &&
+            Math.abs(nextScrollTop - window.scrollY) > 1
+          ) {
+            window.scrollTo({
+              top: nextScrollTop,
+              behavior: wasOpen ? 'smooth' : 'auto',
+            });
+          }
           return;
         }
       }
@@ -2614,22 +2706,15 @@ const Home = () => {
     };
 
     scrollExpandedTargetIntoView();
-    outerRaf = window.requestAnimationFrame(() => {
-      innerRaf = window.requestAnimationFrame(scrollExpandedTargetIntoView);
-    });
-
-    return () => {
-      if (outerRaf) window.cancelAnimationFrame(outerRaf);
-      if (innerRaf) window.cancelAnimationFrame(innerRaf);
-    };
+    return undefined;
   }, [
     expandedGalleryImageKey,
-    expandedGalleryPerimeterVerticalShift,
+    alignExpandedLandingPerimeterForOpen,
     expandedGalleryStickyTop,
     getExpandedGalleryOpenScrollBias,
     isDesktopGallery,
-    selectedRef,
     useExpandedLandingPerimeter,
+    selectedRef,
   ]);
 
   useEffect(() => {
@@ -2806,6 +2891,15 @@ const Home = () => {
         180
       );
       const topOverscroll = rect.top - expandedGalleryStickyTop;
+      const perimeterMorphStartTop =
+        expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
+      const perimeterTopOverscroll = rect.top - perimeterMorphStartTop;
+      const topAnchorThreshold = useExpandedLandingPerimeter
+        ? perimeterMorphStartTop + 2
+        : expandedGalleryStickyTop + 2;
+      const hasPassedTopAnchor = useExpandedLandingPerimeter
+        ? perimeterTopOverscroll > 0
+        : topOverscroll > 0;
 
       if (!isScrollCloseArmed && isScrollingUp) {
         hadUpwardScrollBeforeArm = true;
@@ -2816,10 +2910,10 @@ const Home = () => {
       }
 
       if (
-        rect.top <= expandedGalleryStickyTop + 2 ||
+        rect.top <= topAnchorThreshold ||
         (
           expandedGalleryWasVisibleRef.current &&
-          topOverscroll > 0 &&
+          hasPassedTopAnchor &&
           (isScrollingUp || hadUpwardScrollBeforeArm)
         )
       ) {
@@ -2834,7 +2928,7 @@ const Home = () => {
         if (
           useExpandedLandingPerimeter &&
           hasReachedTopAnchor &&
-          topOverscroll > 0
+          perimeterTopOverscroll > -2
         ) {
           if (!expandedGalleryScrollMorphRef.current.active) {
             startExpandedGalleryScrollMorph();
@@ -2853,7 +2947,8 @@ const Home = () => {
             )
             : clampValue(
               0,
-              topOverscroll / (morphState.distance || expandedGalleryScrollMorphDistance),
+              perimeterTopOverscroll /
+                (morphState.distance || expandedGalleryScrollMorphDistance),
               1
             );
           const didSyncMorph = syncExpandedGalleryScrollMorphProgress(morphProgress);
@@ -2945,6 +3040,7 @@ const Home = () => {
     cleanupExpandedGalleryScrollMorph,
     closeExpandedGalleryImage,
     expandedGalleryImageKey,
+    expandedGalleryPerimeterVerticalShift,
     expandedGalleryScrollMorphDistance,
     expandedGalleryStickyTop,
     finalizeExpandedGalleryScrollMorphClose,
@@ -3082,13 +3178,22 @@ const Home = () => {
     };
 
     const isPostMorph = expandedGalleryPerimeterPostMorphRef.current;
+    const isFreshPerimeterOpen = expandedGalleryPerimeterFreshOpenRef.current;
+    const shouldSkipBaseline =
+      isPostMorph || isFreshPerimeterOpen;
+    const shouldPreserveInitialPerimeterTravel =
+      isFreshPerimeterOpen && !isPostMorph;
     expandedGalleryPerimeterPostMorphRef.current = false;
+    expandedGalleryPerimeterFreshOpenRef.current = false;
 
     const startTracking = (skipBaseline) => {
       if (trackingStarted) return;
       trackingStarted = true;
+
       const currentTravel = resolveTravelDistance();
-      baselineTravel = skipBaseline ? 0 : currentTravel;
+      baselineTravel = shouldPreserveInitialPerimeterTravel
+        ? currentTravel
+        : (skipBaseline ? 0 : currentTravel);
       window.addEventListener('scroll', queueUpdate, { passive: true });
       window.addEventListener('resize', queueUpdate, { passive: true });
       queueUpdate();
@@ -3098,7 +3203,7 @@ const Home = () => {
       startTracking(true);
     } else {
       initialTrackingTimeoutId = window.setTimeout(
-        () => startTracking(false),
+        () => startTracking(shouldSkipBaseline),
         EXPANDED_GALLERY_PERIMETER_PROGRESS_INIT_DELAY_MS
       );
     }
@@ -3430,8 +3535,8 @@ const Home = () => {
           gsap.fromTo(
             inner,
             {
-              x: fallbackOffset.x,
-              y: fallbackOffset.y,
+              x: fallbackOffset.x * 4,
+              y: fallbackOffset.y * 4,
               scale: 0.985,
               opacity: 0,
               transformOrigin: 'center center',
@@ -3667,8 +3772,8 @@ const Home = () => {
 
         const exitOffset = getPerimeterEntryOffset(node.dataset.galleryEdge ?? 'bottom');
         gsap.to(inner, {
-          x: exitOffset.x,
-          y: exitOffset.y,
+          x: exitOffset.x * 4,
+          y: exitOffset.y * 4,
           scale: 0.985,
           opacity: 0,
           duration: EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION * 0.72,
@@ -3781,38 +3886,50 @@ const Home = () => {
     }
 
     if (isDesktopGallery) {
-      const openingScrollBias =
-        getExpandedGalleryOpenScrollBias(!expandedGalleryWasOpenRef.current);
-      const expandedCard =
-        expandedGalleryFixedCardRef.current ??
-        document.querySelector(
-          `[data-gallery-card-key="${expandedGalleryImageKey}"]`
-        );
+      const shouldAlignPerimeterStart =
+        useExpandedLandingPerimeter && expandedGalleryPerimeterFreshOpenRef.current;
 
-      if (expandedCard instanceof HTMLElement) {
-        const rect = expandedCard.getBoundingClientRect();
-        const centeredTop = (window.innerHeight - rect.height) / 2;
-        const nextScrollTop = Math.max(
-          0,
-          window.scrollY + rect.top - centeredTop + openingScrollBias
-        );
-
-        if (Math.abs(nextScrollTop - window.scrollY) > 1) {
-          window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
-        }
+      if (shouldAlignPerimeterStart) {
+        alignExpandedLandingPerimeterForOpen();
       } else {
-        const stageContentNode =
-          stageNode.querySelector('[data-gallery-stage-content="true"]') ?? stageNode;
-
-        if (stageContentNode instanceof HTMLElement) {
-          const rect = stageContentNode.getBoundingClientRect();
-          const nextScrollTop = Math.max(
-            0,
-            window.scrollY + rect.top - expandedGalleryStickyTop + openingScrollBias
+        const openingScrollBias =
+          getExpandedGalleryOpenScrollBias(!expandedGalleryWasOpenRef.current);
+        const expandedCard =
+          expandedGalleryFixedCardRef.current ??
+          document.querySelector(
+            `[data-gallery-card-key="${expandedGalleryImageKey}"]`
           );
 
-          if (Math.abs(nextScrollTop - window.scrollY) > 1) {
+        if (expandedCard instanceof HTMLElement) {
+          const rect = expandedCard.getBoundingClientRect();
+          const nextScrollTop = resolveScrollTopToRevealRect(rect, {
+            topInset: expandedGalleryStickyTop,
+            topBias: openingScrollBias,
+          });
+
+          if (
+            Number.isFinite(nextScrollTop) &&
+            Math.abs(nextScrollTop - window.scrollY) > 1
+          ) {
             window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+          }
+        } else {
+          const stageContentNode =
+            stageNode.querySelector('[data-gallery-stage-content="true"]') ?? stageNode;
+
+          if (stageContentNode instanceof HTMLElement) {
+            const rect = stageContentNode.getBoundingClientRect();
+            const nextScrollTop = resolveScrollTopToRevealRect(rect, {
+              topInset: expandedGalleryStickyTop,
+              topBias: openingScrollBias,
+            });
+
+            if (
+              Number.isFinite(nextScrollTop) &&
+              Math.abs(nextScrollTop - window.scrollY) > 1
+            ) {
+              window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+            }
           }
         }
       }
@@ -3861,6 +3978,7 @@ const Home = () => {
     };
   }, [
     expandedGalleryImageKey,
+    alignExpandedLandingPerimeterForOpen,
     expandedGalleryStickyTop,
     getExpandedGalleryOpenScrollBias,
     isDesktopGallery,
