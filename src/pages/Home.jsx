@@ -1763,14 +1763,7 @@ const Home = () => {
 
     const progress = clampValue(0, nextProgress, 1);
     morph.progress = progress;
-    const stageFadeProgress = perimeterSnapEase(
-      normalizeRangeProgress(progress, 0.02, 0.24)
-    );
-    morph.stageContentNode.style.opacity = `${interpolateValue(
-      1,
-      0,
-      stageFadeProgress
-    ).toFixed(3)}`;
+    morph.stageContentNode.style.opacity = '0';
     morph.stageContentNode.style.willChange = 'opacity';
     if (morph.layer instanceof HTMLElement) {
       const layerFadeProgress = perimeterSnapEase(
@@ -2361,7 +2354,7 @@ const Home = () => {
       ['opacity', 'filter', 'willChange']
     );
 
-    stageContentNode.style.opacity = '1';
+    stageContentNode.style.opacity = '0';
     stageContentNode.style.pointerEvents = 'none';
     stageContentNode.style.willChange = 'opacity';
 
@@ -3153,6 +3146,7 @@ const Home = () => {
     let isScrollCloseArmed = false;
     let hadUpwardScrollBeforeArm = false;
     let didPrestartMorphFromWheel = false;
+    let morphPrestartTimestamp = 0;
     const checkStageVisibility = () => {
       rafId = 0;
       if (isClosingStage) return;
@@ -3274,6 +3268,17 @@ const Home = () => {
             hasMorphScrollIntent &&
             useExpandedLandingPerimeter
           ) {
+            const prestartAge = performance.now() - morphPrestartTimestamp;
+            if (
+              prestartAge >= 150 ||
+              (hasReachedTopAnchor && topOverscroll >= scrollCloseDistance)
+            ) {
+              didPrestartMorphFromWheel = false;
+              isClosingStage = true;
+              if (!completeExpandedGalleryScrollMorphClose()) {
+                closeExpandedGalleryImage({ reason: 'explicit' });
+              }
+            }
             return;
           }
           didPrestartMorphFromWheel = false;
@@ -3365,6 +3370,7 @@ const Home = () => {
       hadUpwardScrollBeforeArm = true;
       expandedGalleryWasVisibleRef.current = true;
       hasReachedTopAnchor = true;
+      morphPrestartTimestamp = performance.now();
       didPrestartMorphFromWheel = startExpandedGalleryScrollMorph() || didPrestartMorphFromWheel;
       queueCheck();
     };
