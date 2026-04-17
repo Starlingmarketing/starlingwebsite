@@ -4070,7 +4070,21 @@ const Home = () => {
       const liveInner = expandedGallerySourceInnerRef.current;
 
       let effectiveSourceRect = null;
-      if (liveInner && liveInner.isConnected) {
+      if (
+        rawSaved?.width &&
+        rawSaved?.height &&
+        typeof window !== 'undefined'
+      ) {
+        // Use the captured click rect first so the morph originates from
+        // the actual card the user tapped, even if the source gallery gets
+        // reflowed downward when the perimeter layout mounts.
+        effectiveSourceRect = {
+          left: rawSaved.left + scrollAtCapture.x - window.scrollX,
+          top: rawSaved.top + scrollAtCapture.y - window.scrollY,
+          width: rawSaved.width,
+          height: rawSaved.height,
+        };
+      } else if (liveInner && liveInner.isConnected) {
         const live = liveInner.getBoundingClientRect();
         if (live.width && live.height) {
           effectiveSourceRect = {
@@ -4080,20 +4094,6 @@ const Home = () => {
             height: live.height,
           };
         }
-      }
-
-      if (
-        !effectiveSourceRect &&
-        rawSaved?.width &&
-        rawSaved?.height &&
-        typeof window !== 'undefined'
-      ) {
-        effectiveSourceRect = {
-          left: rawSaved.left + scrollAtCapture.x - window.scrollX,
-          top: rawSaved.top + scrollAtCapture.y - window.scrollY,
-          width: rawSaved.width,
-          height: rawSaved.height,
-        };
       }
 
       expandedGallerySourceInnerRef.current = null;
