@@ -662,7 +662,12 @@ const ExpandedGalleryHeroImage = ({
     }
 
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
-      setOutgoingImage(null);
+      const transitionId = outgoingImage.transitionId;
+      queueMicrotask(() => {
+        setOutgoingImage((current) => (
+          current?.transitionId === transitionId ? null : current
+        ));
+      });
       gsap.set(incomingLayer, {
         opacity: 1,
         filter: 'none',
