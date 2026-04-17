@@ -1757,6 +1757,15 @@ const Home = () => {
 
     const progress = clampValue(0, nextProgress, 1);
     morph.progress = progress;
+    const stageFadeProgress = perimeterSnapEase(
+      normalizeRangeProgress(progress, 0.02, 0.24)
+    );
+    morph.stageContentNode.style.opacity = `${interpolateValue(
+      1,
+      0,
+      stageFadeProgress
+    ).toFixed(3)}`;
+    morph.stageContentNode.style.willChange = 'opacity';
     if (morph.layer instanceof HTMLElement) {
       const layerFadeProgress = perimeterSnapEase(
         normalizeRangeProgress(progress, 0.82, 1)
@@ -2336,7 +2345,7 @@ const Home = () => {
       ['opacity', 'filter', 'willChange']
     );
 
-    stageContentNode.style.opacity = '0';
+    stageContentNode.style.opacity = '1';
     stageContentNode.style.pointerEvents = 'none';
     stageContentNode.style.willChange = 'opacity';
 
@@ -3127,6 +3136,7 @@ const Home = () => {
     let isClosingStage = false;
     let isScrollCloseArmed = false;
     let hadUpwardScrollBeforeArm = false;
+    let didPrestartMorphFromWheel = false;
     const checkStageVisibility = () => {
       rafId = 0;
       if (isClosingStage) return;
@@ -3191,14 +3201,20 @@ const Home = () => {
       if (!isScrollCloseArmed) return;
 
       if (isVisible) {
+        const perimeterMorphLeadDistance = clampValue(
+          48,
+          window.innerHeight * 0.06,
+          96
+        );
         const isPerimeterMorphRegion =
           useExpandedLandingPerimeter &&
           hasReachedTopAnchor &&
-          perimeterTopOverscroll > -2;
+          perimeterTopOverscroll > -perimeterMorphLeadDistance;
         const morphIsActive = expandedGalleryScrollMorphRef.current.active;
         const hasMorphScrollIntent = isScrollingUp || hadUpwardScrollBeforeArm;
 
         if (isPerimeterMorphRegion && (morphIsActive || hasMorphScrollIntent)) {
+          didPrestartMorphFromWheel = false;
           if (!morphIsActive) {
             startExpandedGalleryScrollMorph();
           }
@@ -3234,6 +3250,14 @@ const Home = () => {
         }
 
         if (expandedGalleryScrollMorphRef.current.active) {
+          if (
+            didPrestartMorphFromWheel &&
+            hasMorphScrollIntent &&
+            useExpandedLandingPerimeter
+          ) {
+            return;
+          }
+          didPrestartMorphFromWheel = false;
           syncExpandedGalleryScrollMorphProgress(0);
           cleanupExpandedGalleryScrollMorph();
         }
@@ -3289,6 +3313,43 @@ const Home = () => {
       rafId = window.requestAnimationFrame(checkStageVisibility);
     };
 
+    const handleWheelMorphPrestart = (event) => {
+      if (
+        event.deltaY >= 0 ||
+        !isScrollCloseArmed ||
+        isClosingStage ||
+        !useExpandedLandingPerimeter ||
+        expandedGalleryScrollMorphRef.current.active
+      ) {
+        return;
+      }
+
+      const node = expandedGalleryStageRef.current ?? selectedRef.current;
+      if (!(node instanceof HTMLElement)) return;
+
+      const rect = node.getBoundingClientRect();
+      const isStageVisible = rect.bottom > 0 && rect.top < window.innerHeight;
+      if (!isStageVisible) return;
+
+      const perimeterMorphStartTop =
+        expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
+      const perimeterMorphLeadDistance = clampValue(
+        48,
+        window.innerHeight * 0.06,
+        96
+      );
+      const predictedTop = rect.top - event.deltaY;
+      const predictedPerimeterOverscroll = predictedTop - perimeterMorphStartTop;
+
+      if (predictedPerimeterOverscroll <= -perimeterMorphLeadDistance) return;
+
+      hadUpwardScrollBeforeArm = true;
+      expandedGalleryWasVisibleRef.current = true;
+      hasReachedTopAnchor = true;
+      didPrestartMorphFromWheel = startExpandedGalleryScrollMorph() || didPrestartMorphFromWheel;
+      queueCheck();
+    };
+
     const armScrollClose = () => {
       if (isClosingStage) return;
 
@@ -3306,6 +3367,7 @@ const Home = () => {
     };
 
     window.addEventListener('scroll', queueCheck, { passive: true });
+    window.addEventListener('wheel', handleWheelMorphPrestart, { passive: true });
     window.addEventListener('resize', queueCheck, { passive: true });
     const armDelay = Math.max(
       0,
@@ -3319,6 +3381,7 @@ const Home = () => {
 
     return () => {
       window.removeEventListener('scroll', queueCheck);
+      window.removeEventListener('wheel', handleWheelMorphPrestart);
       window.removeEventListener('resize', queueCheck);
       if (armTimeoutId) window.clearTimeout(armTimeoutId);
       if (rafId) window.cancelAnimationFrame(rafId);
