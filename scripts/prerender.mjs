@@ -6,11 +6,6 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright';
 import { PRERENDER_ROUTES, getRouteMeta } from '../src/seo/routeMeta.js';
 
-if (process.env.VERCEL) {
-  console.log('Skipping prerender on Vercel (no Chromium available).');
-  process.exit(0);
-}
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const projectRoot = path.resolve(__dirname, '..');

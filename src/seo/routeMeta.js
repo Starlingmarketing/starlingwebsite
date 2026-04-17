@@ -1,10 +1,19 @@
 import {
   AREA_SERVED,
   BUSINESS_ALT_NAME,
+  BUSINESS_COUNTRY,
+  BUSINESS_COUNTRY_NAME,
   BUSINESS_DESCRIPTION,
+  BUSINESS_GEO,
+  BUSINESS_LOCALITY,
   BUSINESS_NAME,
+  BUSINESS_REGION,
+  BUSINESS_REGION_NAME,
+  DC_NEIGHBORHOODS,
   DEFAULT_OG_IMAGE,
   DEFAULT_OG_IMAGE_ALT,
+  DMV_CITIES,
+  LOCAL_KEYWORDS,
   SERVICE_TYPES,
   SITE_NAME,
   buildSiteUrl,
@@ -13,30 +22,208 @@ import {
 const DEFAULT_ROBOTS =
   'index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1';
 
+const BUSINESS_ID = `${buildSiteUrl('/')}#business`;
+const ORGANIZATION_ID = `${buildSiteUrl('/')}#organization`;
+const WEBSITE_ID = `${buildSiteUrl('/')}#website`;
+const PRIMARY_PLACE_ID = `${buildSiteUrl('/')}#washington-dc`;
+
+const getPostalAddress = () => ({
+  '@type': 'PostalAddress',
+  addressLocality: BUSINESS_LOCALITY,
+  addressRegion: BUSINESS_REGION,
+  addressCountry: BUSINESS_COUNTRY,
+});
+
+const getGeoCoordinates = () => ({
+  '@type': 'GeoCoordinates',
+  latitude: BUSINESS_GEO.latitude,
+  longitude: BUSINESS_GEO.longitude,
+});
+
+const getPrimaryCityPlace = () => ({
+  '@type': ['City', 'Place'],
+  '@id': PRIMARY_PLACE_ID,
+  name: 'Washington, D.C.',
+  alternateName: ['Washington', 'DC', 'District of Columbia', 'Washington DC'],
+  address: getPostalAddress(),
+  geo: getGeoCoordinates(),
+  containedInPlace: {
+    '@type': 'Country',
+    name: BUSINESS_COUNTRY_NAME,
+  },
+});
+
+const getNeighborhoodPlaces = () =>
+  DC_NEIGHBORHOODS.map((neighborhood) => ({
+    '@type': ['Place', 'Neighborhood'],
+    name: `${neighborhood}, Washington, D.C.`,
+    containedInPlace: { '@id': PRIMARY_PLACE_ID },
+  }));
+
+const getDmvCityPlaces = () =>
+  DMV_CITIES.map(({ name, region }) => ({
+    '@type': 'City',
+    name: `${name}, ${region}`,
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: name,
+      addressRegion: region,
+      addressCountry: BUSINESS_COUNTRY,
+    },
+  }));
+
+const getRegionalAdministrativeAreas = () => [
+  {
+    '@type': 'AdministrativeArea',
+    name: 'DMV (D.C., Maryland, Virginia)',
+  },
+  {
+    '@type': 'AdministrativeArea',
+    name: 'Northern Virginia',
+  },
+  {
+    '@type': 'State',
+    name: 'Maryland',
+    address: {
+      '@type': 'PostalAddress',
+      addressRegion: 'MD',
+      addressCountry: BUSINESS_COUNTRY,
+    },
+  },
+  {
+    '@type': 'State',
+    name: 'Virginia',
+    address: {
+      '@type': 'PostalAddress',
+      addressRegion: 'VA',
+      addressCountry: BUSINESS_COUNTRY,
+    },
+  },
+  {
+    '@type': 'City',
+    name: 'Philadelphia, PA',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: 'Philadelphia',
+      addressRegion: 'PA',
+      addressCountry: BUSINESS_COUNTRY,
+    },
+  },
+];
+
+const getFullAreaServed = () => [
+  getPrimaryCityPlace(),
+  ...getNeighborhoodPlaces(),
+  ...getDmvCityPlaces(),
+  ...getRegionalAdministrativeAreas(),
+];
+
+const getServiceNodes = () =>
+  SERVICE_TYPES.map((serviceName) => ({
+    '@type': 'Service',
+    name: `${serviceName} in Washington, D.C.`,
+    serviceType: serviceName,
+    provider: { '@id': BUSINESS_ID },
+    areaServed: [
+      getPrimaryCityPlace(),
+      ...getRegionalAdministrativeAreas(),
+    ],
+    availableChannel: {
+      '@type': 'ServiceChannel',
+      serviceUrl: buildSiteUrl('/booking'),
+      name: 'Online booking inquiry',
+    },
+  }));
+
+const getOfferCatalogSchema = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'OfferCatalog',
+  '@id': `${buildSiteUrl('/')}#services`,
+  name: `${BUSINESS_NAME} — Washington, D.C. Photography Services`,
+  itemListElement: SERVICE_TYPES.map((serviceName, index) => ({
+    '@type': 'Offer',
+    position: index + 1,
+    itemOffered: {
+      '@type': 'Service',
+      name: `${serviceName} in Washington, D.C.`,
+      serviceType: serviceName,
+      provider: { '@id': BUSINESS_ID },
+      areaServed: [getPrimaryCityPlace(), ...getRegionalAdministrativeAreas()],
+    },
+    availability: 'https://schema.org/InStock',
+    eligibleRegion: [
+      getPrimaryCityPlace(),
+      ...getRegionalAdministrativeAreas(),
+    ],
+  })),
+});
+
 const getWebsiteSchema = () => ({
   '@context': 'https://schema.org',
   '@type': 'WebSite',
-  '@id': `${buildSiteUrl('/')}#website`,
+  '@id': WEBSITE_ID,
   name: SITE_NAME,
   alternateName: BUSINESS_NAME,
   url: buildSiteUrl('/'),
-  inLanguage: 'en',
+  inLanguage: 'en-US',
+  publisher: { '@id': ORGANIZATION_ID },
+  about: { '@id': BUSINESS_ID },
+});
+
+const getOrganizationSchema = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': ORGANIZATION_ID,
+  name: BUSINESS_NAME,
+  alternateName: BUSINESS_ALT_NAME,
+  url: buildSiteUrl('/'),
+  logo: DEFAULT_OG_IMAGE,
+  image: DEFAULT_OG_IMAGE,
+  description: BUSINESS_DESCRIPTION,
+  address: getPostalAddress(),
+  areaServed: getFullAreaServed(),
+  knowsAbout: [
+    'Wedding Photography',
+    'Editorial Photography',
+    'Lifestyle Photography',
+    'Portrait Photography',
+    'Commercial Photography',
+    'Engagement Photography',
+    'Elopement Photography',
+    'Documentary Wedding Photography',
+    'Washington D.C. Wedding Venues',
+    'DMV Wedding Venues',
+    'East Coast Wedding Photography',
+  ],
+  knowsLanguage: ['en', 'en-US'],
+  slogan: 'Washington, D.C. wedding, editorial, and lifestyle photography.',
 });
 
 const getBusinessSchema = () => ({
   '@context': 'https://schema.org',
-  '@type': 'ProfessionalService',
-  '@id': `${buildSiteUrl('/')}#business`,
+  '@type': ['ProfessionalService', 'LocalBusiness', 'PhotographyBusiness'],
+  '@id': BUSINESS_ID,
   name: BUSINESS_NAME,
   alternateName: BUSINESS_ALT_NAME,
   description: BUSINESS_DESCRIPTION,
   image: DEFAULT_OG_IMAGE,
+  logo: DEFAULT_OG_IMAGE,
   url: buildSiteUrl('/'),
-  areaServed: AREA_SERVED.map((name) => ({
-    '@type': 'Place',
-    name,
-  })),
+  parentOrganization: { '@id': ORGANIZATION_ID },
+  address: getPostalAddress(),
+  geo: getGeoCoordinates(),
+  hasMap: `https://www.google.com/maps/place/Washington,+DC/@${BUSINESS_GEO.latitude},${BUSINESS_GEO.longitude}`,
+  areaServed: getFullAreaServed(),
+  serviceArea: getFullAreaServed(),
   serviceType: SERVICE_TYPES,
+  makesOffer: getServiceNodes().map((service) => ({
+    '@type': 'Offer',
+    itemOffered: service,
+  })),
+  hasOfferCatalog: { '@id': `${buildSiteUrl('/')}#services` },
+  knowsAbout: AREA_SERVED,
+  slogan: 'Washington, D.C. wedding, editorial, and lifestyle photography.',
+  keywords: LOCAL_KEYWORDS.join(', '),
 });
 
 const getBreadcrumbSchema = (items) => ({
@@ -62,14 +249,42 @@ const getWebPageSchema = ({
   name: title,
   description,
   url: buildSiteUrl(pathname),
-  isPartOf: {
-    '@id': `${buildSiteUrl('/')}#website`,
-  },
-  about: {
-    '@id': `${buildSiteUrl('/')}#business`,
-  },
-  inLanguage: 'en',
+  isPartOf: { '@id': WEBSITE_ID },
+  about: { '@id': BUSINESS_ID },
+  inLanguage: 'en-US',
+  primaryImageOfPage: { '@id': `${buildSiteUrl('/')}#primary-image` },
+  contentLocation: { '@id': PRIMARY_PLACE_ID },
+  spatialCoverage: { '@id': PRIMARY_PLACE_ID },
 });
+
+const getPrimaryImageSchema = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'ImageObject',
+  '@id': `${buildSiteUrl('/')}#primary-image`,
+  url: DEFAULT_OG_IMAGE,
+  contentUrl: DEFAULT_OG_IMAGE,
+  caption: DEFAULT_OG_IMAGE_ALT,
+  description: DEFAULT_OG_IMAGE_ALT,
+  contentLocation: { '@id': PRIMARY_PLACE_ID },
+  representativeOfPage: true,
+  creator: { '@id': BUSINESS_ID },
+  copyrightHolder: { '@id': BUSINESS_ID },
+  creditText: BUSINESS_NAME,
+  acquireLicensePage: buildSiteUrl('/booking'),
+});
+
+const getPrimaryPlaceSchema = () => ({
+  '@context': 'https://schema.org',
+  ...getPrimaryCityPlace(),
+});
+
+const getCommonSchemas = () => [
+  getOrganizationSchema(),
+  getBusinessSchema(),
+  getOfferCatalogSchema(),
+  getPrimaryImageSchema(),
+  getPrimaryPlaceSchema(),
+];
 
 const ROUTE_DEFINITIONS = {
   '/': {
@@ -83,7 +298,7 @@ const ROUTE_DEFINITIONS = {
     pageType: 'WebPage',
     schemas: ({ pathname, title, description }) => [
       getWebsiteSchema(),
-      getBusinessSchema(),
+      ...getCommonSchemas(),
       getWebPageSchema({ pathname, title, description }),
     ],
   },
@@ -98,6 +313,7 @@ const ROUTE_DEFINITIONS = {
     pageType: 'AboutPage',
     breadcrumbLabel: 'About',
     schemas: ({ pathname, title, description }) => [
+      ...getCommonSchemas(),
       getWebPageSchema({
         pathname,
         title,
@@ -121,6 +337,7 @@ const ROUTE_DEFINITIONS = {
     pageType: 'ContactPage',
     breadcrumbLabel: 'Booking',
     schemas: ({ pathname, title, description }) => [
+      ...getCommonSchemas(),
       getWebPageSchema({
         pathname,
         title,
@@ -179,6 +396,7 @@ export const getRouteMeta = (pathname) => {
     socialImageAlt: baseMeta.socialImageAlt ?? DEFAULT_OG_IMAGE_ALT,
     pageType: baseMeta.pageType ?? 'WebPage',
     indexable: baseMeta.indexable ?? true,
+    keywords: LOCAL_KEYWORDS.join(', '),
     schemas:
       typeof baseMeta.schemas === 'function'
         ? baseMeta.schemas({

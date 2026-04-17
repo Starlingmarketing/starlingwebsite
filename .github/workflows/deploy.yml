@@ -1,0 +1,57 @@
+name: Deploy to Vercel (prerendered)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Avoid overlapping production deploys for the same ref.
+concurrency:
+  group: vercel-prod-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    # The Vercel CLI reads these from the environment so we don't have to
+    # commit `.vercel/project.json` or pass extra flags.
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium (with OS deps)
+        run: npx playwright install --with-deps chromium
+
+      - name: Build site (vite build + prerender)
+        run: npm run build
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@latest
+
+      - name: Pull Vercel project settings (production)
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+
+      # `vercel deploy --prebuilt` requires `.vercel/output/`. With
+      # `buildCommand: null` + `outputDirectory: dist` in vercel.json, this
+      # step just packages the existing prerendered `dist/` into the Build
+      # Output API format — it does not re-run vite build or prerender.
+      - name: Package prebuilt output for Vercel
+        run: vercel build --prod --token="$VERCEL_TOKEN"
+
+      - name: Deploy prebuilt artifact to Vercel (production)
+        run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
