@@ -5,6 +5,7 @@ import { cld } from '../utils/cloudinary';
 import { limitFit } from '@cloudinary/url-gen/actions/resize';
 import { useRef, useState, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import { animate } from 'animejs';
+import { useLenis } from 'lenis/react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -697,6 +698,7 @@ const useStaggerReveal = (shouldAnimate) => {
 };
 
 const Home = () => {
+  const lenis = useLenis();
   const [visibleSet, setVisibleSet] = useState([0, 1, 2]);
   const [departingIdx, setDepartingIdx] = useState(null);
   const [entranceDone, setEntranceDone] = useState(false);
@@ -2566,6 +2568,19 @@ const Home = () => {
 
     return Math.round(interpolateValue(0, maxBias, biasProgress));
   }, []);
+  const scrollExpandedGalleryViewport = useCallback((top, behavior = 'auto') => {
+    if (!Number.isFinite(top) || typeof window === 'undefined') return;
+
+    if (lenis) {
+      lenis.scrollTo(top, {
+        immediate: behavior !== 'smooth',
+        force: true,
+      });
+      return;
+    }
+
+    window.scrollTo({ top, behavior });
+  }, [lenis]);
 
   const resolveExpandedLandingPerimeterStartScrollTop = useCallback(() => {
     if (typeof window === 'undefined') return null;
@@ -2577,7 +2592,8 @@ const Home = () => {
     const targetTop = expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
     if (!Number.isFinite(rect.top) || !Number.isFinite(targetTop)) return null;
 
-    return Math.max(0, window.scrollY + rect.top - targetTop);
+    const computedStartScrollTop = Math.max(0, window.scrollY + rect.top - targetTop);
+    return computedStartScrollTop;
   }, [
     expandedGalleryPerimeterVerticalShift,
     expandedGalleryStickyTop,
@@ -2586,11 +2602,11 @@ const Home = () => {
     if (typeof window === 'undefined') return;
 
     const nextScrollTop = resolveExpandedLandingPerimeterStartScrollTop();
-    if (
+    const shouldAlignToPerimeterStart =
       Number.isFinite(nextScrollTop) &&
-      Math.abs(nextScrollTop - window.scrollY) > 1
-    ) {
-      window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+      Math.abs(nextScrollTop - window.scrollY) > 1;
+    if (shouldAlignToPerimeterStart) {
+      scrollExpandedGalleryViewport(nextScrollTop, 'auto');
     }
 
     const expandedCard =
@@ -2613,24 +2629,29 @@ const Home = () => {
     ) {
       stageContentNode.style.pointerEvents = 'auto';
     }
-    if (
+    const shouldSkipCloseButtonCorrection =
       !Number.isFinite(closeRect.top) ||
-      closeRect.top >= EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP
-    ) {
-      return;
-    }
+      closeRect.top >= EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP;
+    const correctedScrollTop = shouldSkipCloseButtonCorrection
+      ? null
+      : Math.max(
+        0,
+        window.scrollY +
+          closeRect.top -
+          EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP
+      );
+    const shouldApplyCloseButtonCorrection =
+      Number.isFinite(correctedScrollTop) &&
+      Math.abs(correctedScrollTop - window.scrollY) > 1;
 
-    const correctedScrollTop = Math.max(
-      0,
-      window.scrollY +
-        closeRect.top -
-        EXPANDED_GALLERY_PERIMETER_CLOSE_BUTTON_SAFE_TOP
-    );
-    if (Math.abs(correctedScrollTop - window.scrollY) > 1) {
-      window.scrollTo({ top: correctedScrollTop, behavior: 'auto' });
+    if (shouldApplyCloseButtonCorrection) {
+      scrollExpandedGalleryViewport(correctedScrollTop, 'auto');
     }
   }, [
+    expandedGalleryPerimeterVerticalShift,
     expandedGalleryImageKey,
+    expandedGalleryStickyTop,
+    scrollExpandedGalleryViewport,
     resolveExpandedLandingPerimeterStartScrollTop,
   ]);
 
@@ -2675,10 +2696,7 @@ const Home = () => {
           Number.isFinite(nextScrollTop) &&
           Math.abs(nextScrollTop - window.scrollY) > 1;
         if (willScroll) {
-          window.scrollTo({
-            top: nextScrollTop,
-            behavior: wasOpen ? 'smooth' : 'auto',
-          });
+          scrollExpandedGalleryViewport(nextScrollTop, wasOpen ? 'smooth' : 'auto');
         }
         return;
       }
@@ -2694,15 +2712,12 @@ const Home = () => {
             topInset: expandedGalleryStickyTop,
             topBias: openingScrollBias,
           });
-
-          if (
+          const willScroll =
             Number.isFinite(nextScrollTop) &&
-            Math.abs(nextScrollTop - window.scrollY) > 1
-          ) {
-            window.scrollTo({
-              top: nextScrollTop,
-              behavior: wasOpen ? 'smooth' : 'auto',
-            });
+            Math.abs(nextScrollTop - window.scrollY) > 1;
+
+          if (willScroll) {
+            scrollExpandedGalleryViewport(nextScrollTop, wasOpen ? 'smooth' : 'auto');
           }
           return;
         }
@@ -2723,6 +2738,7 @@ const Home = () => {
     expandedGalleryStickyTop,
     getExpandedGalleryOpenScrollBias,
     isDesktopGallery,
+    scrollExpandedGalleryViewport,
     useExpandedLandingPerimeter,
     selectedRef,
   ]);
@@ -3919,12 +3935,12 @@ const Home = () => {
             topInset: expandedGalleryStickyTop,
             topBias: openingScrollBias,
           });
-
-          if (
+          const willScroll =
             Number.isFinite(nextScrollTop) &&
-            Math.abs(nextScrollTop - window.scrollY) > 1
-          ) {
-            window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+            Math.abs(nextScrollTop - window.scrollY) > 1;
+
+          if (willScroll) {
+            scrollExpandedGalleryViewport(nextScrollTop, 'auto');
           }
         } else {
           const stageContentNode =
@@ -3936,12 +3952,12 @@ const Home = () => {
               topInset: expandedGalleryStickyTop,
               topBias: openingScrollBias,
             });
-
-            if (
+            const willScroll =
               Number.isFinite(nextScrollTop) &&
-              Math.abs(nextScrollTop - window.scrollY) > 1
-            ) {
-              window.scrollTo({ top: nextScrollTop, behavior: 'auto' });
+              Math.abs(nextScrollTop - window.scrollY) > 1;
+
+            if (willScroll) {
+              scrollExpandedGalleryViewport(nextScrollTop, 'auto');
             }
           }
         }
@@ -3996,6 +4012,7 @@ const Home = () => {
     getExpandedGalleryOpenScrollBias,
     isDesktopGallery,
     removeOpeningClone,
+    scrollExpandedGalleryViewport,
     useExpandedLandingPerimeter,
   ]);
 
