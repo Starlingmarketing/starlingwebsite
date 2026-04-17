@@ -3147,6 +3147,8 @@ const Home = () => {
     let hadUpwardScrollBeforeArm = false;
     let didPrestartMorphFromWheel = false;
     let morphPrestartTimestamp = 0;
+    let accumulatedWheelUpDelta = 0;
+    let lastWheelUpTimestamp = 0;
     const checkStageVisibility = () => {
       rafId = 0;
       if (isClosingStage) return;
@@ -3211,6 +3213,19 @@ const Home = () => {
       if (!isScrollCloseArmed) return;
 
       if (isVisible) {
+        const skipMorphDelta = clampValue(20, window.innerHeight * 0.03, 48);
+        const shouldSkipMorph = isScrollingUp && hasReachedTopAnchor &&
+          upwardScrollDelta >= skipMorphDelta;
+
+        if (shouldSkipMorph && expandedGalleryScrollMorphRef.current.active) {
+          didPrestartMorphFromWheel = false;
+          isClosingStage = true;
+          if (!completeExpandedGalleryScrollMorphClose()) {
+            closeExpandedGalleryImage({ reason: 'explicit' });
+          }
+          return;
+        }
+
         const perimeterMorphLeadDistance = clampValue(
           48,
           window.innerHeight * 0.06,
@@ -3223,7 +3238,7 @@ const Home = () => {
         const morphIsActive = expandedGalleryScrollMorphRef.current.active;
         const hasMorphScrollIntent = isScrollingUp || hadUpwardScrollBeforeArm;
 
-        if (isPerimeterMorphRegion && (morphIsActive || hasMorphScrollIntent)) {
+        if (isPerimeterMorphRegion && (morphIsActive || hasMorphScrollIntent) && !shouldSkipMorph) {
           didPrestartMorphFromWheel = false;
           if (!morphIsActive) {
             if (isScrollingDown) return;
@@ -3270,7 +3285,7 @@ const Home = () => {
           ) {
             const prestartAge = performance.now() - morphPrestartTimestamp;
             if (
-              prestartAge >= 150 ||
+              prestartAge >= 80 ||
               (hasReachedTopAnchor && topOverscroll >= scrollCloseDistance)
             ) {
               didPrestartMorphFromWheel = false;
@@ -3345,8 +3360,19 @@ const Home = () => {
         !useExpandedLandingPerimeter ||
         expandedGalleryScrollMorphRef.current.active
       ) {
+        if (event.deltaY >= 0) {
+          accumulatedWheelUpDelta = 0;
+        }
         return;
       }
+
+      const now = performance.now();
+      if (now - lastWheelUpTimestamp > 120) accumulatedWheelUpDelta = 0;
+      accumulatedWheelUpDelta += Math.abs(event.deltaY);
+      lastWheelUpTimestamp = now;
+
+      const fastWheelThreshold = clampValue(50, window.innerHeight * 0.07, 120);
+      if (accumulatedWheelUpDelta >= fastWheelThreshold) return;
 
       const node = expandedGalleryStageRef.current ?? selectedRef.current;
       if (!(node instanceof HTMLElement)) return;
