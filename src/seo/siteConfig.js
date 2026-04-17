@@ -19,10 +19,10 @@ export const CLOUDINARY_CLOUD_NAME =
 
 export const DEFAULT_OG_IMAGE = `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I0729_catszb`;
 export const DEFAULT_OG_IMAGE_ALT =
-  'Featured wedding and editorial portfolio photography by Starling';
+  'Featured wedding and editorial work by Starling Photo Studios, a Washington, D.C. photography studio';
 
 export const BUSINESS_DESCRIPTION =
-  'Wedding, editorial, lifestyle, portrait, and commercial photography based in Washington D.C. and Philadelphia, traveling worldwide.';
+  'Washington, D.C.–based photography studio offering wedding, editorial, lifestyle, portrait, and commercial photography, with a second base in Philadelphia and travel worldwide.';
 
 export const SERVICE_TYPES = [
   'Wedding Photography',
@@ -32,7 +32,14 @@ export const SERVICE_TYPES = [
   'Commercial Photography',
 ];
 
-export const AREA_SERVED = ['Washington D.C.', 'Philadelphia', 'Worldwide'];
+export const AREA_SERVED = [
+  'Washington, D.C.',
+  'DMV',
+  'Maryland',
+  'Virginia',
+  'Philadelphia',
+  'Worldwide',
+];
 
 export const buildSiteUrl = (pathname = '/') => {
   const normalizedPath =

@@ -1261,7 +1261,7 @@ const Booking = () => {
             </h1>
             <p id="booking-page-description">
               Tell us about your wedding, portrait, editorial, or commercial project in
-              Washington D.C., Philadelphia, or anywhere worldwide.
+              Washington, D.C., Philadelphia, or anywhere worldwide.
             </p>
           </div>
           {showCinematicGrid ? (

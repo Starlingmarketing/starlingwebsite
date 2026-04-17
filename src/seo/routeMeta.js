@@ -74,9 +74,9 @@ const getWebPageSchema = ({
 const ROUTE_DEFINITIONS = {
   '/': {
     title:
-      'Wedding Photographer in Washington D.C. & Philadelphia | Starling Photography',
+      'Washington, D.C. Photographer | Wedding, Editorial & Portrait | Starling Photo Studios',
     description:
-      'Editorial, wedding, and lifestyle photography in Washington D.C., Philadelphia, and destination locations. View selected work and inquire with Starling Photography.',
+      'Starling Photo Studios is a Washington, D.C. photography studio creating wedding, editorial, portrait, and lifestyle work for clients across the DMV, Philadelphia, and beyond.',
     readySelector: '#home-page',
     socialImage: DEFAULT_OG_IMAGE,
     socialImageAlt: DEFAULT_OG_IMAGE_ALT,
@@ -89,12 +89,12 @@ const ROUTE_DEFINITIONS = {
   },
   '/about': {
     title:
-      'About Starling Photography | Washington D.C., Philadelphia & Destination Photographer',
+      'About Starling Photo Studios | Washington, D.C. Wedding & Editorial Photographer',
     description:
-      'Learn about Starling’s collaborative approach to wedding, editorial, portrait, and commercial photography in Washington D.C., Philadelphia, and worldwide.',
+      'Meet the Washington, D.C. photography studio behind Starling — a collaborative team shooting weddings, editorial, portraits, and commercial work across the DMV, Philadelphia, and worldwide.',
     readySelector: '#about-page',
     socialImage: DEFAULT_OG_IMAGE,
-    socialImageAlt: 'About Starling Photography',
+    socialImageAlt: 'About Starling Photo Studios, a Washington, D.C. photography studio',
     pageType: 'AboutPage',
     breadcrumbLabel: 'About',
     schemas: ({ pathname, title, description }) => [
@@ -112,12 +112,12 @@ const ROUTE_DEFINITIONS = {
   },
   '/booking': {
     title:
-      'Book Starling Photography | Wedding, Editorial & Lifestyle Inquiries',
+      'Book a Washington, D.C. Photographer | Starling Photo Studios',
     description:
-      'Inquire about wedding, editorial, portrait, and commercial photography with Starling Photography in Washington D.C., Philadelphia, and beyond.',
+      'Book a Washington, D.C. photographer for weddings, editorial, portrait, and commercial sessions. Inquire with Starling Photo Studios for dates in the DMV, Philadelphia, and beyond.',
     readySelector: '#booking-page',
     socialImage: DEFAULT_OG_IMAGE,
-    socialImageAlt: 'Book Starling Photography',
+    socialImageAlt: 'Book Starling Photo Studios, a Washington, D.C. photography studio',
     pageType: 'ContactPage',
     breadcrumbLabel: 'Booking',
     schemas: ({ pathname, title, description }) => [
@@ -134,11 +134,12 @@ const ROUTE_DEFINITIONS = {
     ],
   },
   '/404': {
-    title: 'Page Not Found | Starling Photography',
-    description: 'The page you requested could not be found.',
+    title: 'Page Not Found | Starling Photo Studios',
+    description:
+      'The page you requested could not be found. Return home to explore Starling Photo Studios, a Washington, D.C. photography studio.',
     readySelector: '[data-not-found-page="true"]',
     socialImage: DEFAULT_OG_IMAGE,
-    socialImageAlt: 'Starling Photography',
+    socialImageAlt: 'Starling Photo Studios, a Washington, D.C. photography studio',
     pageType: 'WebPage',
     robots: 'noindex,nofollow',
     canonicalPath: null,

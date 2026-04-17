@@ -5340,13 +5340,16 @@ const Home = () => {
                 </div>
               </div>
               <div className="contents md:flex md:flex-col md:flex-1 md:w-full text-left">
-                <p className="sr-only">
-                  Washington D.C. and Philadelphia wedding, editorial, and lifestyle photographer.
-                </p>
-                <h1 className="hero-intro-item order-1 md:order-none font-serif uppercase md:normal-case text-[44px] md:text-[54px] lg:text-[62px] text-[#18181B] leading-[1.15] md:leading-[1.02] tracking-normal mb-6 md:mb-5">
+                <h1 className="sr-only">
+                  Washington, D.C. Photographer | Wedding, Editorial, Conference
+                </h1>
+                <div
+                  aria-hidden="true"
+                  className="hero-headline hero-intro-item order-1 md:order-none font-serif uppercase md:normal-case text-[44px] md:text-[54px] lg:text-[62px] text-[#18181B] leading-[1.15] md:leading-[1.02] tracking-normal mb-6 md:mb-5"
+                >
                   <div className="hero-text-line whitespace-nowrap">Unscripted Moments.</div>
                   <div className="hero-text-line whitespace-nowrap">Unforgettable Memories.</div>
-                </h1>
+                </div>
                 <div className="order-3 md:order-none w-full max-w-[386px] mx-auto md:flex md:flex-col md:flex-1">
                   <p className="hero-intro-item hero-desc text-[#6B6B76] font-light text-[13px] leading-[1.5] md:leading-[1.5] mb-8 md:mb-5">
                     Premium photography for{' '}
@@ -5361,7 +5364,7 @@ const Home = () => {
                       to="/about"
                       className="text-current transition-colors duration-300 hover:text-[#18181B]"
                     >
-                      Washington D.C. and Philadelphia
+                      Washington, D.C. and Philadelphia
                     </Link>
                     , traveling worldwide.
                   </p>

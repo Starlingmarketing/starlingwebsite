@@ -353,7 +353,7 @@ nav[data-menu-open] [data-nav-bg] {
   gap: 1.5rem;
 }
 
-#home-hero h1 {
+#home-hero .hero-headline {
   font-size: clamp(19px, 2.5vw + 11px, 26px);
   margin-bottom: 0.5rem;
 }
@@ -368,7 +368,7 @@ nav[data-menu-open] [data-nav-bg] {
     padding-right: clamp(3rem, 15.63vw - 72px, 8rem);
   }
 
-  #home-hero h1 {
+  #home-hero .hero-headline {
     font-size: 48px;
     margin-bottom: 14px;
   }
@@ -429,7 +429,7 @@ nav[data-menu-open] [data-nav-bg] {
     align-self: flex-start;
   }
 
-  #home-hero h1 {
+  #home-hero .hero-headline {
     font-size: clamp(14px, 3.2vw, 20px) !important;
   }
 
