@@ -1015,6 +1015,7 @@ const Home = () => {
   const expandedGalleryScrollCloseArmUntilRef = useRef(0);
   const expandedGallerySoftCloseRef = useRef(false);
   const expandedGalleryIsClosingRef = useRef(false);
+  const expandedGalleryMorphLayerPendingRemoveRef = useRef(null);
   const expandedGalleryScrollMorphRef = useRef({
     active: false,
     progress: 0,
@@ -1968,8 +1969,11 @@ const Home = () => {
       layerToRemove.style.opacity = '0';
       const removeTimer = setTimeout(() => {
         layerToRemove.remove();
+        if (expandedGalleryMorphLayerPendingRemoveRef.current?.layer === layerToRemove) {
+          expandedGalleryMorphLayerPendingRemoveRef.current = null;
+        }
       }, 200);
-      layerToRemove._removeTimer = removeTimer;
+      expandedGalleryMorphLayerPendingRemoveRef.current = { layer: layerToRemove, timer: removeTimer };
     }
 
     expandedGalleryScrollMorphRef.current = {
@@ -2043,6 +2047,13 @@ const Home = () => {
 
     removeClosingClone();
     removeOpeningClone();
+
+    const pendingRemove = expandedGalleryMorphLayerPendingRemoveRef.current;
+    if (pendingRemove) {
+      clearTimeout(pendingRemove.timer);
+      pendingRemove.layer.remove();
+      expandedGalleryMorphLayerPendingRemoveRef.current = null;
+    }
 
     const nextRects = new Map();
 
@@ -3221,6 +3232,7 @@ const Home = () => {
         if (isPerimeterMorphRegion && (morphIsActive || hasMorphScrollIntent)) {
           didPrestartMorphFromWheel = false;
           if (!morphIsActive) {
+            if (isScrollingDown) return;
             startExpandedGalleryScrollMorph();
           }
           const morphState = expandedGalleryScrollMorphRef.current;
@@ -3246,9 +3258,10 @@ const Home = () => {
           if (didSyncMorph) {
             if (morphProgress >= 0.94 || shouldForceTopMorphClose) {
               isClosingStage = true;
-              // A fast fling can hit page top before the morph catches up,
-              // so snap to the final pose before tearing the stage down.
               completeExpandedGalleryScrollMorphClose();
+            } else if (isScrollingDown && morphProgress <= 0.02) {
+              syncExpandedGalleryScrollMorphProgress(0);
+              cleanupExpandedGalleryScrollMorph();
             }
             return;
           }
@@ -3257,6 +3270,7 @@ const Home = () => {
         if (expandedGalleryScrollMorphRef.current.active) {
           if (
             didPrestartMorphFromWheel &&
+            !isScrollingDown &&
             hasMorphScrollIntent &&
             useExpandedLandingPerimeter
           ) {
