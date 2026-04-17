@@ -46,12 +46,24 @@ jobs:
       - name: Pull Vercel project settings (production)
         run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
-      # `vercel deploy --prebuilt` requires `.vercel/output/`. With
-      # `buildCommand: null` + `outputDirectory: dist` in vercel.json, this
-      # step just packages the existing prerendered `dist/` into the Build
-      # Output API format — it does not re-run vite build or prerender.
+      # Package the prerendered dist/ directly into the Build Output API
+      # format instead of running `vercel build` (which would re-run vite
+      # and overwrite the prerendered HTML).
       - name: Package prebuilt output for Vercel
-        run: vercel build --prod --token="$VERCEL_TOKEN"
+        run: |
+          mkdir -p .vercel/output
+          cp -r dist .vercel/output/static
+          cat > .vercel/output/config.json << 'JSON'
+          {
+            "version": 3,
+            "routes": [
+              { "handle": "filesystem" },
+              { "src": "^(?:/((?!assets/).*))$", "dest": "/index.html", "check": true },
+              { "handle": "error" },
+              { "status": 404, "src": "^(?!/api).*$", "dest": "/404.html" }
+            ]
+          }
+          JSON
 
       - name: Deploy prebuilt artifact to Vercel (production)
         run: vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"

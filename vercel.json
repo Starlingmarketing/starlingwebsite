@@ -1,5 +1,5 @@
 {
-  "buildCommand": null,
+  "buildCommand": "node scripts/generate-seo-assets.mjs && vite build",
   "outputDirectory": "dist",
   "framework": null,
   "rewrites": [
