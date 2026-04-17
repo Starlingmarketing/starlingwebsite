@@ -140,8 +140,10 @@ const EXPANDED_GALLERY_FLOW_DEAD_ZONE = 0.34;
 const EXPANDED_GALLERY_SOFT_CLOSE_DURATION = 0.82;
 const EXPANDED_GALLERY_SOFT_REVEAL_DURATION = 0.82;
 const EXPANDED_GALLERY_PREMIUM_OPEN_DURATION = 0.56;
+const EXPANDED_GALLERY_HERO_SWAP_DURATION = 0.72;
 const EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION = 0.68;
 const EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION = 0.62;
+const EXPANDED_GALLERY_PERIMETER_SWAP_DURATION = 0.82;
 const EXPANDED_GALLERY_SCROLL_CLOSE_ARM_DELAY_MS = Math.round(
   (Math.max(
     EXPANDED_GALLERY_PREMIUM_OPEN_DURATION,
@@ -545,7 +547,7 @@ const ProgressiveCldImage = ({
       <div
         className={`absolute inset-0 ${
           showHi ? 'opacity-0' : 'opacity-100'
-        }`}
+        } transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
         aria-hidden="true"
       >
         <img
@@ -560,7 +562,7 @@ const ProgressiveCldImage = ({
       <div
         className={`absolute inset-0 ${
           showHi ? 'opacity-100' : 'opacity-0'
-        }`}
+        } transition-opacity duration-500 ease-[cubic-bezier(0.22,1,0.36,1)]`}
       >
         <AdvancedImage
           cldImg={cldImg}
@@ -573,6 +575,190 @@ const ProgressiveCldImage = ({
           onError={() => setHiError(true)}
         />
       </div>
+    </>
+  );
+};
+
+const ExpandedGalleryHeroImage = ({
+  imageKey,
+  publicId,
+  cldImg,
+  alt,
+  loading = 'eager',
+  decoding = 'async',
+  fetchPriority = 'high',
+  placeholderWidth = 96,
+  imgClassName = 'object-cover',
+  animateOnChange = true,
+}) => {
+  const [outgoingImage, setOutgoingImage] = useState(null);
+  const previousImageRef = useRef(null);
+  const incomingLayerRef = useRef(null);
+  const outgoingLayerRef = useRef(null);
+  const transitionIdRef = useRef(0);
+
+  useLayoutEffect(() => {
+    const nextImage = {
+      imageKey,
+      publicId,
+      cldImg,
+      alt,
+      loading,
+      decoding,
+      fetchPriority,
+      placeholderWidth,
+      imgClassName,
+    };
+    const previousImage = previousImageRef.current;
+    const didChange = Boolean(
+      animateOnChange &&
+      previousImage?.imageKey &&
+      imageKey &&
+      previousImage.imageKey !== imageKey
+    );
+
+    if (didChange) {
+      transitionIdRef.current += 1;
+      setOutgoingImage({
+        ...previousImage,
+        transitionId: transitionIdRef.current,
+      });
+    } else {
+      setOutgoingImage(null);
+    }
+
+    previousImageRef.current = nextImage;
+  }, [
+    animateOnChange,
+    alt,
+    cldImg,
+    decoding,
+    fetchPriority,
+    imageKey,
+    imgClassName,
+    loading,
+    placeholderWidth,
+    publicId,
+  ]);
+
+  useLayoutEffect(() => {
+    const incomingLayer = incomingLayerRef.current;
+    const outgoingLayer = outgoingLayerRef.current;
+
+    if (!incomingLayer) return undefined;
+
+    gsap.killTweensOf(incomingLayer);
+    if (outgoingLayer) {
+      gsap.killTweensOf(outgoingLayer);
+    }
+
+    if (!animateOnChange || !outgoingImage) {
+      gsap.set(incomingLayer, {
+        opacity: 1,
+        filter: 'none',
+        clearProps: 'opacity,transform,filter',
+      });
+      return undefined;
+    }
+
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
+      setOutgoingImage(null);
+      gsap.set(incomingLayer, {
+        opacity: 1,
+        filter: 'none',
+        clearProps: 'opacity,transform,filter',
+      });
+      return undefined;
+    }
+
+    const transitionId = outgoingImage.transitionId;
+
+    gsap.fromTo(
+      incomingLayer,
+      {
+        opacity: 0.36,
+        filter: 'blur(0.6px) saturate(1.03)',
+      },
+      {
+        opacity: 1,
+        filter: 'blur(0px) saturate(1)',
+        duration: EXPANDED_GALLERY_HERO_SWAP_DURATION,
+        ease: 'power1.out',
+        overwrite: 'auto',
+        clearProps: 'opacity,transform,filter',
+      }
+    );
+
+    if (outgoingLayer) {
+      gsap.fromTo(
+        outgoingLayer,
+        {
+          opacity: 1,
+          filter: 'blur(0px) brightness(1)',
+        },
+        {
+          opacity: 0,
+          filter: 'blur(1.8px) brightness(0.985)',
+          duration: EXPANDED_GALLERY_HERO_SWAP_DURATION * 1.04,
+          ease: 'power1.out',
+          overwrite: 'auto',
+          clearProps: 'transform,filter',
+          onComplete: () => {
+            setOutgoingImage((current) => (
+              current?.transitionId === transitionId ? null : current
+            ));
+          },
+        }
+      );
+    }
+
+    return () => {
+      gsap.killTweensOf(incomingLayer);
+      if (outgoingLayer) {
+        gsap.killTweensOf(outgoingLayer);
+      }
+    };
+  }, [animateOnChange, outgoingImage]);
+
+  return (
+    <>
+      <div
+        ref={incomingLayerRef}
+        className="absolute inset-0"
+        style={{ willChange: 'opacity, transform, filter' }}
+      >
+        <ProgressiveCldImage
+          key={imageKey}
+          publicId={publicId}
+          cldImg={cldImg}
+          alt={alt}
+          loading={loading}
+          decoding={decoding}
+          fetchPriority={fetchPriority}
+          placeholderWidth={placeholderWidth}
+          imgClassName={imgClassName}
+        />
+      </div>
+
+      {outgoingImage ? (
+        <div
+          ref={outgoingLayerRef}
+          className="absolute inset-0 pointer-events-none"
+          style={{ willChange: 'opacity, transform, filter' }}
+          aria-hidden="true"
+        >
+          <ProgressiveCldImage
+            key={outgoingImage.imageKey}
+            publicId={outgoingImage.publicId}
+            cldImg={outgoingImage.cldImg}
+            alt=""
+            loading="eager"
+            decoding="async"
+            placeholderWidth={outgoingImage.placeholderWidth}
+            imgClassName={outgoingImage.imgClassName}
+          />
+        </div>
+      ) : null}
     </>
   );
 };
@@ -811,10 +997,12 @@ const Home = () => {
   const hasExpandedGalleryImage = Boolean(expandedGalleryImage);
   const expandedGalleryStageRef = useRef(null);
   const expandedGalleryFixedCardRef = useRef(null);
+  const expandedGalleryPerimeterFlowRef = useRef(null);
   const expandedGallerySourceRectRef = useRef(null);
   const expandedGallerySourceInnerRef = useRef(null);
   const expandedGallerySourceScrollRef = useRef({ x: 0, y: 0 });
   const expandedGalleryRectsRef = useRef(new Map());
+  const expandedGalleryPerimeterClockwiseSwapRef = useRef(false);
   const expandedGalleryClosingCloneRef = useRef(null);
   const expandedGalleryCloseMetaRef = useRef(null);
   const expandedGalleryOpeningCloneRef = useRef(null);
@@ -865,6 +1053,9 @@ const Home = () => {
       basePinnedRowTopFromStage: 0,
       rowStep: 0,
     };
+    if (!expandedGalleryImageKey) {
+      expandedGalleryPerimeterClockwiseSwapRef.current = false;
+    }
     expandedGalleryAnimatedRowsRef.current.clear();
     const snap = expandedGalleryPerimeterSnapRef.current;
     if (snap.animId) window.cancelAnimationFrame(snap.animId);
@@ -2239,6 +2430,17 @@ const Home = () => {
     finalizeExpandedGalleryClose,
   ]);
 
+  const completeExpandedGalleryScrollMorphClose = useCallback(() => {
+    const didReachMorphEnd = syncExpandedGalleryScrollMorphProgress(1);
+    if (!didReachMorphEnd) return false;
+
+    finalizeExpandedGalleryScrollMorphClose();
+    return true;
+  }, [
+    finalizeExpandedGalleryScrollMorphClose,
+    syncExpandedGalleryScrollMorphProgress,
+  ]);
+
   const closeExpandedGalleryImage = useCallback((options = {}) => {
     const { reason = 'explicit' } = options;
 
@@ -2350,6 +2552,20 @@ const Home = () => {
     useExpandedLandingPerimeter,
   ]);
 
+  const handleExpandedGalleryBackdropClick = useCallback((e) => {
+    if (!expandedGalleryImageKey || !isDesktopGallery) return;
+
+    const target = e.target;
+    if (!(target instanceof Element)) return;
+    if (target.closest('[data-gallery-card-key]')) return;
+
+    closeExpandedGalleryImage();
+  }, [
+    closeExpandedGalleryImage,
+    expandedGalleryImageKey,
+    isDesktopGallery,
+  ]);
+
   useEffect(() => {
     if (expandedGalleryImageKey && isDesktopGallery) return undefined;
     if (!expandedGalleryScrollMorphRef.current.active) return undefined;
@@ -2401,6 +2617,8 @@ const Home = () => {
     const outer = e.currentTarget;
     const inner = outer?.querySelector?.('[data-gallery-card-inner="true"]') ?? outer;
     const rect = inner?.getBoundingClientRect?.();
+    const shouldTrackExpandedSource = !hasExpandedGalleryImage && isDesktopGallery;
+    const shouldUseClockwisePerimeterSwap = hasExpandedGalleryImage && isDesktopGallery;
 
     if (expandedGalleryIsClosingRef.current) {
       finalizeExpandedGalleryClose();
@@ -2419,7 +2637,7 @@ const Home = () => {
     gsap.killTweensOf(inner);
     gsap.set(inner, { scale: 1 });
 
-    if (rect?.width && rect?.height) {
+    if (shouldTrackExpandedSource && rect?.width && rect?.height) {
       expandedGallerySourceRectRef.current = {
         left: rect.left,
         top: rect.top,
@@ -2430,7 +2648,10 @@ const Home = () => {
       expandedGallerySourceRectRef.current = null;
     }
 
-    expandedGallerySourceInnerRef.current = inner;
+    // Once the desktop lightbox is already open, keep the hero anchored and
+    // transition the image layers instead of replaying the full source-card morph.
+    expandedGallerySourceInnerRef.current = shouldTrackExpandedSource ? inner : null;
+    expandedGalleryPerimeterClockwiseSwapRef.current = shouldUseClockwisePerimeterSwap;
     expandedGallerySourceScrollRef.current = {
       x: typeof window !== 'undefined' ? window.scrollX : 0,
       y: typeof window !== 'undefined' ? window.scrollY : 0,
@@ -2960,6 +3181,11 @@ const Home = () => {
         hasReachedTopAnchor = true;
       }
 
+      const shouldForceTopMorphClose =
+        useExpandedLandingPerimeter &&
+        hasReachedTopAnchor &&
+        currentScrollY <= 4;
+
       lastScrollY = currentScrollY;
 
       if (!isScrollCloseArmed) return;
@@ -2997,9 +3223,11 @@ const Home = () => {
           const didSyncMorph = syncExpandedGalleryScrollMorphProgress(morphProgress);
 
           if (didSyncMorph) {
-            if (morphProgress >= 0.94 || currentScrollY <= 4) {
+            if (morphProgress >= 0.94 || shouldForceTopMorphClose) {
               isClosingStage = true;
-              finalizeExpandedGalleryScrollMorphClose();
+              // A fast fling can hit page top before the morph catches up,
+              // so snap to the final pose before tearing the stage down.
+              completeExpandedGalleryScrollMorphClose();
             }
             return;
           }
@@ -3031,6 +3259,14 @@ const Home = () => {
           closeExpandedGalleryImage({ reason: 'scroll' });
         }
 
+        return;
+      }
+
+      if (
+        shouldForceTopMorphClose &&
+        completeExpandedGalleryScrollMorphClose()
+      ) {
+        isClosingStage = true;
         return;
       }
 
@@ -3098,6 +3334,7 @@ const Home = () => {
     isDesktopGallery,
     selectedRef,
     startExpandedGalleryScrollMorph,
+    completeExpandedGalleryScrollMorphClose,
     syncExpandedGalleryScrollMorphProgress,
     useExpandedLandingPerimeter,
   ]);
@@ -3485,15 +3722,21 @@ const Home = () => {
 
   useEffect(() => {
     const previousRects = expandedGalleryRectsRef.current;
-    if (!previousRects.size) return undefined;
+    const shouldUseClockwisePerimeterSwap =
+      expandedGalleryPerimeterClockwiseSwapRef.current;
+    if (!previousRects.size && !shouldUseClockwisePerimeterSwap) {
+      return undefined;
+    }
     if (typeof window === 'undefined') return undefined;
     if (expandedGallerySoftCloseRef.current) {
       expandedGalleryRectsRef.current = new Map();
+      expandedGalleryPerimeterClockwiseSwapRef.current = false;
       return undefined;
     }
 
     if (window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches) {
       expandedGalleryRectsRef.current = new Map();
+      expandedGalleryPerimeterClockwiseSwapRef.current = false;
       return undefined;
     }
 
@@ -3503,9 +3746,11 @@ const Home = () => {
         const stageNode = expandedGalleryStageRef.current;
         if (!stageNode) {
           expandedGalleryRectsRef.current = new Map();
+          expandedGalleryPerimeterClockwiseSwapRef.current = false;
           return;
         }
 
+        const flowNode = expandedGalleryPerimeterFlowRef.current;
         const pinnedRect = expandedGalleryFixedCardRef.current?.getBoundingClientRect?.();
         const pinnedCenterX = pinnedRect?.width
           ? pinnedRect.left + (pinnedRect.width / 2)
@@ -3533,11 +3778,70 @@ const Home = () => {
               inner,
               cardKey: node.dataset.galleryFlowCardKey ?? '',
               edge: node.dataset.galleryEdge ?? 'bottom',
+              centerX,
+              centerY,
+              radius: Math.hypot(centerX - pinnedCenterX, centerY - pinnedCenterY),
               distance: Math.hypot(centerX - pinnedCenterX, centerY - pinnedCenterY),
             };
           })
           .filter(Boolean)
           .sort((a, b) => a.distance - b.distance);
+
+        if (shouldUseClockwisePerimeterSwap) {
+          if (flowNode instanceof HTMLElement) {
+            gsap.killTweensOf(flowNode);
+            gsap.fromTo(
+              flowNode,
+              {
+                opacity: 0.72,
+                filter: 'blur(0.8px)',
+              },
+              {
+                opacity: 1,
+                filter: 'blur(0px)',
+                duration: EXPANDED_GALLERY_PERIMETER_SWAP_DURATION,
+                ease: 'power1.out',
+                overwrite: 'auto',
+                clearProps: 'opacity,filter',
+              }
+            );
+          }
+
+          perimeterCards.forEach(({ inner, centerX, centerY, radius }) => {
+            const safeRadius = radius || 1;
+            const tangentX = -(centerY - pinnedCenterY) / safeRadius;
+            const tangentY = (centerX - pinnedCenterX) / safeRadius;
+            const travel = clampValue(18, safeRadius * 0.075, 44);
+
+            gsap.killTweensOf(inner);
+            gsap.fromTo(
+              inner,
+              {
+                x: -tangentX * travel,
+                y: -tangentY * travel,
+                scale: 0.988,
+                opacity: 0,
+                filter: 'blur(1.8px) saturate(0.94)',
+                transformOrigin: 'center center',
+              },
+              {
+                x: 0,
+                y: 0,
+                scale: 1,
+                opacity: 1,
+                filter: 'blur(0px) saturate(1)',
+                duration: EXPANDED_GALLERY_PERIMETER_SWAP_DURATION * 0.98,
+                ease: 'power1.out',
+                overwrite: 'auto',
+                clearProps: 'transform,opacity,filter',
+              }
+            );
+          });
+
+          expandedGalleryRectsRef.current = new Map();
+          expandedGalleryPerimeterClockwiseSwapRef.current = false;
+          return;
+        }
 
         perimeterCards.forEach(({ rect, inner, cardKey, edge }, index) => {
           const prevRect = projectDocumentRectToViewport(
@@ -3607,6 +3911,7 @@ const Home = () => {
         });
 
         expandedGalleryRectsRef.current = new Map();
+        expandedGalleryPerimeterClockwiseSwapRef.current = false;
         return;
       }
 
@@ -3670,6 +3975,7 @@ const Home = () => {
       });
 
       expandedGalleryRectsRef.current = new Map();
+      expandedGalleryPerimeterClockwiseSwapRef.current = false;
     });
 
     return () => {
@@ -4133,14 +4439,15 @@ const Home = () => {
       } else {
         gsap.fromTo(
           motionNode,
-          { y: 8, scale: 0.988 },
           {
-            y: 0,
-            scale: 1,
-            duration: EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION,
-            ease: 'power3.out',
+            filter: 'brightness(0.988) saturate(0.992)',
+          },
+          {
+            filter: 'brightness(1) saturate(1)',
+            duration: EXPANDED_GALLERY_HERO_SWAP_DURATION,
+            ease: 'power2.out',
             overwrite: 'auto',
-            clearProps: 'transform',
+            clearProps: 'transform,filter',
           }
         );
       }
@@ -4442,58 +4749,65 @@ const Home = () => {
                 : undefined,
             }}
           >
-            {expandedGalleryPerimeterCards.map(({ img, cardKey, pose }, i) => {
-              const imageAltLabel = img.altLabel ?? 'Landing Page';
-              const imageAltText =
-                img.altText ?? `${imageAltLabel} photo ${i + 1}`;
-              const cardOpacity = Number(pose.opacity.toFixed(3));
+            <div
+              ref={expandedGalleryPerimeterFlowRef}
+              data-gallery-perimeter-flow="true"
+              className="absolute inset-0"
+              style={{ willChange: 'opacity, filter' }}
+            >
+              {expandedGalleryPerimeterCards.map(({ img, cardKey, pose }, i) => {
+                const imageAltLabel = img.altLabel ?? 'Landing Page';
+                const imageAltText =
+                  img.altText ?? `${imageAltLabel} photo ${i + 1}`;
+                const cardOpacity = Number(pose.opacity.toFixed(3));
 
-              return (
-                <div
-                  key={cardKey}
-                  data-gallery-card-key={cardKey}
-                  data-gallery-flow-card-key={cardKey}
-                  data-gallery-edge={pose.edge}
-                  data-gallery-featured="false"
-                  role="button"
-                  tabIndex={cardOpacity < 0.2 ? -1 : 0}
-                  aria-expanded="false"
-                  aria-label={`Expand ${imageAltLabel} photo ${i + 1}`}
-                  className="home-gallery-card absolute block rounded-[8px] border-0 bg-transparent p-0 text-left transition-[filter,box-shadow,opacity] duration-200 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
-                  style={{
-                    left: `${pose.x}%`,
-                    top: `${pose.y}%`,
-                    width: `min(${pose.width}%, 15rem)`,
-                    transform: 'translate(-50%, -50%)',
-                    opacity: cardOpacity,
-                    zIndex: 5,
-                    scrollMarginTop: `${Math.max(112, expandedGalleryStickyTop)}px`,
-                    pointerEvents: cardOpacity < 0.2 ? 'none' : 'auto',
-                    willChange: 'transform,opacity',
-                  }}
-                  onClick={(e) => handleGalleryImageClick(img.galleryKey, img.id, e)}
-                  onKeyDown={(e) => {
-                    if (e.key !== 'Enter' && e.key !== ' ') return;
-                    e.preventDefault();
-                    handleGalleryImageClick(img.galleryKey, img.id, e);
-                  }}
-                >
+                return (
                   <div
-                    data-gallery-card-inner="true"
-                    className="relative w-full overflow-hidden rounded-[8px] bg-slate-200/20 aspect-[4/3] shadow-xl shadow-slate-200/60"
+                    key={cardKey}
+                    data-gallery-card-key={cardKey}
+                    data-gallery-flow-card-key={cardKey}
+                    data-gallery-edge={pose.edge}
+                    data-gallery-featured="false"
+                    role="button"
+                    tabIndex={cardOpacity < 0.2 ? -1 : 0}
+                    aria-expanded="false"
+                    aria-label={`Expand ${imageAltLabel} photo ${i + 1}`}
+                    className="home-gallery-card absolute block rounded-[8px] border-0 bg-transparent p-0 text-left transition-[filter,box-shadow,opacity] duration-200 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-slate-300"
+                    style={{
+                      left: `${pose.x}%`,
+                      top: `${pose.y}%`,
+                      width: `min(${pose.width}%, 15rem)`,
+                      transform: 'translate(-50%, -50%)',
+                      opacity: cardOpacity,
+                      zIndex: 5,
+                      scrollMarginTop: `${Math.max(112, expandedGalleryStickyTop)}px`,
+                      pointerEvents: cardOpacity < 0.2 ? 'none' : 'auto',
+                      willChange: 'transform,opacity',
+                    }}
+                    onClick={(e) => handleGalleryImageClick(img.galleryKey, img.id, e)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter' && e.key !== ' ') return;
+                      e.preventDefault();
+                      handleGalleryImageClick(img.galleryKey, img.id, e);
+                    }}
                   >
-                    <ProgressiveCldImage
-                      publicId={img.publicId}
-                      cldImg={img.cldImg}
-                      alt={imageAltText}
-                      loading="lazy"
-                      decoding="async"
-                      imgClassName="object-cover"
-                    />
+                    <div
+                      data-gallery-card-inner="true"
+                      className="relative w-full overflow-hidden rounded-[8px] bg-slate-200/20 aspect-[4/3] shadow-xl shadow-slate-200/60"
+                    >
+                      <ProgressiveCldImage
+                        publicId={img.publicId}
+                        cldImg={img.cldImg}
+                        alt={imageAltText}
+                        loading="lazy"
+                        decoding="async"
+                        imgClassName="object-cover"
+                      />
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
 
             <div
               ref={expandedGalleryFixedCardRef}
@@ -4532,7 +4846,8 @@ const Home = () => {
                     <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" />
                   </svg>
                 </button>
-                <ProgressiveCldImage
+                <ExpandedGalleryHeroImage
+                  imageKey={selectedCardKey}
                   publicId={expandedLandingSelectedImage.publicId}
                   cldImg={expandedLandingSelectedImage.cldImg}
                   alt={selectedAltText}
@@ -4658,7 +4973,8 @@ const Home = () => {
                   <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" />
                 </svg>
               </button>
-              <ProgressiveCldImage
+              <ExpandedGalleryHeroImage
+                imageKey={pinnedDesktopCardKey}
                 publicId={pinnedDesktopImage.publicId}
                 cldImg={pinnedDesktopImage.cldImg}
                 alt={pinnedDesktopAltText}
@@ -5124,6 +5440,11 @@ const Home = () => {
         style={
           hasExpandedGalleryImage && isDesktopGallery
             ? { scrollMarginTop: `${Math.max(112, expandedGalleryStickyTop)}px` }
+            : undefined
+        }
+        onClick={
+          hasExpandedGalleryImage && isDesktopGallery
+            ? handleExpandedGalleryBackdropClick
             : undefined
         }
       >
