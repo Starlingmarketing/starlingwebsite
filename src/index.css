@@ -571,3 +571,84 @@ nav[data-menu-open] [data-nav-bg] {
     margin-top: 0.75rem;
   }
 }
+
+/* ─── Booking form ambient glow ──────────────────────────────────── */
+.booking-form-glow-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(40px);
+  will-change: transform, opacity;
+}
+
+.booking-form-glow-orb--1 {
+  width: 120%;
+  height: 120%;
+  left: -30%;
+  top: -30%;
+  background: radial-gradient(
+    circle at center,
+    rgba(180, 180, 185, 0.18) 0%,
+    rgba(180, 180, 185, 0.06) 40%,
+    transparent 70%
+  );
+  animation: bookingGlow1 12s ease-in-out infinite;
+}
+
+.booking-form-glow-orb--2 {
+  width: 100%;
+  height: 100%;
+  right: -25%;
+  top: -20%;
+  background: radial-gradient(
+    circle at center,
+    rgba(160, 160, 168, 0.16) 0%,
+    rgba(160, 160, 168, 0.05) 40%,
+    transparent 70%
+  );
+  animation: bookingGlow2 16s ease-in-out infinite;
+}
+
+.booking-form-glow-orb--3 {
+  width: 110%;
+  height: 110%;
+  left: -15%;
+  bottom: -35%;
+  background: radial-gradient(
+    circle at center,
+    rgba(140, 140, 148, 0.14) 0%,
+    rgba(140, 140, 148, 0.04) 40%,
+    transparent 70%
+  );
+  animation: bookingGlow3 14s ease-in-out infinite;
+}
+
+@keyframes bookingGlow1 {
+  0%, 100% { transform: translate(-25%, -20%); opacity: 0.6; }
+  20% { transform: translate(30%, -10%); opacity: 0.9; }
+  45% { transform: translate(40%, 35%); opacity: 1; }
+  65% { transform: translate(-10%, 40%); opacity: 0.75; }
+  85% { transform: translate(-35%, 10%); opacity: 0.85; }
+}
+
+@keyframes bookingGlow2 {
+  0%, 100% { transform: translate(30%, -25%); opacity: 0.55; }
+  25% { transform: translate(-20%, -15%); opacity: 0.85; }
+  50% { transform: translate(-40%, 25%); opacity: 1; }
+  70% { transform: translate(10%, 40%); opacity: 0.7; }
+  90% { transform: translate(40%, 5%); opacity: 0.6; }
+}
+
+@keyframes bookingGlow3 {
+  0%, 100% { transform: translate(10%, 35%); opacity: 0.5; }
+  30% { transform: translate(35%, -25%); opacity: 0.9; }
+  55% { transform: translate(-30%, -20%); opacity: 1; }
+  75% { transform: translate(-25%, 30%); opacity: 0.7; }
+  90% { transform: translate(20%, 15%); opacity: 0.8; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .booking-form-glow-orb {
+    animation: none !important;
+    opacity: 0.5;
+  }
+}

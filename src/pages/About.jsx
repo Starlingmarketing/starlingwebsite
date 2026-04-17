@@ -371,8 +371,8 @@ const About = () => {
           <div
             className={
               isMobileStack
-                ? 'relative z-10 w-full starling-quote-card'
-                : 'relative z-10 w-full animate-fade-in'
+                ? 'relative z-10 w-full overflow-hidden starling-quote-card'
+                : 'relative z-10 w-full overflow-hidden animate-fade-in'
             }
             style={{
               ...(isMobileStack
@@ -392,6 +392,12 @@ const About = () => {
               padding: '36px 44px',
             }}
           >
+            <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+              <div className="booking-form-glow-orb booking-form-glow-orb--1" />
+              <div className="booking-form-glow-orb booking-form-glow-orb--2" />
+              <div className="booking-form-glow-orb booking-form-glow-orb--3" />
+            </div>
+
             <button
               type="button"
               onClick={() => closeQuoteModal(false)}
@@ -415,7 +421,7 @@ const About = () => {
               </div>
 
               <div
-                className={`transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                className={`relative z-[1] transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${
                   quoteStatus === 'success' 
                     ? 'pointer-events-none' 
                     : 'pointer-events-auto'

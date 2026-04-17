@@ -1286,6 +1286,12 @@ const Booking = () => {
                 border: '1px solid #000000',
               }}
             >
+              <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
+                <div className="booking-form-glow-orb booking-form-glow-orb--1" />
+                <div className="booking-form-glow-orb booking-form-glow-orb--2" />
+                <div className="booking-form-glow-orb booking-form-glow-orb--3" />
+              </div>
+
               <div
                 data-booking-form-success="true"
                 className={`absolute inset-0 flex flex-col items-center justify-between transition-all ease-[cubic-bezier(0.23,1,0.32,1)] px-6 py-8 sm:px-11 sm:py-9 ${
@@ -1322,7 +1328,7 @@ const Booking = () => {
               </div>
 
               <div
-                className={`transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${
+                className={`relative z-[1] transition-all ease-[cubic-bezier(0.23,1,0.32,1)] ${
                   status === 'success' 
                     ? 'pointer-events-none' 
                     : 'pointer-events-auto'
