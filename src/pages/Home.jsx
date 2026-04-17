@@ -1566,6 +1566,13 @@ const Home = () => {
 
     const progress = clampValue(0, nextProgress, 1);
     morph.progress = progress;
+    if (morph.layer instanceof HTMLElement) {
+      const layerFadeProgress = perimeterSnapEase(
+        normalizeRangeProgress(progress, 0.82, 1)
+      );
+      morph.layer.style.opacity = `${interpolateValue(1, 0, layerFadeProgress).toFixed(3)}`;
+      morph.layer.style.willChange = 'opacity';
+    }
 
     const stackNode = stackRef.current;
     if (stackNode instanceof HTMLElement) {
@@ -2911,11 +2918,18 @@ const Home = () => {
       const currentScrollY = window.scrollY;
       const isScrollingUp = currentScrollY < lastScrollY;
       const isScrollingDown = currentScrollY > lastScrollY;
+      const upwardScrollDelta = Math.max(0, lastScrollY - currentScrollY);
       const scrollCloseDistance = clampValue(
         96,
         window.innerHeight * 0.18,
         180
       );
+      const fastScrollCloseDistance = clampValue(
+        160,
+        window.innerHeight * 0.22,
+        280
+      );
+      const isFastUpwardScroll = upwardScrollDelta >= fastScrollCloseDistance;
       const topOverscroll = rect.top - expandedGalleryStickyTop;
       const perimeterMorphStartTop =
         expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
@@ -3002,7 +3016,11 @@ const Home = () => {
           topOverscroll >= scrollCloseDistance
         ) {
           isClosingStage = true;
-          closeExpandedGalleryImage({ reason: 'scroll' });
+          closeExpandedGalleryImage({
+            reason: useExpandedLandingPerimeter && isFastUpwardScroll
+              ? 'explicit'
+              : 'scroll',
+          });
         }
 
         if (
@@ -3023,7 +3041,11 @@ const Home = () => {
 
       if (!expandedGalleryWasVisibleRef.current) return;
       isClosingStage = true;
-      closeExpandedGalleryImage({ reason: 'scroll' });
+      closeExpandedGalleryImage({
+        reason: useExpandedLandingPerimeter && isFastUpwardScroll
+          ? 'explicit'
+          : 'scroll',
+      });
     };
 
     const queueCheck = () => {
