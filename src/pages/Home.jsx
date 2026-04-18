@@ -1929,7 +1929,7 @@ const Home = () => {
     // Scroll-up close morph disabled: the lightbox now closes directly
     // when the user scrolls up to dismiss it (no transitional animation).
     return false;
-    // eslint-disable-next-line no-unreachable
+    /* eslint-disable no-unreachable */
     if (
       expandedGalleryScrollMorphRef.current.active ||
       !expandedGalleryImageKey ||
@@ -2334,6 +2334,7 @@ const Home = () => {
     animation.seek(0);
     renderExpandedGalleryScrollMorph(0);
     return true;
+    /* eslint-enable no-unreachable */
   }, [
     captureInlineStyles,
     expandedGalleryImageKey,
@@ -3145,12 +3146,6 @@ const Home = () => {
         window.innerHeight * 0.18,
         180
       );
-      const fastScrollCloseDistance = clampValue(
-        160,
-        window.innerHeight * 0.22,
-        280
-      );
-      const isFastUpwardScroll = upwardScrollDelta >= fastScrollCloseDistance;
       const topOverscroll = rect.top - expandedGalleryStickyTop;
       const perimeterMorphStartTop =
         expandedGalleryStickyTop - expandedGalleryPerimeterVerticalShift;
