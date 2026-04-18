@@ -1764,16 +1764,22 @@ const Home = () => {
     const progress = clampValue(0, nextProgress, 1);
     morph.progress = progress;
     const eased = perimeterSnapEase(progress);
-    const galleryFade = perimeterSnapEase(normalizeRangeProgress(progress, 0, 0.5));
-    const stackReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.3, 0.88));
-    const frontCardReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.68, 0.9));
-    const heroFade = perimeterSnapEase(normalizeRangeProgress(progress, 0.72, 0.9));
+    // Perimeter clones at their original lightbox positions — clear early so the
+    // hero overlay has room to morph and the new gallery can take the stage.
+    const flowFade = perimeterSnapEase(normalizeRangeProgress(progress, 0, 0.38));
+    // Selected-works gallery clones at their target positions — fade IN while
+    // the hero overlay is still shrinking, so the gallery morphs in beneath it.
+    const previewReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.18, 0.82));
+    const stackReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.28, 0.85));
+    // Crossfade the hero clone with the real front card right at the end.
+    const frontCardReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.72, 0.94));
+    const heroFade = perimeterSnapEase(normalizeRangeProgress(progress, 0.76, 0.97));
 
     morph.stageContentNode.style.opacity = '0';
     morph.stageContentNode.style.willChange = 'opacity';
 
     if (morph.layer instanceof HTMLElement) {
-      morph.layer.style.opacity = `${interpolateValue(1, 0, galleryFade).toFixed(3)}`;
+      morph.layer.style.opacity = '1';
       morph.layer.style.willChange = 'opacity';
     }
 
@@ -1846,8 +1852,8 @@ const Home = () => {
       }
 
       setFixedRect(node, fromRect);
-      node.style.opacity = `${interpolateValue(1, 0, galleryFade).toFixed(3)}`;
-      node.style.filter = `blur(${interpolateValue(0, 2, galleryFade).toFixed(2)}px)`;
+      node.style.opacity = `${interpolateValue(1, 0, flowFade).toFixed(3)}`;
+      node.style.filter = `blur(${interpolateValue(0, 2.5, flowFade).toFixed(2)}px)`;
       node.style.willChange = 'opacity,filter';
     });
 
@@ -1863,8 +1869,8 @@ const Home = () => {
       }
 
       setFixedRect(node, targetRect);
-      node.style.opacity = `${interpolateValue(1, 0, galleryFade).toFixed(3)}`;
-      node.style.filter = `blur(${interpolateValue(0, 2, galleryFade).toFixed(2)}px)`;
+      node.style.opacity = `${previewReveal.toFixed(3)}`;
+      node.style.filter = `blur(${interpolateValue(4, 0, previewReveal).toFixed(2)}px)`;
       node.style.willChange = 'left,top,width,height,opacity,filter';
     });
   }, []);
