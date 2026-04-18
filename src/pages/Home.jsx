@@ -1926,6 +1926,10 @@ const Home = () => {
   }, [restoreInlineStyles]);
 
   const startExpandedGalleryScrollMorph = useCallback(() => {
+    // Scroll-up close morph disabled: the lightbox now closes directly
+    // when the user scrolls up to dismiss it (no transitional animation).
+    return false;
+    // eslint-disable-next-line no-unreachable
     if (
       expandedGalleryScrollMorphRef.current.active ||
       !expandedGalleryImageKey ||
