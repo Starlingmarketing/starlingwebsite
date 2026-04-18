@@ -1763,30 +1763,30 @@ const Home = () => {
 
     const progress = clampValue(0, nextProgress, 1);
     morph.progress = progress;
+    const eased = perimeterSnapEase(progress);
+    const galleryFade = perimeterSnapEase(normalizeRangeProgress(progress, 0, 0.5));
+    const stackReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.3, 0.88));
+    const frontCardReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.68, 0.9));
+    const heroFade = perimeterSnapEase(normalizeRangeProgress(progress, 0.72, 0.9));
+
     morph.stageContentNode.style.opacity = '0';
     morph.stageContentNode.style.willChange = 'opacity';
+
     if (morph.layer instanceof HTMLElement) {
-      const layerFadeProgress = perimeterSnapEase(
-        normalizeRangeProgress(progress, 0.82, 1)
-      );
-      morph.layer.style.opacity = `${interpolateValue(1, 0, layerFadeProgress).toFixed(3)}`;
+      morph.layer.style.opacity = `${interpolateValue(1, 0, galleryFade).toFixed(3)}`;
       morph.layer.style.willChange = 'opacity';
     }
 
     const stackNode = stackRef.current;
     if (stackNode instanceof HTMLElement) {
-      const stackReveal = perimeterSnapEase(normalizeRangeProgress(progress, 0.08, 0.72));
-      const wrapperOpacity = interpolateValue(0.24, 1, stackReveal);
-      const wrapperBlur = interpolateValue(7, 0, stackReveal);
-      stackNode.style.opacity = `${wrapperOpacity.toFixed(3)}`;
-      stackNode.style.filter = `blur(${wrapperBlur.toFixed(2)}px)`;
+      stackNode.style.opacity = `${interpolateValue(0.24, 1, stackReveal).toFixed(3)}`;
+      stackNode.style.filter = `blur(${interpolateValue(7, 0, stackReveal).toFixed(2)}px)`;
       stackNode.style.willChange = 'opacity,filter';
 
       stackNode.querySelectorAll('[data-hero-stack-bg-card="true"]').forEach((node) => {
         if (!(node instanceof HTMLElement)) return;
         const baseOpacity = Number.parseFloat(node.dataset.heroStackBaseOpacity ?? '0');
-        const localProgress = perimeterSnapEase(normalizeRangeProgress(progress, 0.12, 0.62));
-        node.style.opacity = `${(baseOpacity * localProgress).toFixed(3)}`;
+        node.style.opacity = `${(baseOpacity * stackReveal).toFixed(3)}`;
         node.style.willChange = 'opacity';
       });
 
@@ -1794,21 +1794,20 @@ const Home = () => {
         if (!(node instanceof HTMLElement)) return;
         const position = Number.parseInt(node.dataset.heroStackCardPosition ?? '0', 10);
         const isFrontCard = position === STACK_COUNT - 1;
-        const fadeStart = isFrontCard ? 0.50 : 0.16 + position * 0.06;
-        const fadeEnd = isFrontCard ? 0.84 : 0.74;
-        const localProgress = perimeterSnapEase(normalizeRangeProgress(progress, fadeStart, fadeEnd));
-        const baseOpacity = isFrontCard ? 0 : Math.min(0.45 + position * 0.16, 0.85);
-        node.style.opacity = `${interpolateValue(baseOpacity, 1, localProgress).toFixed(3)}`;
+        if (isFrontCard) {
+          node.style.opacity = `${frontCardReveal.toFixed(3)}`;
+          node.style.willChange = 'opacity';
+          return;
+        }
+        const baseOpacity = Math.min(0.45 + position * 0.16, 0.85);
+        node.style.opacity = `${interpolateValue(baseOpacity, 1, stackReveal).toFixed(3)}`;
         node.style.willChange = 'opacity';
       });
 
       const departingNode = stackNode.querySelector('[data-hero-stack-departing="true"]');
       if (departingNode instanceof HTMLElement) {
-        departingNode.style.opacity = `${interpolateValue(
-          0,
-          Number.parseFloat(departingNode.dataset.heroStackBaseOpacity ?? '1'),
-          perimeterSnapEase(normalizeRangeProgress(progress, 0.30, 0.76))
-        ).toFixed(3)}`;
+        const baseOpacity = Number.parseFloat(departingNode.dataset.heroStackBaseOpacity ?? '1');
+        departingNode.style.opacity = `${interpolateValue(0, baseOpacity, stackReveal).toFixed(3)}`;
         departingNode.style.willChange = 'opacity';
       }
     }
@@ -1819,7 +1818,6 @@ const Home = () => {
           `[data-hero-stack-card-position="${STACK_COUNT - 1}"]`
         ) ?? stackRef.current;
       const heroTargetRect = heroTargetNode?.getBoundingClientRect?.();
-      const heroMorphProgress = perimeterSnapEase(normalizeRangeProgress(progress, 0.02, 0.90));
       if (
         morph.heroItem.fromRect?.width &&
         morph.heroItem.fromRect?.height &&
@@ -1828,16 +1826,14 @@ const Home = () => {
       ) {
         setFixedRect(
           morph.heroItem.node,
-          interpolateRect(morph.heroItem.fromRect, heroTargetRect, heroMorphProgress)
+          interpolateRect(morph.heroItem.fromRect, heroTargetRect, eased)
         );
-        const heroFadeProgress = perimeterSnapEase(normalizeRangeProgress(progress, 0.64, 0.86));
-        morph.heroItem.node.style.opacity = `${interpolateValue(1, 0, heroFadeProgress).toFixed(3)}`;
-        morph.heroItem.node.style.filter = `blur(${interpolateValue(0, 1.4, heroFadeProgress).toFixed(2)}px)`;
-        morph.heroItem.node.style.willChange = 'left,top,width,height,opacity,filter';
+        morph.heroItem.node.style.opacity = `${interpolateValue(1, 0, heroFade).toFixed(3)}`;
+        morph.heroItem.node.style.willChange = 'left,top,width,height,opacity';
       }
     }
 
-    morph.flowItems.forEach(({ node, fromRect, cardKey, edge, targetRow }, index) => {
+    morph.flowItems.forEach(({ node, fromRect, targetRow }) => {
       if (!(node instanceof HTMLElement) || !fromRect?.width || !fromRect?.height) return;
 
       if (
@@ -1845,77 +1841,14 @@ const Home = () => {
         targetRow === morph.suppressedRowIndex
       ) {
         node.style.opacity = '0';
-        node.style.filter = 'blur(2px)';
-        node.style.willChange = 'opacity,filter';
+        node.style.willChange = 'opacity';
         return;
       }
 
-      const targetRect = projectDocumentRectToViewport(
-        resolveCapturedGalleryRect(expandedGalleryRectsRef.current, cardKey)
-      );
-
-      node.style.willChange = 'left,top,width,height,opacity,filter';
-
-      if (targetRect?.width && targetRect?.height) {
-        const nearViewport = useExpandedLandingPerimeter || isRectNearViewport(targetRect, window.innerHeight * 0.4);
-
-        if (nearViewport) {
-          const yProgress = perimeterSnapEase(
-            normalizeRangeProgress(progress, 0.06, 0.26)
-          );
-          const sizeProgress = perimeterSnapEase(
-            normalizeRangeProgress(progress, 0.08, 0.32)
-          );
-          const xProgress = perimeterSnapEase(
-            normalizeRangeProgress(progress, 0.14, 0.42)
-          );
-          setFixedRect(node, {
-            left: interpolateValue(fromRect.left, targetRect.left, xProgress),
-            top: interpolateValue(fromRect.top, targetRect.top, yProgress),
-            width: interpolateValue(fromRect.width, targetRect.width, sizeProgress),
-            height: interpolateValue(fromRect.height, targetRect.height, sizeProgress),
-          });
-
-          const fadeProgress = perimeterSnapEase(
-            normalizeRangeProgress(progress, 0.50, 0.84)
-          );
-          node.style.opacity = `${interpolateValue(1, 0.08, fadeProgress).toFixed(3)}`;
-          node.style.filter = `blur(${interpolateValue(0, 1.2, fadeProgress).toFixed(2)}px)`;
-        } else {
-          const exitOffset = getPerimeterEntryOffset(edge);
-          const travelProgress = perimeterSnapEase(
-            normalizeRangeProgress(progress, 0.05, 0.70)
-          );
-          setFixedRect(node, {
-            left: interpolateValue(fromRect.left, fromRect.left + exitOffset.x * 4, travelProgress),
-            top: interpolateValue(fromRect.top, fromRect.top + exitOffset.y * 4, travelProgress),
-            width: interpolateValue(fromRect.width, fromRect.width * 0.985, travelProgress),
-            height: interpolateValue(fromRect.height, fromRect.height * 0.985, travelProgress),
-          });
-
-          const fadeProgress = perimeterSnapEase(
-            normalizeRangeProgress(progress, 0.12, 0.45)
-          );
-          node.style.opacity = `${interpolateValue(1, 0, fadeProgress).toFixed(3)}`;
-          node.style.filter = `blur(${interpolateValue(0, 1.2, fadeProgress).toFixed(2)}px)`;
-        }
-        return;
-      }
-
-      const staggerOffset = Math.min(index * EXPANDED_GALLERY_PERIMETER_FLOW_STAGGER, 0.16);
-      const localProgress = perimeterSnapEase(
-        normalizeRangeProgress(progress, 0.03 + staggerOffset, 0.86)
-      );
-      const exitOffset = getPerimeterEntryOffset(edge);
-      const fallbackRect = {
-        left: interpolateValue(fromRect.left, fromRect.left + exitOffset.x * 4, localProgress),
-        top: interpolateValue(fromRect.top, fromRect.top + exitOffset.y * 4, localProgress),
-        width: interpolateValue(fromRect.width, fromRect.width * 0.985, localProgress),
-        height: interpolateValue(fromRect.height, fromRect.height * 0.985, localProgress),
-      };
-      setFixedRect(node, fallbackRect);
-      node.style.opacity = `${interpolateValue(1, 0, localProgress).toFixed(3)}`;
-      node.style.filter = `blur(${interpolateValue(0, 1.2, localProgress).toFixed(2)}px)`;
+      setFixedRect(node, fromRect);
+      node.style.opacity = `${interpolateValue(1, 0, galleryFade).toFixed(3)}`;
+      node.style.filter = `blur(${interpolateValue(0, 2, galleryFade).toFixed(2)}px)`;
+      node.style.willChange = 'opacity,filter';
     });
 
     morph.previewItems.forEach(({ node, cardKey }) => {
@@ -1930,14 +1863,11 @@ const Home = () => {
       }
 
       setFixedRect(node, targetRect);
-      const previewFadeProgress = perimeterSnapEase(
-        normalizeRangeProgress(progress, 0.50, 0.84)
-      );
-      node.style.opacity = `${interpolateValue(1, 0.08, previewFadeProgress).toFixed(3)}`;
-      node.style.filter = `blur(${interpolateValue(0, 1.2, previewFadeProgress).toFixed(2)}px)`;
+      node.style.opacity = `${interpolateValue(1, 0, galleryFade).toFixed(3)}`;
+      node.style.filter = `blur(${interpolateValue(0, 2, galleryFade).toFixed(2)}px)`;
       node.style.willChange = 'left,top,width,height,opacity,filter';
     });
-  }, [useExpandedLandingPerimeter]);
+  }, []);
 
   const cleanupExpandedGalleryScrollMorph = useCallback((options = {}) => {
     const {
@@ -2449,14 +2379,50 @@ const Home = () => {
   ]);
 
   const completeExpandedGalleryScrollMorphClose = useCallback(() => {
-    const didReachMorphEnd = syncExpandedGalleryScrollMorphProgress(1);
-    if (!didReachMorphEnd) return false;
+    if (expandedGalleryIsClosingRef.current) {
+      return expandedGalleryScrollMorphRef.current.active;
+    }
+    if (!expandedGalleryScrollMorphRef.current.active) {
+      if (!startExpandedGalleryScrollMorph()) return false;
+    }
 
-    finalizeExpandedGalleryScrollMorphClose();
+    const morph = expandedGalleryScrollMorphRef.current;
+    morph.animation?.cancel?.();
+
+    const startProgress = clampValue(0, morph.progress ?? 0, 1);
+    expandedGalleryIsClosingRef.current = true;
+
+    if (startProgress >= 0.999) {
+      renderExpandedGalleryScrollMorph(1);
+      finalizeExpandedGalleryScrollMorphClose();
+      return true;
+    }
+
+    const remaining = 1 - startProgress;
+    const duration = Math.max(320, Math.round(260 + remaining * 520));
+    const progressState = { value: startProgress };
+    morph.progress = startProgress;
+
+    const tween = animate(progressState, {
+      value: 1,
+      autoplay: true,
+      duration,
+      ease: 'linear',
+      onUpdate: () => {
+        renderExpandedGalleryScrollMorph(progressState.value);
+      },
+      onComplete: () => {
+        renderExpandedGalleryScrollMorph(1);
+        finalizeExpandedGalleryScrollMorphClose();
+      },
+    });
+
+    morph.animation = tween;
     return true;
   }, [
     finalizeExpandedGalleryScrollMorphClose,
-    syncExpandedGalleryScrollMorphProgress,
+    renderExpandedGalleryScrollMorph,
+    startExpandedGalleryScrollMorph,
   ]);
 
   const closeExpandedGalleryImage = useCallback((options = {}) => {
@@ -2465,6 +2431,7 @@ const Home = () => {
     if (!expandedGalleryImageKey || expandedGalleryIsClosingRef.current) return;
 
     if (expandedGalleryScrollMorphRef.current.active) {
+      if (completeExpandedGalleryScrollMorphClose()) return;
       finalizeExpandedGalleryScrollMorphClose();
       return;
     }
@@ -2559,6 +2526,7 @@ const Home = () => {
     });
   }, [
     captureGalleryCardRects,
+    completeExpandedGalleryScrollMorphClose,
     expandedGalleryImageKey,
     finalizeExpandedGalleryScrollMorphClose,
     finalizeExpandedGalleryClose,
@@ -3307,11 +3275,9 @@ const Home = () => {
           topOverscroll >= scrollCloseDistance
         ) {
           isClosingStage = true;
-          closeExpandedGalleryImage({
-            reason: useExpandedLandingPerimeter && isFastUpwardScroll
-              ? 'explicit'
-              : 'scroll',
-          });
+          if (!completeExpandedGalleryScrollMorphClose()) {
+            closeExpandedGalleryImage({ reason: 'scroll' });
+          }
         }
 
         if (
@@ -3333,18 +3299,22 @@ const Home = () => {
         return;
       }
 
-      if (expandedGalleryScrollMorphRef.current.active) {
-        syncExpandedGalleryScrollMorphProgress(0);
-        cleanupExpandedGalleryScrollMorph();
+      if (!expandedGalleryWasVisibleRef.current) {
+        if (expandedGalleryScrollMorphRef.current.active) {
+          syncExpandedGalleryScrollMorphProgress(0);
+          cleanupExpandedGalleryScrollMorph();
+        }
+        return;
       }
 
-      if (!expandedGalleryWasVisibleRef.current) return;
       isClosingStage = true;
-      closeExpandedGalleryImage({
-        reason: useExpandedLandingPerimeter && isFastUpwardScroll
-          ? 'explicit'
-          : 'scroll',
-      });
+      if (!completeExpandedGalleryScrollMorphClose()) {
+        if (expandedGalleryScrollMorphRef.current.active) {
+          syncExpandedGalleryScrollMorphProgress(0);
+          cleanupExpandedGalleryScrollMorph();
+        }
+        closeExpandedGalleryImage({ reason: 'scroll' });
+      }
     };
 
     const queueCheck = () => {
