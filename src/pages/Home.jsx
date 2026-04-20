@@ -902,17 +902,18 @@ const useReveal = (shouldAnimate) => {
         gsap.to(node, {
           opacity: 1,
           y: 0,
-          duration: 0.7,
-          ease: "power2.out",
-          clearProps: "opacity,transform",
+          filter: "blur(0px)",
+          duration: 1.1,
+          ease: "expo.out",
+          clearProps: "transform,filter",
         });
       };
 
-      gsap.set(node, { opacity: 0, y: 20 });
+      gsap.set(node, { opacity: 0, y: 28, filter: "blur(6px)" });
 
       // If the section is already in view (common after layout shifts),
       // don't leave it stuck at opacity:0 waiting for a scroll event.
-      const threshold = window.innerHeight * 0.93;
+      const threshold = window.innerHeight * 0.88;
       const rect = node.getBoundingClientRect();
       if (rect.top < threshold && rect.bottom > 0) {
         reveal();
@@ -921,7 +922,7 @@ const useReveal = (shouldAnimate) => {
 
       ScrollTrigger.create({
         trigger: node,
-        start: "top 93%",
+        start: "top 88%",
         once: true,
         onEnter: reveal,
       });
@@ -947,35 +948,52 @@ const useStaggerReveal = (shouldAnimate) => {
       return;
 
     const ctx = gsap.context(() => {
-      const reveal = (batch) => {
-        gsap.to(batch, {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          stagger: 0.1,
-          ease: "power2.out",
-          overwrite: true,
-          clearProps: "opacity,transform",
-        });
-      };
-
-      gsap.set(items, { opacity: 0, y: 30 });
-
-      ScrollTrigger.batch(items, {
-        start: "top 93%",
-        onEnter: reveal,
-        onEnterBack: reveal,
+      gsap.set(items, {
+        opacity: 0,
+        y: 20,
+        x: -10,
+        scale: 0.985,
+        willChange: "opacity, transform",
       });
 
-      // If the grid is already on-screen (e.g. after a big layout change),
-      // ensure the cards aren't stuck hidden awaiting a scroll-trigger tick.
-      const threshold = window.innerHeight * 0.93;
+      items.forEach((item, index) => {
+        const col = index % 4;
+        const startPct = 92 - col * 5;
+        const endPct = startPct - 5;
+        gsap.to(item, {
+          opacity: 1,
+          y: 0,
+          x: 0,
+          scale: 1,
+          ease: "none",
+          scrollTrigger: {
+            trigger: item,
+            start: `top ${startPct}%`,
+            end: `top ${endPct}%`,
+            scrub: 0.5,
+          },
+        });
+      });
+
+      // If any items are already on-screen (e.g. after a big layout change),
+      // snap them to the revealed state so they aren't stuck at opacity 0.
+      const threshold = window.innerHeight * 0.72;
       const inView = items.filter((el) => {
         if (!(el instanceof HTMLElement)) return false;
         const rect = el.getBoundingClientRect();
         return rect.top < threshold && rect.bottom > 0;
       });
-      if (inView.length) reveal(inView);
+      if (inView.length) {
+        gsap.to(inView, {
+          opacity: 1,
+          y: 0,
+          x: 0,
+          scale: 1,
+          duration: 0.6,
+          ease: "power2.out",
+          overwrite: true,
+        });
+      }
     });
 
     return () => ctx.revert();

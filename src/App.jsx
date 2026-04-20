@@ -134,7 +134,7 @@ function App() {
 
   return (
     <NavOverrideContext.Provider value={{ activeOverride, setActiveOverride, triggerGalleryTransition }}>
-      <ReactLenis root options={{ lerp: 0.16, smoothWheel: true }}>
+      <ReactLenis root options={{ lerp: 0.1, smoothWheel: true }}>
         <Router>
           <SeoRouteHead />
           <ScrollToTop />
