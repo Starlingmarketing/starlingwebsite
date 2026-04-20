@@ -140,10 +140,10 @@ const EXPANDED_GALLERY_FLOW_DEAD_ZONE = 0.34;
 const EXPANDED_GALLERY_SOFT_CLOSE_DURATION = 0.82;
 const EXPANDED_GALLERY_SOFT_REVEAL_DURATION = 0.82;
 const EXPANDED_GALLERY_PREMIUM_OPEN_DURATION = 0.56;
-const EXPANDED_GALLERY_HERO_SWAP_DURATION = 0.72;
+const EXPANDED_GALLERY_HERO_SWAP_DURATION = 1.05;
 const EXPANDED_GALLERY_PERIMETER_HERO_OPEN_DURATION = 0.68;
 const EXPANDED_GALLERY_PERIMETER_FLOW_OPEN_DURATION = 0.62;
-const EXPANDED_GALLERY_PERIMETER_SWAP_DURATION = 0.82;
+const EXPANDED_GALLERY_PERIMETER_SWAP_DURATION = 1.15;
 const EXPANDED_GALLERY_SCROLL_CLOSE_ARM_DELAY_MS = Math.round(
   (Math.max(
     EXPANDED_GALLERY_PREMIUM_OPEN_DURATION,
@@ -684,14 +684,14 @@ const ExpandedGalleryHeroImage = ({
     gsap.fromTo(
       incomingLayer,
       {
-        opacity: 0.36,
-        filter: "blur(0.6px) saturate(1.03)",
+        opacity: 0.5,
+        filter: "blur(1.2px) saturate(1.03)",
       },
       {
         opacity: 1,
         filter: "blur(0px) saturate(1)",
         duration: EXPANDED_GALLERY_HERO_SWAP_DURATION,
-        ease: "power1.out",
+        ease: "expo.out",
         overwrite: "auto",
         clearProps: "opacity,transform,filter",
       },
@@ -706,9 +706,9 @@ const ExpandedGalleryHeroImage = ({
         },
         {
           opacity: 0,
-          filter: "blur(1.8px) brightness(0.985)",
-          duration: EXPANDED_GALLERY_HERO_SWAP_DURATION * 1.04,
-          ease: "power1.out",
+          filter: "blur(2.4px) brightness(0.985)",
+          duration: EXPANDED_GALLERY_HERO_SWAP_DURATION * 1.05,
+          ease: "expo.out",
           overwrite: "auto",
           clearProps: "transform,filter",
           onComplete: () => {
@@ -975,25 +975,11 @@ const useStaggerReveal = (shouldAnimate) => {
         });
       });
 
-      // If any items are already on-screen (e.g. after a big layout change),
-      // snap them to the revealed state so they aren't stuck at opacity 0.
-      const threshold = window.innerHeight * 0.72;
-      const inView = items.filter((el) => {
-        if (!(el instanceof HTMLElement)) return false;
-        const rect = el.getBoundingClientRect();
-        return rect.top < threshold && rect.bottom > 0;
-      });
-      if (inView.length) {
-        gsap.to(inView, {
-          opacity: 1,
-          y: 0,
-          x: 0,
-          scale: 1,
-          duration: 0.6,
-          ease: "power2.out",
-          overwrite: true,
-        });
-      }
+      // The per-item ScrollTrigger handles initial in-view items via its own
+      // immediate progress computation. A defensive refresh covers any
+      // post-mount layout shifts (e.g. expanded gallery closing) without
+      // overwriting the scroll-controlled tweens.
+      ScrollTrigger.refresh();
     });
 
     return () => ctx.revert();
@@ -1015,6 +1001,8 @@ const Home = () => {
   const [showStickyReachOut, setShowStickyReachOut] = useState(false);
   const [showScrollHint, setShowScrollHint] = useState(false);
   const scrollHintDismissedRef = useRef(false);
+  const [showLightboxBookingPrompt, setShowLightboxBookingPrompt] =
+    useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
@@ -1165,6 +1153,16 @@ const Home = () => {
     ? `${expandedGalleryImage.galleryKey}:${expandedGalleryImage.imageId}`
     : null;
   const hasExpandedGalleryImage = Boolean(expandedGalleryImage);
+
+  useEffect(() => {
+    setShowLightboxBookingPrompt(false);
+    if (!expandedGalleryImageKey) return undefined;
+    const timer = window.setTimeout(() => {
+      setShowLightboxBookingPrompt(true);
+    }, 10000);
+    return () => window.clearTimeout(timer);
+  }, [expandedGalleryImageKey]);
+
   const expandedGalleryStageRef = useRef(null);
   const expandedGalleryFixedCardRef = useRef(null);
   const expandedGalleryPerimeterFlowRef = useRef(null);
@@ -4231,14 +4229,14 @@ const Home = () => {
             gsap.fromTo(
               flowNode,
               {
-                opacity: 0.72,
-                filter: "blur(0.8px)",
+                opacity: 0.82,
+                filter: "blur(0.6px)",
               },
               {
                 opacity: 1,
                 filter: "blur(0px)",
                 duration: EXPANDED_GALLERY_PERIMETER_SWAP_DURATION,
-                ease: "power1.out",
+                ease: "expo.out",
                 overwrite: "auto",
                 clearProps: "opacity,filter",
               },
@@ -4249,7 +4247,7 @@ const Home = () => {
             const safeRadius = radius || 1;
             const tangentX = -(centerY - pinnedCenterY) / safeRadius;
             const tangentY = (centerX - pinnedCenterX) / safeRadius;
-            const travel = clampValue(18, safeRadius * 0.075, 44);
+            const travel = clampValue(12, safeRadius * 0.055, 32);
 
             gsap.killTweensOf(inner);
             gsap.fromTo(
@@ -4257,9 +4255,9 @@ const Home = () => {
               {
                 x: -tangentX * travel,
                 y: -tangentY * travel,
-                scale: 0.988,
-                opacity: 0,
-                filter: "blur(1.8px) saturate(0.94)",
+                scale: 0.985,
+                opacity: 0.35,
+                filter: "blur(2px) saturate(0.94)",
                 transformOrigin: "center center",
               },
               {
@@ -4269,7 +4267,7 @@ const Home = () => {
                 opacity: 1,
                 filter: "blur(0px) saturate(1)",
                 duration: EXPANDED_GALLERY_PERIMETER_SWAP_DURATION * 0.98,
-                ease: "power1.out",
+                ease: "expo.out",
                 overwrite: "auto",
                 clearProps: "transform,opacity,filter",
               },
@@ -5377,6 +5375,27 @@ const Home = () => {
                   fetchPriority="high"
                   imgClassName="object-cover"
                 />
+                <div
+                  className={[
+                    "absolute left-1/2 -translate-x-1/2 z-30 transition-[opacity,transform] duration-700 ease-out",
+                    showLightboxBookingPrompt && !showQuoteModal
+                      ? "opacity-100 translate-y-0 pointer-events-auto"
+                      : "opacity-0 translate-y-3 pointer-events-none",
+                  ].join(" ")}
+                  style={{ bottom: "20px" }}
+                >
+                  <Link
+                    to="/booking"
+                    className="group inline-flex items-center gap-3 pl-5 pr-4 py-2.5 bg-[#18181B]/90 hover:bg-black backdrop-blur-md text-white rounded-full text-[13px] font-light tracking-wide transition-colors duration-300"
+                  >
+                    <span>Ready to get started?</span>
+                    <ArrowRight
+                      size={16}
+                      strokeWidth={1.5}
+                      className="group-hover:translate-x-1 transition-transform duration-300"
+                    />
+                  </Link>
+                </div>
               </div>
             </div>
           </div>
@@ -5507,6 +5526,27 @@ const Home = () => {
                   fetchPriority="high"
                   imgClassName="object-cover"
                 />
+                <div
+                  className={[
+                    "absolute left-1/2 -translate-x-1/2 z-30 transition-[opacity,transform] duration-700 ease-out",
+                    showLightboxBookingPrompt && !showQuoteModal
+                      ? "opacity-100 translate-y-0 pointer-events-auto"
+                      : "opacity-0 translate-y-3 pointer-events-none",
+                  ].join(" ")}
+                  style={{ bottom: "20px" }}
+                >
+                  <Link
+                    to="/booking"
+                    className="group inline-flex items-center gap-3 pl-5 pr-4 py-2.5 bg-[#18181B]/90 hover:bg-black backdrop-blur-md text-white rounded-full text-[13px] font-light tracking-wide transition-colors duration-300"
+                  >
+                    <span>Ready to get started?</span>
+                    <ArrowRight
+                      size={16}
+                      strokeWidth={1.5}
+                      className="group-hover:translate-x-1 transition-transform duration-300"
+                    />
+                  </Link>
+                </div>
               </div>
             </div>
           )}
