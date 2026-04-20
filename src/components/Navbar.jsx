@@ -15,6 +15,7 @@ const Navbar = () => {
   const location = useLocation();
   const navRef = useRef(null);
   const navBgRef = useRef(null);
+  const navTimelineRef = useRef(null);
   const mobileMenuButtonRef = useRef(null);
   const { activeOverride, triggerGalleryTransition } = useContext(NavOverrideContext);
   const activePath = activeOverride || location.pathname;
@@ -155,6 +156,7 @@ const Navbar = () => {
         scrub: 1.2,
       },
     });
+    navTimelineRef.current = tl;
 
     tl.fromTo(
       navRef.current,
@@ -195,6 +197,46 @@ const Navbar = () => {
       },
       0
     );
+  }, []);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const docEl = document.documentElement;
+
+    const apply = () => {
+      const isOpen =
+        docEl.hasAttribute('data-lightbox-open') ||
+        docEl.hasAttribute('data-quote-modal-open');
+      const tl = navTimelineRef.current;
+      const trigger = tl?.scrollTrigger;
+      if (!tl || !trigger) return;
+
+      if (isOpen) {
+        if (!trigger._starlingPaused) {
+          trigger._starlingPaused = true;
+          trigger.disable(false, false);
+          gsap.killTweensOf(navRef.current);
+          gsap.set(navRef.current, {
+            backgroundColor: 'transparent',
+            borderColor: 'transparent',
+            backdropFilter: 'none',
+            WebkitBackdropFilter: 'none',
+          });
+        }
+      } else if (trigger._starlingPaused) {
+        trigger._starlingPaused = false;
+        trigger.enable();
+        ScrollTrigger.refresh();
+      }
+    };
+
+    apply();
+    const observer = new MutationObserver(apply);
+    observer.observe(docEl, {
+      attributes: true,
+      attributeFilter: ['data-lightbox-open', 'data-quote-modal-open'],
+    });
+    return () => observer.disconnect();
   }, []);
 
   const navLinks = [
@@ -313,6 +355,7 @@ const Navbar = () => {
             {/* Logo */}
             <Link
               to="/"
+              data-nav-logo-link
               className="z-50 relative"
               onClick={(e) => {
                 if (activeOverride) {
@@ -322,7 +365,7 @@ const Navbar = () => {
                 setIsOpen(false);
               }}
             >
-              <span className="relative inline-block h-9 md:h-10">
+              <span data-nav-logo-frame className="relative inline-block h-9 md:h-10">
                 <img
                   src={logo}
                   alt="Starling"

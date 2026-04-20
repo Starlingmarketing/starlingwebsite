@@ -1222,6 +1222,18 @@ const Home = () => {
   const expandedGalleryPerimeterFreshOpenRef = useRef(false);
   const [mobileLightbox, setMobileLightbox] = useState(null);
   const mobileLightboxTouchStartRef = useRef(null);
+  const mobileLightboxTrackRef = useRef(null);
+  const mobileLightboxDragRef = useRef({
+    isDragging: false,
+    startX: 0,
+    startY: 0,
+    startTime: 0,
+    lastX: 0,
+    lastTime: 0,
+    horizontal: null,
+    width: 0,
+  });
+  const mobileLightboxJustSwipedRef = useRef(false);
   const mobileLightboxImage =
     mobileLightbox?.images?.[mobileLightbox.index] ?? null;
 
@@ -3017,39 +3029,141 @@ const Home = () => {
 
   const handleMobileLightboxTouchStart = useCallback(
     (e) => {
-      if (!mobileLightbox || mobileLightbox.images.length < 2) return;
-
+      if (!mobileLightbox) return;
       const touch = e.touches[0];
       if (!touch) return;
+
+      const drag = mobileLightboxDragRef.current;
+      const now = Date.now();
+      drag.isDragging = true;
+      drag.startX = touch.clientX;
+      drag.startY = touch.clientY;
+      drag.startTime = now;
+      drag.lastX = touch.clientX;
+      drag.lastTime = now;
+      drag.horizontal = null;
+      drag.width = window.innerWidth;
 
       mobileLightboxTouchStartRef.current = {
         x: touch.clientX,
         y: touch.clientY,
       };
+
+      if (mobileLightboxTrackRef.current) {
+        gsap.killTweensOf(mobileLightboxTrackRef.current);
+      }
+    },
+    [mobileLightbox],
+  );
+
+  const handleMobileLightboxTouchMove = useCallback(
+    (e) => {
+      if (!mobileLightbox) return;
+      const drag = mobileLightboxDragRef.current;
+      if (!drag.isDragging) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      const dx = touch.clientX - drag.startX;
+      const dy = touch.clientY - drag.startY;
+
+      if (drag.horizontal === null) {
+        if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+        drag.horizontal = Math.abs(dx) > Math.abs(dy);
+      }
+
+      if (!drag.horizontal) return;
+
+      drag.lastX = touch.clientX;
+      drag.lastTime = Date.now();
+
+      const idx = mobileLightbox.index;
+      const total = mobileLightbox.images.length;
+      let appliedDx = dx;
+      if (dx > 0 && idx === 0) appliedDx = dx * 0.32;
+      if (dx < 0 && idx === total - 1) appliedDx = dx * 0.32;
+
+      if (mobileLightboxTrackRef.current) {
+        gsap.set(mobileLightboxTrackRef.current, { x: appliedDx });
+      }
     },
     [mobileLightbox],
   );
 
   const handleMobileLightboxTouchEnd = useCallback(
     (e) => {
-      if (!mobileLightbox || mobileLightbox.images.length < 2) return;
+      if (!mobileLightbox) return;
+      const drag = mobileLightboxDragRef.current;
+      if (!drag.isDragging) {
+        mobileLightboxTouchStartRef.current = null;
+        return;
+      }
+      drag.isDragging = false;
 
-      const start = mobileLightboxTouchStartRef.current;
+      const startEntry = mobileLightboxTouchStartRef.current;
       mobileLightboxTouchStartRef.current = null;
-      if (!start) return;
+      if (!startEntry) return;
 
       const touch = e.changedTouches[0];
       if (!touch) return;
 
-      const deltaX = touch.clientX - start.x;
-      const deltaY = touch.clientY - start.y;
+      const totalDx = touch.clientX - drag.startX;
+      const totalDy = touch.clientY - drag.startY;
 
-      if (Math.abs(deltaX) < 50 || Math.abs(deltaY) > Math.abs(deltaX)) return;
+      // Tap (no horizontal movement) → no navigation
+      if (
+        drag.horizontal === false ||
+        (Math.abs(totalDx) < 6 && Math.abs(totalDy) < 6)
+      ) {
+        if (mobileLightboxTrackRef.current) {
+          gsap.set(mobileLightboxTrackRef.current, { x: 0 });
+        }
+        return;
+      }
 
-      navigateMobileLightbox(deltaX < 0 ? 1 : -1);
+      const W = drag.width || window.innerWidth;
+      const dt = Date.now() - drag.startTime;
+      const velocity = dt > 0 ? totalDx / dt : 0; // px per ms
+      const idx = mobileLightbox.index;
+      const total = mobileLightbox.images.length;
+
+      let direction = 0;
+      if ((totalDx < -W * 0.22 || velocity < -0.45) && idx < total - 1) {
+        direction = 1;
+      } else if ((totalDx > W * 0.22 || velocity > 0.45) && idx > 0) {
+        direction = -1;
+      }
+
+      const targetX = direction === 0 ? 0 : -direction * W;
+
+      gsap.to(mobileLightboxTrackRef.current, {
+        x: targetX,
+        duration: 0.42,
+        ease: "cubic-bezier(0.32, 0.72, 0, 1)",
+        onComplete: () => {
+          if (direction === 0) return;
+          mobileLightboxJustSwipedRef.current = true;
+          setMobileLightbox((prev) =>
+            prev
+              ? {
+                  ...prev,
+                  index: clampValue(0, prev.index + direction, prev.images.length - 1),
+                }
+              : prev,
+          );
+        },
+      });
     },
-    [mobileLightbox, navigateMobileLightbox],
+    [mobileLightbox],
   );
+
+  useLayoutEffect(() => {
+    if (!mobileLightboxJustSwipedRef.current) return;
+    mobileLightboxJustSwipedRef.current = false;
+    if (mobileLightboxTrackRef.current) {
+      gsap.set(mobileLightboxTrackRef.current, { x: 0 });
+    }
+  }, [mobileLightbox?.index]);
 
   const handleCardEnter = useCallback((e) => {
     const outer = e.currentTarget;
@@ -5740,7 +5854,7 @@ const Home = () => {
       <div
         className={[
           "md:hidden fixed inset-x-0 z-40 flex justify-center transition-[opacity,transform] duration-300 ease-out",
-          showStickyReachOut && !showQuoteModal
+          showStickyReachOut && !showQuoteModal && !mobileLightbox
             ? "opacity-100 translate-y-0 pointer-events-auto"
             : "opacity-0 translate-y-3 pointer-events-none",
         ].join(" ")}
@@ -5762,7 +5876,10 @@ const Home = () => {
       <div
         className={[
           "fixed inset-x-0 z-40 flex justify-center transition-[opacity,transform] duration-700 ease-out",
-          showScrollHint && !showQuoteModal
+          showScrollHint &&
+          !showQuoteModal &&
+          !mobileLightbox &&
+          !hasExpandedGalleryImage
             ? "opacity-100 translate-y-0 pointer-events-auto"
             : "opacity-0 translate-y-4 pointer-events-none",
         ].join(" ")}
@@ -6587,14 +6704,42 @@ const Home = () => {
             aria-label="Gallery lightbox"
           >
             <div
-              className={`absolute inset-0 ${
-                isMobileLandscape ? "bg-black" : "bg-black/40 backdrop-blur-sm"
-              }`}
+              className="absolute inset-0 overflow-hidden bg-black"
+              style={
+                isMobileLandscape
+                  ? undefined
+                  : { animation: "lightboxIn 380ms ease-out both" }
+              }
               onClick={closeMobileLightbox}
-            />
+            >
+              {!isMobileLandscape && (
+                <>
+                  <AdvancedImage
+                    key={`mlb-ambient-${mobileLightbox.index}`}
+                    cldImg={mobileLightboxImage.cldImg}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{
+                      filter: "blur(80px) brightness(0.58) saturate(1.4)",
+                      transform: "scale(1.25)",
+                      transformOrigin: "center",
+                      animation: "lightboxIn 700ms ease-out both",
+                    }}
+                    alt=""
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="absolute inset-0"
+                    style={{
+                      background:
+                        "radial-gradient(ellipse at center, rgba(0,0,0,0) 35%, rgba(0,0,0,0.3) 100%)",
+                    }}
+                  />
+                </>
+              )}
+            </div>
 
             <div className="pointer-events-none absolute inset-0 z-20">
-              {isMobileLandscape && (
+              {isMobileLandscape ? (
                 <button
                   type="button"
                   onClick={closeMobileLightbox}
@@ -6606,6 +6751,24 @@ const Home = () => {
                   aria-label="Close"
                 >
                   <X size={28} strokeWidth={1.75} />
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeMobileLightbox();
+                  }}
+                  className="pointer-events-auto absolute z-30 flex items-center justify-center w-9 h-9 text-white bg-black/35 hover:bg-black/55 backdrop-blur-md rounded-full transition-all cursor-pointer"
+                  style={{
+                    top: "calc(env(safe-area-inset-top) + 14px)",
+                    right: "calc(env(safe-area-inset-right) + 14px)",
+                  }}
+                  aria-label={`Close ${(mobileLightboxImage.altLabel ?? "gallery image").toLowerCase()}`}
+                >
+                  <X size={18} strokeWidth={1.75} />
                 </button>
               )}
 
@@ -6630,67 +6793,120 @@ const Home = () => {
                 </>
               )}
 
-              <div
-                className={`absolute bottom-6 left-1/2 z-20 -translate-x-1/2 text-[10px] tracking-[0.3em] font-light tabular-nums ${
-                  isMobileLandscape ? "text-white/60" : "text-slate-400"
-                }`}
-              >
-                {mobileLightbox.index + 1} - {mobileLightbox.images.length}
-              </div>
+              {isMobileLandscape ? (
+                <div className="absolute bottom-6 left-1/2 z-20 -translate-x-1/2 text-[10px] tracking-[0.3em] font-light tabular-nums text-white/60">
+                  {mobileLightbox.index + 1} - {mobileLightbox.images.length}
+                </div>
+              ) : (
+                <>
+                  <div
+                    className="pointer-events-none absolute left-1/2 z-20 -translate-x-1/2"
+                    style={{
+                      bottom: "calc(env(safe-area-inset-bottom) + 60px)",
+                      animation: "lightboxIn 600ms ease-out 200ms both",
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onTouchStart={(e) => e.stopPropagation()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowQuoteModal(true);
+                      }}
+                      className="pointer-events-auto group inline-flex items-center justify-center gap-2 px-5 h-9 bg-white text-[#18181B] rounded-full text-[13px] font-medium tracking-wide shadow-[0_8px_24px_-8px_rgba(0,0,0,0.6)] hover:bg-slate-100 transition-colors duration-300"
+                    >
+                      <span>Reach Out</span>
+                      <ArrowRight
+                        size={14}
+                        strokeWidth={1.75}
+                        className="group-hover:translate-x-0.5 transition-transform duration-300"
+                      />
+                    </button>
+                  </div>
+                  {mobileLightbox.images.length > 1 && (
+                    <div
+                      className="absolute left-1/2 z-20 -translate-x-1/2 flex items-center gap-1.5"
+                      style={{
+                        bottom: "calc(env(safe-area-inset-bottom) + 22px)",
+                        animation: "lightboxIn 600ms ease-out 120ms both",
+                      }}
+                    >
+                      {mobileLightbox.images.map((_, i) => (
+                        <span
+                          key={i}
+                          className={`h-1 rounded-full transition-all duration-500 ease-out ${
+                            i === mobileLightbox.index
+                              ? "w-5 bg-white/95"
+                              : "w-1 bg-white/35"
+                          }`}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div
-              className={`absolute inset-0 z-10 flex items-center justify-center pointer-events-none ${
-                isMobileLandscape ? "p-0" : "px-4"
-              }`}
+              ref={mobileLightboxTrackRef}
+              className="absolute inset-0 z-10"
+              style={{
+                touchAction: "pan-y",
+                willChange: "transform",
+                animation:
+                  mobileLightbox.index === 0 && !isMobileLandscape
+                    ? "lightboxImage 520ms cubic-bezier(0.32, 0.72, 0, 1) both"
+                    : undefined,
+              }}
+              onTouchStart={handleMobileLightboxTouchStart}
+              onTouchMove={handleMobileLightboxTouchMove}
+              onTouchEnd={handleMobileLightboxTouchEnd}
             >
-              <div
-                className={`pointer-events-auto relative overflow-hidden ${
-                  isMobileLandscape
-                    ? "w-full h-full shadow-none"
-                    : "shadow-2xl shadow-slate-900/10"
-                }`}
-                onTouchStart={handleMobileLightboxTouchStart}
-                onTouchEnd={handleMobileLightboxTouchEnd}
-              >
-                {!isMobileLandscape && (
-                  <button
-                    type="button"
-                    onClick={closeMobileLightbox}
-                    className="absolute top-4 right-4 z-30 flex p-1.5 text-white bg-black/20 hover:bg-black/40 backdrop-blur-md rounded-[8px] transition-all cursor-pointer"
-                    aria-label={`Close ${(mobileLightboxImage.altLabel ?? "gallery image").toLowerCase()}`}
+              {mobileLightbox.images.map((img, i) => {
+                const distance = i - mobileLightbox.index;
+                if (Math.abs(distance) > 1) return null;
+                const slideAlt =
+                  img.altText ??
+                  `${img.altLabel ?? "Gallery"} photo ${i + 1} of ${mobileLightbox.images.length}`;
+                return (
+                  <div
+                    key={img.id ?? `slide-${i}`}
+                    className={`absolute inset-0 flex items-center justify-center pointer-events-none ${
+                      isMobileLandscape ? "p-0" : "px-4"
+                    }`}
+                    style={{
+                      transform: `translateX(${distance * 100}%)`,
+                    }}
+                    aria-hidden={distance !== 0}
                   >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="currentColor"
-                      xmlns="http://www.w3.org/2000/svg"
+                    <div
+                      className={`pointer-events-auto relative ${
+                        isMobileLandscape
+                          ? "w-full h-full overflow-hidden shadow-none"
+                          : "rounded-2xl overflow-hidden shadow-[0_28px_70px_-20px_rgba(0,0,0,0.55)] ring-1 ring-white/5"
+                      }`}
                     >
-                      <path d="M19 6.41L17.59 5L12 10.59L6.41 5L5 6.41L10.59 12L5 17.59L6.41 19L12 13.41L17.59 19L19 17.59L13.41 12L19 6.41Z" />
-                    </svg>
-                  </button>
-                )}
-
-                <div
-                  className={isMobileLandscape ? "w-full h-full" : undefined}
-                  style={{ transformOrigin: "center" }}
-                >
-                  <AdvancedImage
-                    cldImg={mobileLightboxImage.cldImg}
-                    className={
-                      isMobileLandscape
-                        ? "block w-full h-full max-w-none max-h-none object-contain"
-                        : "block max-w-[92vw] max-h-[80vh] object-contain"
-                    }
-                    alt={
-                      mobileLightboxImage.altText ??
-                      `${mobileLightboxImage.altLabel ?? "Gallery"} photo ${mobileLightbox.index + 1} of ${mobileLightbox.images.length}`
-                    }
-                  />
-                </div>
-              </div>
+                      <div
+                        className={isMobileLandscape ? "w-full h-full" : undefined}
+                        style={{ transformOrigin: "center" }}
+                      >
+                        <AdvancedImage
+                          cldImg={img.cldImg}
+                          className={
+                            isMobileLandscape
+                              ? "block w-full h-full max-w-none max-h-none object-contain"
+                              : "block max-w-[92vw] max-h-[80vh] object-contain"
+                          }
+                          alt={slideAlt}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
+
           </div>
         )}
       </div>

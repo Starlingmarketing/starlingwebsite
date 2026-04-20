@@ -311,6 +311,20 @@ nav[data-menu-open] [data-nav-bg] {
     pointer-events: none !important;
   }
 
+  /* Mobile lightbox: fully hide the entire navbar */
+  [data-lightbox-open] nav [data-nav-toggle],
+  [data-lightbox-open] nav [data-nav-logo-link] {
+    opacity: 0 !important;
+    pointer-events: none !important;
+    visibility: hidden !important;
+  }
+
+  [data-lightbox-open] nav,
+  [data-lightbox-open] [data-nav-bg] {
+    transition: none !important;
+    pointer-events: none !important;
+  }
+
   /* Keep swipe gestures from ever triggering page/URL bar scroll. */
   [data-starling-lightbox] {
     touch-action: none;
