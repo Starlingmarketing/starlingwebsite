@@ -1,8 +1,50 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { getPublicRouteEntries } from '../src/seo/routeMeta.js';
-import { DEFAULT_OG_IMAGE, DEFAULT_OG_IMAGE_ALT, SITE_URL } from '../src/seo/siteConfig.js';
+
+// Load .env before importing siteConfig so VITE_* vars (cloud name, site URL)
+// are available to the sitemap generator. Vercel/CI environments provide
+// these via real env vars, so the file is optional.
+const __preFilename = fileURLToPath(import.meta.url);
+const __preDirname = path.dirname(__preFilename);
+const __preProjectRoot = path.resolve(__preDirname, '..');
+try {
+  const dotenvContent = await readFile(
+    path.join(__preProjectRoot, '.env'),
+    'utf8',
+  );
+  for (const line of dotenvContent.split(/\r?\n/)) {
+    const match = line.match(/^\s*([A-Z_][A-Z0-9_]*)\s*=\s*(.*?)\s*$/i);
+    if (!match) continue;
+    const [, key, rawValue] = match;
+    if (process.env[key]) continue;
+    process.env[key] = rawValue.replace(/^["']|["']$/g, '');
+  }
+} catch {
+  // .env not present — rely on real environment variables.
+}
+
+const { getPublicRouteEntries } = await import('../src/seo/routeMeta.js');
+const {
+  CLOUDINARY_CLOUD_NAME,
+  DEFAULT_OG_IMAGE,
+  DEFAULT_OG_IMAGE_ALT,
+  SITE_URL,
+} = await import('../src/seo/siteConfig.js');
+
+// Public Cloudinary URL for a fixed wide-crop version of a given asset ID.
+// Matches the transform used by DEFAULT_OG_IMAGE so the crawler always
+// receives a stable, landscape 1200x630 rendition.
+const buildCloudinaryUrl = (publicId) =>
+  `https://res.cloudinary.com/${CLOUDINARY_CLOUD_NAME}/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/${publicId}`;
+
+const makeHomeImage = (publicId, caption) => ({
+  loc: buildCloudinaryUrl(publicId),
+  caption,
+  title: `${caption} — Starling Photo Studios, Washington, DC photographer`,
+  geoLocation: 'Washington, District of Columbia, United States',
+  license: `${SITE_URL}/booking`,
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -30,6 +72,50 @@ const ROUTE_IMAGES = {
       geoLocation: 'Washington, District of Columbia, United States',
       license: `${SITE_URL}/booking`,
     },
+    makeHomeImage(
+      '2021-12-01_fj6dqk',
+      'Washington DC wedding photographer — couple portrait by Starling Photo Studios',
+    ),
+    makeHomeImage(
+      'Image_1_iz7lk8',
+      'Washington DC editorial photographer — portrait session in the DMV',
+    ),
+    makeHomeImage(
+      'AF1I1454_vcc77d',
+      'DC wedding photographer — candid portrait by Starling Photo Studios',
+    ),
+    makeHomeImage(
+      'AF1I2158_bkkjlo',
+      'Washington DC event and wedding photographer — Starling Photo Studios',
+    ),
+    makeHomeImage(
+      'Smith_Wedding_Edits_-_0001_of_0176_gu376e',
+      'Smith Wedding — Washington DC–area wedding photographer in Chesapeake City, Maryland',
+    ),
+    makeHomeImage(
+      'Smith_Wedding_Edits_-_0005_of_0176_hiaytz',
+      'Smith Wedding candid — DC / DMV wedding photography',
+    ),
+    makeHomeImage(
+      '0006__DSC3027-topaz-denoise-denoise_DxO_tpqmmc',
+      'Makayla and Hunter Wedding at Glasbern — East Coast wedding photographer',
+    ),
+    makeHomeImage(
+      '0007__DSC3049-topaz-denoise-denoise_DxO_vh2j4m',
+      'Wedding candid at Glasbern by Starling Photo Studios, a Washington DC photographer',
+    ),
+    makeHomeImage(
+      'Thickstun_Wedding_Edits_-_001_of_053_d9jzgj',
+      'Thickstun Wedding in Flemington, NJ — East Coast wedding photographer',
+    ),
+    makeHomeImage(
+      'AF1I2242-Edit-2_cor6p9',
+      'Philadelphia portrait session — Starling Photo Studios editorial photographer',
+    ),
+    makeHomeImage(
+      'center_city_ag1h8b',
+      'Center City Philadelphia portrait — Starling Photo Studios city photographer',
+    ),
   ],
   '/about': [
     {

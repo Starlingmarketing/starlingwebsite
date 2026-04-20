@@ -157,6 +157,164 @@ export const LOCAL_KEYWORDS = [
   'elopement photographer DC',
 ];
 
+// Aggregate rating data (public — mirrors the rating/review counts
+// surfaced prominently in the UI hero and reviews panel).
+export const AGGREGATE_RATING = {
+  ratingValue: 4.8,
+  bestRating: 5,
+  worstRating: 1,
+  reviewCount: 1200,
+  ratingCount: 1200,
+};
+
+// Price range hint (Google LocalBusiness guidelines accept $, $$, $$$, $$$$).
+export const BUSINESS_PRICE_RANGE = '$$$';
+export const BUSINESS_CURRENCIES = ['USD'];
+export const BUSINESS_PAYMENT_METHODS = [
+  'Cash',
+  'Credit Card',
+  'Debit Card',
+  'Invoice',
+  'Online Transfer',
+];
+
+// Public business contact — safe to emit in schema for local SEO.
+export const BUSINESS_EMAIL = 'starlingphotostudio@gmail.com';
+
+// Operating model: photography sessions are by appointment, seven days a week.
+export const BUSINESS_OPENING_HOURS = [
+  {
+    dayOfWeek: [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ],
+    opens: '09:00',
+    closes: '20:00',
+  },
+];
+
+// Known public presence. Keep this list conservative — each entry should
+// resolve to a real, public profile so search engines can verify identity.
+export const BUSINESS_SOCIAL_LINKS = [
+  'https://www.thumbtack.com/dc/washington/wedding-and-event-photography/starling-photo-studios',
+  'https://www.weddingwire.com/biz/starling-photo-studios',
+  'https://www.instagram.com/starlingphotostudios',
+];
+
+// Founder / lead photographer. Referenced repeatedly in client reviews.
+export const BUSINESS_FOUNDER_NAME = 'Ben';
+
+// Individual testimonials (subset of what's visible on the Booking page).
+// Emitted as schema.org Review nodes for rich-result eligibility.
+export const FEATURED_REVIEWS = [
+  {
+    author: 'Daijah Davis',
+    rating: 5,
+    date: '2024-09-04',
+    body:
+      'Starling Photo Studios shot my wedding this past August. Our photographer was so amazing, he got my wedding from all angles. He also worked with my budget, which was much appreciated. I cannot thank him enough for these amazing wedding photos, delivered in a very timely manner. I would recommend.',
+  },
+  {
+    author: 'Lauren Rowe',
+    rating: 5,
+    date: '2024-06-17',
+    body:
+      'Ben was an outstanding wedding photographer — professional, kind, and patient, making our experience with him truly enjoyable. We highly recommend Ben to any couple seeking a talented photographer. His work is exceptional.',
+  },
+  {
+    author: 'Gilbert Soto',
+    rating: 5,
+    date: '2024-04-22',
+    body:
+      'Absolutely amazing personalized customer service with a true professional. Constant, open communication and willingness to work with a client at all times. I highly recommend hiring this professional and allowing him to take care of all the details.',
+  },
+  {
+    author: 'Kyle Schwab',
+    rating: 5,
+    date: '2024-05-11',
+    body:
+      "I hired Ben for my engagement proposal. Ben captured our special moment beautifully. Even after the proposal we walked around for over an hour where he took candid and staged photos of my fiancé and myself. He provided tons of pictures throughout the day.",
+  },
+  {
+    author: 'Danielle Tate',
+    rating: 5,
+    date: '2024-11-02',
+    body:
+      "I cannot recommend Starling Photo Studios enough. Their attention to detail, quality of service, and genuine care for their clients are unmatched. Everything was done efficiently and with great expertise.",
+  },
+  {
+    author: 'Nick D',
+    rating: 5,
+    date: '2024-07-09',
+    body:
+      "Ben was easy to connect with, always responded to emails quickly and the photos turned out beautifully. We would absolutely recommend Starling Photos for any wedding or party.",
+  },
+  {
+    author: 'Sarely Perez Cervantes',
+    rating: 5,
+    date: '2024-08-14',
+    body:
+      'We are so happy with the results. Pictures were just how we pictured and more. Ben was great and friendly, made us feel very comfortable, and captured the perfect pictures at the perfect moments.',
+  },
+  {
+    author: 'Chris Clore',
+    rating: 5,
+    date: '2025-02-03',
+    body:
+      'I had a 5-star experience with Starling Photo Studios. Their attention to detail and creative approach truly set them apart. Ben listened to my vision, made the session enjoyable, and delivered stunning photos that exceeded all my expectations.',
+  },
+];
+
+// Long-tail local intent — emitted as FAQPage JSON-LD for featured-snippet
+// and People-Also-Ask eligibility. No visible UI.
+export const FAQ_ENTRIES = [
+  {
+    question: 'Where is Starling Photo Studios based?',
+    answer:
+      'Starling Photo Studios is a Washington, D.C.–based photography studio serving clients throughout the DMV (Washington, D.C., Maryland, and Virginia), with a second base in Philadelphia and travel worldwide for destination work.',
+  },
+  {
+    question: 'What neighborhoods in Washington, D.C. do you photograph?',
+    answer:
+      'We regularly photograph weddings, editorial, and portrait sessions across Washington, D.C., including Georgetown, Capitol Hill, Dupont Circle, Logan Circle, The Wharf, Navy Yard, Shaw, Adams Morgan, Columbia Heights, Penn Quarter, and every other D.C. neighborhood — plus throughout Arlington, Alexandria, Bethesda, and the rest of the DMV.',
+  },
+  {
+    question:
+      'How do I book a Washington, D.C. photographer with Starling Photo Studios?',
+    answer:
+      'You can submit an inquiry on our booking page. Share your event date, location, and project details and we will respond with availability and a tailored quote for weddings, editorial, portrait, and commercial photography in Washington, D.C. and beyond.',
+  },
+  {
+    question:
+      'What photography services does Starling Photo Studios offer in D.C.?',
+    answer:
+      'We offer wedding photography, editorial photography, lifestyle photography, portrait photography, and commercial photography in Washington, D.C. and the surrounding DMV. Engagement sessions, elopements, and documentary-style wedding coverage are all available.',
+  },
+  {
+    question:
+      'Do you travel outside of Washington, D.C. for weddings and editorial shoots?',
+    answer:
+      'Yes. While our base is in Washington, D.C., we regularly travel across the DMV, to Philadelphia, throughout the East Coast, and worldwide for destination weddings, editorial campaigns, and commercial projects.',
+  },
+  {
+    question:
+      'How much does a Washington, D.C. wedding photographer cost with Starling?',
+    answer:
+      'Wedding photography investment with Starling Photo Studios varies by scope, hours, and coverage needed. Most Washington, D.C. wedding collections fall in a premium tier, and we are happy to share a tailored quote once we learn about your date, venue, and vision through our booking form.',
+  },
+  {
+    question:
+      'Do you photograph engagements and elopements in Washington, D.C.?',
+    answer:
+      'Absolutely. We offer engagement sessions and elopement photography across Washington, D.C. — from the Tidal Basin and Lincoln Memorial to Meridian Hill Park, Rock Creek Park, Georgetown, and private venues throughout the city.',
+  },
+];
+
 export const buildSiteUrl = (pathname = '/') => {
   const normalizedPath =
     pathname === '/'

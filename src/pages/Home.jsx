@@ -33,11 +33,11 @@ const HERO_IMAGE_IDS = [
 ];
 
 const HERO_IMAGE_ALTS = [
-  "Editorial portrait portfolio image by Starling Photography",
-  "Wedding portrait portfolio image by Starling Photography",
-  "Lifestyle portfolio image by Starling Photography",
-  "Bride and groom portrait portfolio image by Starling Photography",
-  "Event portrait portfolio image by Starling Photography",
+  "Washington DC editorial portrait by Starling Photo Studios, a Washington DC photographer",
+  "Washington DC wedding photographer — bride and groom portrait in the DMV",
+  "Washington DC lifestyle photography session by Starling Photo Studios",
+  "Washington DC wedding portrait photographer capturing couples in the DMV and Philadelphia",
+  "Washington DC event and editorial portrait photographer — Starling Photo Studios",
 ];
 
 const WEDDING_1_IMAGE_IDS = [
@@ -6169,8 +6169,9 @@ const Home = () => {
                   </div>
                   <div className="contents md:flex md:flex-col md:flex-1 md:w-full text-left">
                     <h1 className="sr-only">
-                      Washington, D.C. Photographer | Wedding, Editorial,
-                      Conference
+                      Photographer in Washington, DC — Wedding, Editorial,
+                      Portrait, and Commercial Photography by Starling Photo
+                      Studios, serving the DMV, Philadelphia, and worldwide.
                     </h1>
                     <div
                       aria-hidden="true"

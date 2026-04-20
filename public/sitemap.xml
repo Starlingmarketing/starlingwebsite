@@ -12,9 +12,86 @@
     <xhtml:link rel="alternate" hreflang="en-us" href="https://www.starlingphotostudios.com" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://www.starlingphotostudios.com" />
     <image:image>
-      <image:loc>https://res.cloudinary.com/demo/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I0729_catszb</image:loc>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I0729_catszb</image:loc>
       <image:title>Starling Photo Studios — Washington, D.C. portfolio feature image</image:title>
       <image:caption>Featured wedding and editorial work by Starling Photo Studios, a Washington, D.C. photography studio</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/2021-12-01_fj6dqk</image:loc>
+      <image:title>Washington DC wedding photographer — couple portrait by Starling Photo Studios — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Washington DC wedding photographer — couple portrait by Starling Photo Studios</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/Image_1_iz7lk8</image:loc>
+      <image:title>Washington DC editorial photographer — portrait session in the DMV — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Washington DC editorial photographer — portrait session in the DMV</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I1454_vcc77d</image:loc>
+      <image:title>DC wedding photographer — candid portrait by Starling Photo Studios — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>DC wedding photographer — candid portrait by Starling Photo Studios</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I2158_bkkjlo</image:loc>
+      <image:title>Washington DC event and wedding photographer — Starling Photo Studios — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Washington DC event and wedding photographer — Starling Photo Studios</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/Smith_Wedding_Edits_-_0001_of_0176_gu376e</image:loc>
+      <image:title>Smith Wedding — Washington DC–area wedding photographer in Chesapeake City, Maryland — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Smith Wedding — Washington DC–area wedding photographer in Chesapeake City, Maryland</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/Smith_Wedding_Edits_-_0005_of_0176_hiaytz</image:loc>
+      <image:title>Smith Wedding candid — DC / DMV wedding photography — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Smith Wedding candid — DC / DMV wedding photography</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/0006__DSC3027-topaz-denoise-denoise_DxO_tpqmmc</image:loc>
+      <image:title>Makayla and Hunter Wedding at Glasbern — East Coast wedding photographer — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Makayla and Hunter Wedding at Glasbern — East Coast wedding photographer</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/0007__DSC3049-topaz-denoise-denoise_DxO_vh2j4m</image:loc>
+      <image:title>Wedding candid at Glasbern by Starling Photo Studios, a Washington DC photographer — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Wedding candid at Glasbern by Starling Photo Studios, a Washington DC photographer</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/Thickstun_Wedding_Edits_-_001_of_053_d9jzgj</image:loc>
+      <image:title>Thickstun Wedding in Flemington, NJ — East Coast wedding photographer — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Thickstun Wedding in Flemington, NJ — East Coast wedding photographer</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I2242-Edit-2_cor6p9</image:loc>
+      <image:title>Philadelphia portrait session — Starling Photo Studios editorial photographer — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Philadelphia portrait session — Starling Photo Studios editorial photographer</image:caption>
+      <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
+      <image:license>https://www.starlingphotostudios.com/booking</image:license>
+    </image:image>
+    <image:image>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/center_city_ag1h8b</image:loc>
+      <image:title>Center City Philadelphia portrait — Starling Photo Studios city photographer — Starling Photo Studios, Washington, DC photographer</image:title>
+      <image:caption>Center City Philadelphia portrait — Starling Photo Studios city photographer</image:caption>
       <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
       <image:license>https://www.starlingphotostudios.com/booking</image:license>
     </image:image>
@@ -27,7 +104,7 @@
     <xhtml:link rel="alternate" hreflang="en-us" href="https://www.starlingphotostudios.com/about" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://www.starlingphotostudios.com/about" />
     <image:image>
-      <image:loc>https://res.cloudinary.com/demo/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I0729_catszb</image:loc>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I0729_catszb</image:loc>
       <image:title>Starling Photo Studios — Washington, D.C. photographers</image:title>
       <image:caption>About Starling Photo Studios, a Washington, D.C. photography studio</image:caption>
       <image:geo_location>Washington, District of Columbia, United States</image:geo_location>
@@ -42,7 +119,7 @@
     <xhtml:link rel="alternate" hreflang="en-us" href="https://www.starlingphotostudios.com/booking" />
     <xhtml:link rel="alternate" hreflang="x-default" href="https://www.starlingphotostudios.com/booking" />
     <image:image>
-      <image:loc>https://res.cloudinary.com/demo/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I0729_catszb</image:loc>
+      <image:loc>https://res.cloudinary.com/dwwx01u1h/image/upload/c_fill,f_auto,g_auto,h_630,q_auto,w_1200/AF1I0729_catszb</image:loc>
       <image:title>Book a Washington, D.C. photographer with Starling Photo Studios</image:title>
       <image:caption>Book Starling Photo Studios, a Washington, D.C. photography studio</image:caption>
       <image:geo_location>Washington, District of Columbia, United States</image:geo_location>

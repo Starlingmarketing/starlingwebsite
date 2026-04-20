@@ -1,18 +1,28 @@
 import {
+  AGGREGATE_RATING,
   AREA_SERVED,
   BUSINESS_ALT_NAME,
   BUSINESS_COUNTRY,
   BUSINESS_COUNTRY_NAME,
+  BUSINESS_CURRENCIES,
   BUSINESS_DESCRIPTION,
+  BUSINESS_EMAIL,
+  BUSINESS_FOUNDER_NAME,
   BUSINESS_GEO,
   BUSINESS_LOCALITY,
   BUSINESS_NAME,
+  BUSINESS_OPENING_HOURS,
+  BUSINESS_PAYMENT_METHODS,
+  BUSINESS_PRICE_RANGE,
   BUSINESS_REGION,
   BUSINESS_REGION_NAME,
+  BUSINESS_SOCIAL_LINKS,
   DC_NEIGHBORHOODS,
   DEFAULT_OG_IMAGE,
   DEFAULT_OG_IMAGE_ALT,
   DMV_CITIES,
+  FAQ_ENTRIES,
+  FEATURED_REVIEWS,
   LOCAL_KEYWORDS,
   SERVICE_TYPES,
   SITE_NAME,
@@ -26,6 +36,97 @@ const BUSINESS_ID = `${buildSiteUrl('/')}#business`;
 const ORGANIZATION_ID = `${buildSiteUrl('/')}#organization`;
 const WEBSITE_ID = `${buildSiteUrl('/')}#website`;
 const PRIMARY_PLACE_ID = `${buildSiteUrl('/')}#washington-dc`;
+const FOUNDER_ID = `${buildSiteUrl('/')}#founder`;
+const FAQ_ID = `${buildSiteUrl('/')}#faq`;
+const AGGREGATE_RATING_ID = `${buildSiteUrl('/')}#aggregate-rating`;
+
+const getAggregateRatingSchema = () => ({
+  '@type': 'AggregateRating',
+  '@id': AGGREGATE_RATING_ID,
+  ratingValue: AGGREGATE_RATING.ratingValue,
+  bestRating: AGGREGATE_RATING.bestRating,
+  worstRating: AGGREGATE_RATING.worstRating,
+  reviewCount: AGGREGATE_RATING.reviewCount,
+  ratingCount: AGGREGATE_RATING.ratingCount,
+  itemReviewed: { '@id': BUSINESS_ID },
+});
+
+const getReviewSchemas = () =>
+  FEATURED_REVIEWS.map((review, index) => ({
+    '@type': 'Review',
+    '@id': `${buildSiteUrl('/')}#review-${index + 1}`,
+    author: { '@type': 'Person', name: review.author },
+    datePublished: review.date,
+    reviewBody: review.body,
+    reviewRating: {
+      '@type': 'Rating',
+      ratingValue: review.rating,
+      bestRating: 5,
+      worstRating: 1,
+    },
+    itemReviewed: { '@id': BUSINESS_ID },
+    publisher: { '@id': ORGANIZATION_ID },
+  }));
+
+const getOpeningHoursSchema = () =>
+  BUSINESS_OPENING_HOURS.map((entry) => ({
+    '@type': 'OpeningHoursSpecification',
+    dayOfWeek: entry.dayOfWeek.map(
+      (day) => `https://schema.org/${day}`,
+    ),
+    opens: entry.opens,
+    closes: entry.closes,
+  }));
+
+const getContactPointSchema = () => ({
+  '@type': 'ContactPoint',
+  contactType: 'Customer Service',
+  email: BUSINESS_EMAIL,
+  areaServed: [BUSINESS_COUNTRY, 'Worldwide'],
+  availableLanguage: ['English'],
+});
+
+const getFounderSchema = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  '@id': FOUNDER_ID,
+  name: BUSINESS_FOUNDER_NAME,
+  jobTitle: 'Lead Photographer',
+  worksFor: { '@id': BUSINESS_ID },
+  affiliation: { '@id': ORGANIZATION_ID },
+  knowsAbout: [
+    'Wedding Photography',
+    'Editorial Photography',
+    'Portrait Photography',
+    'Commercial Photography',
+    'Washington D.C. Wedding Venues',
+  ],
+  address: getPostalAddressPlaceholder(),
+});
+
+// hoisted placeholder — actual function defined below; avoids forward-ref lint.
+function getPostalAddressPlaceholder() {
+  return {
+    '@type': 'PostalAddress',
+    addressLocality: BUSINESS_LOCALITY,
+    addressRegion: BUSINESS_REGION,
+    addressCountry: BUSINESS_COUNTRY,
+  };
+}
+
+const getFaqSchema = () => ({
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  '@id': FAQ_ID,
+  mainEntity: FAQ_ENTRIES.map((entry) => ({
+    '@type': 'Question',
+    name: entry.question,
+    acceptedAnswer: {
+      '@type': 'Answer',
+      text: entry.answer,
+    },
+  })),
+});
 
 const getPostalAddress = () => ({
   '@type': 'PostalAddress',
@@ -180,8 +281,12 @@ const getOrganizationSchema = () => ({
   logo: DEFAULT_OG_IMAGE,
   image: DEFAULT_OG_IMAGE,
   description: BUSINESS_DESCRIPTION,
+  email: BUSINESS_EMAIL,
   address: getPostalAddress(),
   areaServed: getFullAreaServed(),
+  contactPoint: getContactPointSchema(),
+  sameAs: BUSINESS_SOCIAL_LINKS,
+  founder: { '@id': FOUNDER_ID },
   knowsAbout: [
     'Wedding Photography',
     'Editorial Photography',
@@ -209,7 +314,16 @@ const getBusinessSchema = () => ({
   image: DEFAULT_OG_IMAGE,
   logo: DEFAULT_OG_IMAGE,
   url: buildSiteUrl('/'),
+  email: BUSINESS_EMAIL,
+  priceRange: BUSINESS_PRICE_RANGE,
+  currenciesAccepted: BUSINESS_CURRENCIES.join(', '),
+  paymentAccepted: BUSINESS_PAYMENT_METHODS.join(', '),
+  openingHoursSpecification: getOpeningHoursSchema(),
+  sameAs: BUSINESS_SOCIAL_LINKS,
+  contactPoint: getContactPointSchema(),
   parentOrganization: { '@id': ORGANIZATION_ID },
+  founder: { '@id': FOUNDER_ID },
+  employee: [{ '@id': FOUNDER_ID }],
   address: getPostalAddress(),
   geo: getGeoCoordinates(),
   hasMap: `https://www.google.com/maps/place/Washington,+DC/@${BUSINESS_GEO.latitude},${BUSINESS_GEO.longitude}`,
@@ -221,6 +335,8 @@ const getBusinessSchema = () => ({
     itemOffered: service,
   })),
   hasOfferCatalog: { '@id': `${buildSiteUrl('/')}#services` },
+  aggregateRating: getAggregateRatingSchema(),
+  review: getReviewSchemas(),
   knowsAbout: AREA_SERVED,
   slogan: 'Washington, D.C. wedding, editorial, and lifestyle photography.',
   keywords: LOCAL_KEYWORDS.join(', '),
@@ -282,16 +398,18 @@ const getCommonSchemas = () => [
   getOrganizationSchema(),
   getBusinessSchema(),
   getOfferCatalogSchema(),
+  getFounderSchema(),
   getPrimaryImageSchema(),
   getPrimaryPlaceSchema(),
+  getFaqSchema(),
 ];
 
 const ROUTE_DEFINITIONS = {
   '/': {
     title:
-      'Washington, D.C. Photographer | Wedding, Editorial & Portrait | Starling Photo Studios',
+      'Photographer in Washington, DC | Wedding, Editorial & Portrait — Starling Photo Studios',
     description:
-      'Starling Photo Studios is a Washington, D.C. photography studio creating wedding, editorial, portrait, and lifestyle work for clients across the DMV, Philadelphia, and beyond.',
+      'Photographer in Washington, DC — Starling Photo Studios is a Washington, D.C. photography studio creating wedding, editorial, portrait, and lifestyle work for clients across the DMV, Philadelphia, and beyond.',
     readySelector: '#home-page',
     socialImage: DEFAULT_OG_IMAGE,
     socialImageAlt: DEFAULT_OG_IMAGE_ALT,
@@ -300,13 +418,14 @@ const ROUTE_DEFINITIONS = {
       getWebsiteSchema(),
       ...getCommonSchemas(),
       getWebPageSchema({ pathname, title, description }),
+      getBreadcrumbSchema([{ name: 'Home', path: '/' }]),
     ],
   },
   '/about': {
     title:
-      'About Starling Photo Studios | Washington, D.C. Wedding & Editorial Photographer',
+      'About Starling Photo Studios | Photographer in Washington, DC — Wedding & Editorial',
     description:
-      'Meet the Washington, D.C. photography studio behind Starling — a collaborative team shooting weddings, editorial, portraits, and commercial work across the DMV, Philadelphia, and worldwide.',
+      'Meet the Washington, DC photographer behind Starling Photo Studios — a collaborative team shooting weddings, editorial, portraits, and commercial work across the DMV, Philadelphia, and worldwide.',
     readySelector: '#about-page',
     socialImage: DEFAULT_OG_IMAGE,
     socialImageAlt: 'About Starling Photo Studios, a Washington, D.C. photography studio',
@@ -328,9 +447,9 @@ const ROUTE_DEFINITIONS = {
   },
   '/booking': {
     title:
-      'Book a Washington, D.C. Photographer | Starling Photo Studios',
+      'Book a Photographer in Washington, DC | Starling Photo Studios',
     description:
-      'Book a Washington, D.C. photographer for weddings, editorial, portrait, and commercial sessions. Inquire with Starling Photo Studios for dates in the DMV, Philadelphia, and beyond.',
+      'Book a photographer in Washington, DC for weddings, engagements, editorial, portrait, and commercial sessions. Inquire with Starling Photo Studios for dates across the DMV, Philadelphia, and worldwide.',
     readySelector: '#booking-page',
     socialImage: DEFAULT_OG_IMAGE,
     socialImageAlt: 'Book Starling Photo Studios, a Washington, D.C. photography studio',
