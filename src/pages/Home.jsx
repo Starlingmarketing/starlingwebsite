@@ -1230,10 +1230,13 @@ const Home = () => {
     startTime: 0,
     lastX: 0,
     lastTime: 0,
+    velocity: 0,
     horizontal: null,
     width: 0,
   });
   const mobileLightboxJustSwipedRef = useRef(false);
+  const mobileLightboxRootRef = useRef(null);
+  const mobileLightboxClosingRef = useRef(false);
   const mobileLightboxImage =
     mobileLightbox?.images?.[mobileLightbox.index] ?? null;
 
@@ -2889,8 +2892,62 @@ const Home = () => {
   );
 
   const closeMobileLightbox = useCallback(() => {
+    if (mobileLightboxClosingRef.current) return;
     mobileLightboxTouchStartRef.current = null;
-    setMobileLightbox(null);
+
+    const root = mobileLightboxRootRef.current;
+    const track = mobileLightboxTrackRef.current;
+
+    const finalize = () => {
+      mobileLightboxClosingRef.current = false;
+      setMobileLightbox(null);
+    };
+
+    if (
+      !root ||
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches
+    ) {
+      finalize();
+      return;
+    }
+
+    if (track) gsap.killTweensOf(track);
+    const backdrop = root.querySelector("[data-mlb-backdrop]");
+    const overlay = root.querySelector("[data-mlb-overlay]");
+
+    mobileLightboxClosingRef.current = true;
+
+    const tl = gsap.timeline({ onComplete: finalize });
+
+    if (track) {
+      tl.to(
+        track,
+        {
+          scale: 0.94,
+          opacity: 0,
+          duration: 0.34,
+          ease: "cubic-bezier(0.32, 0.72, 0, 1)",
+          transformOrigin: "center center",
+        },
+        0,
+      );
+    }
+
+    if (overlay) {
+      tl.to(
+        overlay,
+        { opacity: 0, duration: 0.22, ease: "power2.out" },
+        0,
+      );
+    }
+
+    if (backdrop) {
+      tl.to(
+        backdrop,
+        { opacity: 0, duration: 0.36, ease: "power2.out" },
+        0.04,
+      );
+    }
   }, []);
 
   const navigateMobileLightbox = useCallback((direction) => {
@@ -3041,6 +3098,7 @@ const Home = () => {
       drag.startTime = now;
       drag.lastX = touch.clientX;
       drag.lastTime = now;
+      drag.velocity = 0;
       drag.horizontal = null;
       drag.width = window.innerWidth;
 
@@ -3074,8 +3132,15 @@ const Home = () => {
 
       if (!drag.horizontal) return;
 
+      const now = Date.now();
+      const dt = now - drag.lastTime;
+      if (dt > 0 && dt < 100) {
+        // exponential smoothing keeps a touch of stability without diluting flicks
+        const instant = (touch.clientX - drag.lastX) / dt;
+        drag.velocity = drag.velocity * 0.3 + instant * 0.7;
+      }
       drag.lastX = touch.clientX;
-      drag.lastTime = Date.now();
+      drag.lastTime = now;
 
       const idx = mobileLightbox.index;
       const total = mobileLightbox.images.length;
@@ -3122,23 +3187,38 @@ const Home = () => {
       }
 
       const W = drag.width || window.innerWidth;
-      const dt = Date.now() - drag.startTime;
-      const velocity = dt > 0 ? totalDx / dt : 0; // px per ms
+      // Use the recent (last-frame, smoothed) velocity for flick detection.
+      // If the touch ended >80ms after last move (held still), the flick is dead.
+      const sinceLastMove = Date.now() - drag.lastTime;
+      const recentVelocity = sinceLastMove > 80 ? 0 : drag.velocity;
       const idx = mobileLightbox.index;
       const total = mobileLightbox.images.length;
 
       let direction = 0;
-      if ((totalDx < -W * 0.22 || velocity < -0.45) && idx < total - 1) {
+      if (
+        (totalDx < -W * 0.18 || recentVelocity < -0.28) &&
+        idx < total - 1
+      ) {
         direction = 1;
-      } else if ((totalDx > W * 0.22 || velocity > 0.45) && idx > 0) {
+      } else if (
+        (totalDx > W * 0.18 || recentVelocity > 0.28) &&
+        idx > 0
+      ) {
         direction = -1;
       }
 
       const targetX = direction === 0 ? 0 : -direction * W;
+      // Speed up the animation when a hard flick is in progress so it feels
+      // responsive; slower for a passive release-back-to-center.
+      const speed = Math.min(Math.abs(recentVelocity), 1.5);
+      const duration =
+        direction === 0
+          ? 0.36
+          : Math.max(0.22, 0.42 - speed * 0.12);
 
       gsap.to(mobileLightboxTrackRef.current, {
         x: targetX,
-        duration: 0.42,
+        duration,
         ease: "cubic-bezier(0.32, 0.72, 0, 1)",
         onComplete: () => {
           if (direction === 0) return;
@@ -6697,6 +6777,7 @@ const Home = () => {
 
         {mobileLightbox && mobileLightboxImage && (
           <div
+            ref={mobileLightboxRootRef}
             className="fixed inset-0 z-50"
             data-starling-mobile-lightbox
             role="dialog"
@@ -6704,6 +6785,7 @@ const Home = () => {
             aria-label="Gallery lightbox"
           >
             <div
+              data-mlb-backdrop
               className="absolute inset-0 overflow-hidden bg-black"
               style={
                 isMobileLandscape
@@ -6714,18 +6796,26 @@ const Home = () => {
             >
               {!isMobileLandscape && (
                 <>
-                  <AdvancedImage
-                    key={`mlb-ambient-${mobileLightbox.index}`}
-                    cldImg={mobileLightboxImage.cldImg}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{
-                      filter: "blur(80px) brightness(0.58) saturate(1.4)",
-                      transform: "scale(1.25)",
-                      transformOrigin: "center",
-                      animation: "lightboxIn 700ms ease-out both",
-                    }}
-                    alt=""
-                  />
+                  {mobileLightbox.images.map((img, i) => {
+                    const distance = i - mobileLightbox.index;
+                    if (Math.abs(distance) > 1) return null;
+                    return (
+                      <AdvancedImage
+                        key={`mlb-ambient-${img.id ?? i}`}
+                        cldImg={img.cldImg}
+                        className="absolute inset-0 w-full h-full object-cover transition-opacity ease-out pointer-events-none"
+                        style={{
+                          opacity: distance === 0 ? 1 : 0,
+                          transitionDuration: "520ms",
+                          filter: "blur(80px) brightness(0.58) saturate(1.4)",
+                          transform: "scale(1.25)",
+                          transformOrigin: "center",
+                          willChange: "opacity",
+                        }}
+                        alt=""
+                      />
+                    );
+                  })}
                   <div
                     aria-hidden="true"
                     className="absolute inset-0"
@@ -6738,7 +6828,10 @@ const Home = () => {
               )}
             </div>
 
-            <div className="pointer-events-none absolute inset-0 z-20">
+            <div
+              data-mlb-overlay
+              className="pointer-events-none absolute inset-0 z-20"
+            >
               {isMobileLandscape ? (
                 <button
                   type="button"
