@@ -5836,13 +5836,13 @@ const Home = () => {
                     </h1>
                     <div
                       aria-hidden="true"
-                      className="hero-headline hero-intro-item order-1 md:order-none font-serif uppercase md:normal-case text-[44px] md:text-[54px] lg:text-[62px] text-[#18181B] leading-[1.15] md:leading-[1.02] tracking-normal mb-6 md:mb-5"
+                      className="hero-headline hero-intro-item order-1 md:order-none font-serif font-light uppercase md:normal-case text-[32px] md:text-[42px] lg:text-[50px] text-[#18181B] leading-[1.15] md:leading-[1.02] tracking-normal mb-6 md:mb-5 md:pl-4"
                     >
                       <div className="hero-text-line whitespace-nowrap">
-                        Unscripted Moments.
+                        Your story is <em>timeless</em>,
                       </div>
                       <div className="hero-text-line whitespace-nowrap">
-                        Unforgettable Memories.
+                        Your photos should be <em>too</em>.
                       </div>
                     </div>
                     <div className="order-3 md:order-none w-full max-w-[386px] mx-auto md:flex md:flex-col md:flex-1">
