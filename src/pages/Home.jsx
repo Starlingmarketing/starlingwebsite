@@ -1013,6 +1013,51 @@ const Home = () => {
   const [quoteForm, setQuoteForm] = useState({ phone: "" });
   const [quoteStatus, setQuoteStatus] = useState("idle");
   const [showStickyReachOut, setShowStickyReachOut] = useState(false);
+  const [showScrollHint, setShowScrollHint] = useState(false);
+  const scrollHintDismissedRef = useRef(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+    if (window.scrollY > 80) {
+      scrollHintDismissedRef.current = true;
+      return undefined;
+    }
+
+    const DISMISS_THRESHOLD = 400;
+
+    const onScroll = () => {
+      if (window.scrollY > DISMISS_THRESHOLD) {
+        scrollHintDismissedRef.current = true;
+        setShowScrollHint(false);
+      }
+    };
+
+    const timer = window.setTimeout(() => {
+      if (!scrollHintDismissedRef.current && window.scrollY < 80) {
+        setShowScrollHint(true);
+      }
+    }, 13000);
+
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener("scroll", onScroll);
+    };
+  }, []);
+
+  const handleScrollHintClick = useCallback(() => {
+    scrollHintDismissedRef.current = true;
+    setShowScrollHint(false);
+    const target =
+      document.getElementById("home-selected") ||
+      document.getElementById("home-featured");
+    if (!target) return;
+    if (lenis) {
+      lenis.scrollTo(target, { duration: 1.6, offset: -80 });
+    } else {
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [lenis]);
 
   const closeQuoteModal = useCallback((isSlow = false) => {
     setIsClosingQuoteModal(isSlow ? "slow" : "fast");
@@ -5672,6 +5717,37 @@ const Home = () => {
             strokeWidth={1.5}
             className="group-hover:translate-x-1 transition-transform duration-300"
           />
+        </button>
+      </div>
+      <div
+        className={[
+          "fixed inset-x-0 z-40 flex justify-center transition-[opacity,transform] duration-700 ease-out",
+          showScrollHint && !showQuoteModal
+            ? "opacity-100 translate-y-0 pointer-events-auto"
+            : "opacity-0 translate-y-4 pointer-events-none",
+        ].join(" ")}
+        style={{ bottom: "calc(env(safe-area-inset-bottom) + 24px)" }}
+      >
+        <button
+          type="button"
+          onClick={handleScrollHintClick}
+          aria-label="Scroll to view galleries"
+          className="group inline-flex items-center gap-2.5 pl-4 pr-3 py-2 bg-white/80 backdrop-blur-md border border-slate-200/70 text-slate-600 rounded-full text-[11px] uppercase tracking-[0.25em] font-light hover:bg-white hover:text-slate-900 transition-all duration-300"
+        >
+          <span>View galleries</span>
+          <svg
+            className="w-3 h-3 animate-bounce"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.5}
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M19 9l-7 7-7-7"
+            />
+          </svg>
         </button>
       </div>
       <div className="relative z-10">
