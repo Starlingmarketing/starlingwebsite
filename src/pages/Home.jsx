@@ -5059,32 +5059,57 @@ const Home = () => {
       if (introPanel) {
         introTimeline.fromTo(
           introPanel,
-          { opacity: 0, y: 22, scale: 0.99 },
+          { opacity: 0, y: 34, scale: 0.975, filter: "blur(8px)" },
           {
             opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.58,
-            ease: "power2.out",
-            clearProps: "transform,opacity",
+            filter: "blur(0px)",
+            duration: 1.3,
+            ease: "expo.out",
+            clearProps: "transform,opacity,filter",
           },
         );
       }
 
       if (introItems.length) {
-        // Keep the existing hero reveal, but let it chase the panel in slightly.
+        // Let the items chase the panel in with a slightly longer, more orchestrated cascade.
         introTimeline.fromTo(
           introItems,
-          { opacity: 0, y: 20 },
+          { opacity: 0, y: 28, filter: "blur(6px)" },
           {
             opacity: 1,
             y: 0,
-            duration: 0.7,
-            stagger: 0.08,
-            ease: "power2.out",
-            clearProps: "transform",
+            filter: "blur(0px)",
+            duration: 1.1,
+            stagger: 0.14,
+            ease: "expo.out",
+            clearProps: "transform,filter",
           },
-          introPanel ? "-=0.52" : 0,
+          introPanel ? "-=1.0" : 0,
+        );
+      }
+
+      // Scroll-driven hero fade — mirrors the gallery card motion vocabulary
+      // (opacity / x / y / scale). Reverses smoothly when scrolling back up.
+      const heroEl = (scopeEl || document).querySelector("#home-hero");
+      if (heroEl && !prefersReducedMotion) {
+        gsap.fromTo(
+          heroEl,
+          { opacity: 1, x: 0, y: 0, scale: 1 },
+          {
+            opacity: 0,
+            x: -10,
+            y: 20,
+            scale: 0.985,
+            ease: "none",
+            scrollTrigger: {
+              trigger: heroEl,
+              start: "top top",
+              end: "bottom top",
+              scrub: 0.5,
+            },
+          },
         );
       }
 
@@ -5950,7 +5975,7 @@ const Home = () => {
                         zIndex: 0,
                         boxShadow: CARD_SHADOWS[0],
                         animation:
-                          "stackCardOut 1.6s cubic-bezier(0.4, 0, 0.2, 1) forwards",
+                          "stackCardOut 2s cubic-bezier(0.65, 0, 0.35, 1) forwards",
                       }}
                     >
                       <AdvancedImage
@@ -5975,7 +6000,7 @@ const Home = () => {
                           zIndex: pos + 1,
                           transform: `translate(${pos * stackOffsetX - leftShift}px, ${pos * -stackOffsetY}px)`,
                           transition: entranceDone
-                            ? "transform 1.8s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 1.6s ease"
+                            ? "transform 2.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 1.8s ease"
                             : "none",
                           boxShadow: CARD_SHADOWS[pos],
                           border: "0.5px solid rgba(0,0,0,0.06)",
@@ -5988,7 +6013,7 @@ const Home = () => {
                             pos === STACK_COUNT - 1 && hasInitialized
                               ? {
                                   animation:
-                                    "stackCardIn 1.6s cubic-bezier(0.16, 1, 0.3, 1) both",
+                                    "stackCardIn 2.2s cubic-bezier(0.22, 1, 0.36, 1) both",
                                 }
                               : undefined
                           }
@@ -5999,7 +6024,7 @@ const Home = () => {
                               pos === STACK_COUNT - 1
                                 ? {
                                     animation:
-                                      "heroKenBurns 12s ease-out forwards",
+                                      "heroKenBurns 18s ease-out forwards",
                                     willChange: "transform",
                                   }
                                 : undefined
